@@ -5,7 +5,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { MacroRing } from "@/components/MacroRing";
-import { Loader2, Sparkles, Utensils, Carrot } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot, Zap } from "lucide-react";
 
 export default function Index() {
   const { data: profile, isLoading } = useProfile();
