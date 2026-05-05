@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Globe, Lock, Search } from "lucide-react";
+import { ArrowLeft, Globe, Search } from "lucide-react";
 
 const COUNTRIES = [
   { flag: "🇮🇹", name: "Italy", desc: "Pasta, risotto, antipasti" },
@@ -63,19 +63,22 @@ export default function Countries() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {filtered.map((c) => (
-              <Card
+              <Link
                 key={c.name}
-                className="flex items-center justify-between rounded-2xl p-4 opacity-80"
+                to={`/plan/countries/${encodeURIComponent(c.name)}`}
+                className="block"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{c.flag}</span>
-                  <div>
-                    <div className="font-semibold">{c.name}</div>
-                    <div className="text-xs text-muted-foreground">{c.desc}</div>
+                <Card className="flex items-center justify-between rounded-2xl p-4 transition-colors hover:bg-secondary/40">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{c.flag}</span>
+                    <div>
+                      <div className="font-semibold">{c.name}</div>
+                      <div className="text-xs text-muted-foreground">{c.desc}</div>
+                    </div>
                   </div>
-                </div>
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              </Card>
+                  <span className="text-xs font-medium text-primary">Preview →</span>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
