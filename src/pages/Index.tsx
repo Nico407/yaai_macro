@@ -257,6 +257,14 @@ export default function Index() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFavoritesOpen(true)}
+              aria-label="Favorites"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <Star className="h-5 w-5" />
+            </button>
             <Link
               to="/history"
               aria-label="History"
