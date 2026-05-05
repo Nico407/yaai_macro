@@ -269,7 +269,6 @@ export default function Index() {
                     tabIndex={0}
                     onClick={() => {
                       setEditing(log);
-                      setEditGrams(String(Math.round(Number(log.total_grams))));
                     }}
                     className="cursor-pointer rounded-2xl p-4 transition-colors hover:bg-accent/40"
                   >
