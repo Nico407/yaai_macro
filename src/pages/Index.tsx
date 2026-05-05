@@ -26,7 +26,7 @@ import {
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search, Settings, Calendar, UserCog } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search, Settings, Calendar, UserCog, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +50,24 @@ export default function Index() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [favoritesQuery, setFavoritesQuery] = useState("");
+  const [togglingFav, setTogglingFav] = useState<string | null>(null);
+
+  async function toggleFavorite(r: RecipeRow) {
+    setTogglingFav(r.id);
+    const { error } = await supabase
+      .from("recipes")
+      .update({ is_favorite: !r.is_favorite })
+      .eq("id", r.id);
+    setTogglingFav(null);
+    if (error) {
+      toast.error("Couldn't update favorite", { description: error.message });
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["recipes"] });
+    toast.success(r.is_favorite ? "Removed from favorites" : "Added to favorites");
+  }
 
   async function deleteLog(id: string) {
     setDeleting(true);
@@ -239,6 +257,14 @@ export default function Index() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFavoritesOpen(true)}
+              aria-label="Favorites"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <Star className="h-5 w-5" />
+            </button>
             <Link
               to="/history"
               aria-label="History"
@@ -513,6 +539,81 @@ export default function Index() {
                     <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
                   )}
                 </button>
+              ));
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Favorites dialog */}
+      <Dialog
+        open={favoritesOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setFavoritesOpen(false);
+            setFavoritesQuery("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Favorite dishes</DialogTitle>
+            <DialogDescription>
+              Star the recipes you love so they're easy to find.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={favoritesQuery}
+              onChange={(e) => setFavoritesQuery(e.target.value)}
+              placeholder="Search recipes…"
+              className="pl-9"
+            />
+          </div>
+          <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+            {(() => {
+              const q = favoritesQuery.trim().toLowerCase();
+              const favs = recipes.filter((r) => r.is_favorite);
+              const others = recipes.filter((r) => !r.is_favorite);
+              const filterFn = (r: RecipeRow) =>
+                !q ||
+                r.name.toLowerCase().includes(q) ||
+                (r.description ?? "").toLowerCase().includes(q);
+              const list = [...favs, ...others].filter(filterFn);
+              if (list.length === 0) {
+                return (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    No recipes found.
+                  </p>
+                );
+              }
+              return list.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"
+                >
+                  <div className="min-w-0">
+                    <div className="font-semibold">{r.name}</div>
+                    {r.description && (
+                      <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                        {r.description}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleFavorite(r)}
+                    disabled={togglingFav === r.id}
+                    aria-label={r.is_favorite ? "Unfavorite" : "Favorite"}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                  >
+                    <Star
+                      className="h-5 w-5"
+                      fill={r.is_favorite ? "currentColor" : "none"}
+                    />
+                  </button>
+                </div>
               ));
             })()}
           </div>
