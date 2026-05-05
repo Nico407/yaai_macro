@@ -294,8 +294,7 @@ export default function Cookbook() {
                           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
                         />
                       </div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
-                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                           <Clock className="h-3 w-3" /> {r.cookTimeMin} min
                         </span>
@@ -303,6 +302,7 @@ export default function Cookbook() {
                           {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
                         </span>
                       </div>
+                      <div className="mt-1.5 text-xs text-muted-foreground">{r.desc}</div>
                     </div>
                     <img
                       src={r.image}
