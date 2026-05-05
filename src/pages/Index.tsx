@@ -1,15 +1,71 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useProfile } from "@/hooks/useProfile";
-import { useTodayLogs } from "@/hooks/useTodayLogs";
+import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { MacroRing } from "@/components/MacroRing";
-import { Loader2, Sparkles, Utensils, Carrot, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Trash2 } from "lucide-react";
 
 export default function Index() {
+  const qc = useQueryClient();
   const { data: profile, isLoading } = useProfile();
   const { data: logs = [] } = useTodayLogs();
+  const [editing, setEditing] = useState<MealLog | null>(null);
+  const [editGrams, setEditGrams] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function saveEdit() {
+    if (!editing) return;
+    const newGrams = parseFloat(editGrams);
+    const oldGrams = Number(editing.total_grams);
+    if (!newGrams || newGrams <= 0 || !oldGrams) return;
+    const factor = newGrams / oldGrams;
+    setBusy(true);
+    const { error } = await supabase
+      .from("meal_logs")
+      .update({
+        total_grams: newGrams,
+        kcal: Number(editing.kcal) * factor,
+        protein_g: Number(editing.protein_g) * factor,
+        carbs_g: Number(editing.carbs_g) * factor,
+        fat_g: Number(editing.fat_g) * factor,
+      })
+      .eq("id", editing.id);
+    setBusy(false);
+    if (error) {
+      toast.error("Couldn't update", { description: error.message });
+      return;
+    }
+    setEditing(null);
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
+    toast.success("Meal updated");
+  }
+
+  async function deleteLog(id: string) {
+    const { error } = await supabase.from("meal_logs").delete().eq("id", id);
+    if (error) {
+      toast.error("Couldn't delete", { description: error.message });
+      return;
+    }
+    setEditing(null);
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
+    toast.success("Meal deleted");
+  }
 
   if (isLoading) {
     return (
@@ -133,7 +189,16 @@ export default function Index() {
           ) : (
             <div className="space-y-2">
               {logs.map((l) => (
-                <Card key={l.id} className="flex items-center justify-between rounded-xl p-4">
+                <Card
+                  key={l.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setEditing(l);
+                    setEditGrams(String(Math.round(Number(l.total_grams))));
+                  }}
+                  className="flex cursor-pointer items-center justify-between rounded-xl p-4 transition-colors hover:bg-accent/40"
+                >
                   <div>
                     <div className="font-semibold">{l.recipe_name}</div>
                     <div className="text-xs text-muted-foreground">
@@ -150,6 +215,54 @@ export default function Index() {
           )}
         </section>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing?.recipe_name}</DialogTitle>
+            <DialogDescription>
+              Adjust the grams — macros scale proportionally.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="edit-grams">Total grams</Label>
+            <Input
+              id="edit-grams"
+              type="number"
+              inputMode="numeric"
+              value={editGrams}
+              onChange={(e) => setEditGrams(e.target.value)}
+            />
+            {editing && (() => {
+              const newG = parseFloat(editGrams);
+              const oldG = Number(editing.total_grams);
+              if (!newG || !oldG) return null;
+              const f = newG / oldG;
+              return (
+                <p className="text-xs text-muted-foreground">
+                  ≈ {Math.round(Number(editing.kcal) * f)} kcal · P{" "}
+                  {Math.round(Number(editing.protein_g) * f)} · C{" "}
+                  {Math.round(Number(editing.carbs_g) * f)} · F{" "}
+                  {Math.round(Number(editing.fat_g) * f)}
+                </p>
+              );
+            })()}
+          </div>
+          <DialogFooter className="flex-row justify-between sm:justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editing && deleteLog(editing.id)}
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="mr-1 h-4 w-4" /> Delete
+            </Button>
+            <Button onClick={saveEdit} disabled={busy}>
+              {busy ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
