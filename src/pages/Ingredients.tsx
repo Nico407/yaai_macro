@@ -66,6 +66,11 @@ export default function Ingredients() {
   const qc = useQueryClient();
   const { data: ingredients = [], isLoading } = useIngredients();
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const filteredIngredients = ingredients.filter((i) =>
+    i.name.toLowerCase().includes(filter.trim().toLowerCase()),
+  );
 
   const [name, setName] = useState("");
   const [protein, setProtein] = useState("");
@@ -242,27 +247,44 @@ export default function Ingredients() {
               Nothing yet. Add your first ingredient above.
             </Card>
           ) : (
-            <div className="space-y-2">
-              {ingredients.map((ing) => (
-                <Card key={ing.id} className="flex items-center justify-between gap-3 rounded-xl p-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{ing.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {Math.round(Number(ing.kcal_per_100g))} kcal · P {Number(ing.protein_per_100g)} · C{" "}
-                      {Number(ing.carbs_per_100g)} · F {Number(ing.fat_per_100g)} <span className="opacity-60">/ 100g</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(ing.id)}
-                    aria-label={`Delete ${ing.name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </Card>
-              ))}
-            </div>
+            <>
+              <div className="relative mb-3">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  placeholder="Filter your ingredients…"
+                  className="pl-9"
+                />
+              </div>
+              {filteredIngredients.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  No ingredients match "{filter}".
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {filteredIngredients.map((ing) => (
+                    <Card key={ing.id} className="flex items-center justify-between gap-3 rounded-xl p-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-semibold">{ing.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {Math.round(Number(ing.kcal_per_100g))} kcal · P {Number(ing.protein_per_100g)} · C{" "}
+                          {Number(ing.carbs_per_100g)} · F {Number(ing.fat_per_100g)} <span className="opacity-60">/ 100g</span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(ing.id)}
+                        aria-label={`Delete ${ing.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
