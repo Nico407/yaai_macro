@@ -184,15 +184,22 @@ export default function Onboarding() {
               <RadioGroup
                 value={goal}
                 onValueChange={(v) => setGoal(v as Goal)}
-                className="mt-2 grid grid-cols-3 gap-3"
+                className="mt-2 grid grid-cols-5 gap-2"
               >
-                {(["cut", "maintain", "bulk"] as Goal[]).map((g) => (
+                {([
+                  { v: "hard_cut", label: "Hard cut", hint: "-30%" },
+                  { v: "cut", label: "Cut", hint: "-20%" },
+                  { v: "maintain", label: "Maintain", hint: "0%" },
+                  { v: "bulk", label: "Bulk", hint: "+15%" },
+                  { v: "hard_bulk", label: "Hard bulk", hint: "+25%" },
+                ] as { v: Goal; label: string; hint: string }[]).map((g) => (
                   <label
-                    key={g}
-                    className="flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-input bg-background px-3 py-3 capitalize has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    key={g.v}
+                    className="flex cursor-pointer flex-col items-center gap-0.5 rounded-lg border border-input bg-background px-2 py-3 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                   >
-                    <RadioGroupItem value={g} className="sr-only" />
-                    <span className="text-sm font-medium">{g}</span>
+                    <RadioGroupItem value={g.v} className="sr-only" />
+                    <span className="text-xs font-medium leading-tight">{g.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{g.hint}</span>
                   </label>
                 ))}
               </RadioGroup>
