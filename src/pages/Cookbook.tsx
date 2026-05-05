@@ -34,12 +34,83 @@ type CookbookItem = {
   c: number;
   f: number;
   image: string;
+  cookTimeMin: number;
+  ingredients: string[];
+  instructions: string[];
 };
 
 const COOKBOOK: CookbookItem[] = [
-  { id: "cb-chicken-rice", name: "Chicken & rice bowl", desc: "Lean protein staple, easy to scale.", kcal: 520, p: 45, c: 60, f: 10, image: chickenRiceImg },
-  { id: "cb-oats-protein", name: "Protein oats", desc: "Breakfast that actually fills you up.", kcal: 430, p: 35, c: 55, f: 9, image: proteinOatsImg },
-  { id: "cb-salmon-veg", name: "Salmon & veg tray", desc: "Omega-3s, easy macros, one pan.", kcal: 580, p: 42, c: 30, f: 28, image: salmonVegImg },
+  {
+    id: "cb-chicken-rice",
+    name: "Chicken & rice bowl",
+    desc: "Lean protein staple, easy to scale.",
+    kcal: 520,
+    p: 45,
+    c: 60,
+    f: 10,
+    image: chickenRiceImg,
+    cookTimeMin: 25,
+    ingredients: [
+      "180g chicken breast",
+      "150g cooked white rice",
+      "100g broccoli florets",
+      "1 tsp olive oil",
+      "Salt, pepper, paprika",
+    ],
+    instructions: [
+      "Season chicken with salt, pepper and paprika.",
+      "Sear in olive oil over medium heat for 5–6 min per side until cooked through.",
+      "Steam broccoli for 4 minutes until bright green and tender.",
+      "Plate rice, slice chicken on top, add broccoli on the side.",
+    ],
+  },
+  {
+    id: "cb-oats-protein",
+    name: "Protein oats",
+    desc: "Breakfast that actually fills you up.",
+    kcal: 430,
+    p: 35,
+    c: 55,
+    f: 9,
+    image: proteinOatsImg,
+    cookTimeMin: 8,
+    ingredients: [
+      "60g rolled oats",
+      "250ml milk (or alt)",
+      "1 scoop whey protein (~30g)",
+      "1 tbsp peanut butter",
+      "Handful of berries",
+    ],
+    instructions: [
+      "Simmer oats with milk for 4–5 minutes, stirring.",
+      "Remove from heat and let cool 1 minute, then stir in protein powder.",
+      "Top with peanut butter and fresh berries.",
+    ],
+  },
+  {
+    id: "cb-salmon-veg",
+    name: "Salmon & veg tray",
+    desc: "Omega-3s, easy macros, one pan.",
+    kcal: 580,
+    p: 42,
+    c: 30,
+    f: 28,
+    image: salmonVegImg,
+    cookTimeMin: 30,
+    ingredients: [
+      "200g salmon fillet",
+      "200g mixed vegetables (peppers, zucchini, sweet potato)",
+      "1 tbsp olive oil",
+      "Lemon, garlic, rosemary",
+      "Salt and pepper",
+    ],
+    instructions: [
+      "Preheat oven to 200°C (400°F).",
+      "Toss vegetables with olive oil, garlic, salt and pepper on a sheet pan.",
+      "Roast for 15 minutes, then add the salmon fillet skin-side down.",
+      "Top salmon with lemon slices and rosemary, roast another 12–14 minutes.",
+    ],
+  },
 ];
 
 export default function Cookbook() {
