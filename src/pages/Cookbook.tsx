@@ -120,8 +120,8 @@ export default function Cookbook() {
         <div className="space-y-3">
           {COOKBOOK.map((r) => (
             <Card key={r.id} className="rounded-2xl p-5">
-              <div className="flex items-start gap-3">
-                <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
+              <div className="flex items-center gap-3">
+                <BookOpen className="h-4 w-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <div className="font-display text-lg font-bold">{r.name}</div>
                   <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
@@ -129,12 +129,10 @@ export default function Cookbook() {
                     {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
                   </div>
                 </div>
-              </div>
-              <div className="mt-4 flex justify-center">
                 <Button
                   size="sm"
                   onClick={() => setPicking(r)}
-                  className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                  className="shrink-0 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
                 >
                   <Plus className="mr-1 h-4 w-4" /> Add to plan
                 </Button>
