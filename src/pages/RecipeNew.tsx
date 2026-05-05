@@ -125,6 +125,7 @@ export default function RecipeNew() {
       default_serving_g: Math.round(total),
       min_total_g: Math.max(50, Math.round(total * 0.5)),
       max_total_g: Math.round(total * 3),
+      is_fixed: isFixed,
     };
 
     let recipeId = id;
