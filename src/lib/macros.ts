@@ -7,7 +7,7 @@ export type ActivityLevel =
   | "moderate"
   | "active"
   | "very_active";
-export type Goal = "cut" | "maintain" | "bulk";
+export type Goal = "hard_cut" | "cut" | "maintain" | "bulk" | "hard_bulk";
 
 export interface ProfileInput {
   age: number;
@@ -36,9 +36,11 @@ const ACTIVITY_FACTORS: Record<ActivityLevel, number> = {
 };
 
 const GOAL_ADJUSTMENT: Record<Goal, number> = {
+  hard_cut: -0.3,
   cut: -0.2,
   maintain: 0,
   bulk: 0.15,
+  hard_bulk: 0.25,
 };
 
 // Mifflin–St Jeor

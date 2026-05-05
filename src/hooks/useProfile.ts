@@ -15,7 +15,7 @@ export type Profile = {
     | "active"
     | "very_active"
     | null;
-  goal: "cut" | "maintain" | "bulk" | null;
+  goal: "hard_cut" | "cut" | "maintain" | "bulk" | "hard_bulk" | null;
   target_calories: number | null;
   target_protein_g: number | null;
   target_carbs_g: number | null;
