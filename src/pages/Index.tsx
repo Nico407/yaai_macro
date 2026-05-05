@@ -134,8 +134,8 @@ export default function Index() {
       return;
     }
     const left = calcRemaining(target, consumed);
-    const share = emptySlots > 0 ? left.kcal / emptySlots : left.kcal;
-    const rawGrams = share > 0 ? share / perGram.kcal : Number(recipe.default_serving_g);
+    // Scale this meal to fill all remaining kcal — next meals split what's left after.
+    const rawGrams = left.kcal > 0 ? left.kcal / perGram.kcal : Number(recipe.default_serving_g);
     // Loose bounds so scaling can actually fit the remaining macros (30g floor, 5kg ceiling)
     const grams = clampGrams(rawGrams || Number(recipe.default_serving_g), 30, 5000);
     const totals = macrosFor(perGram, grams);
