@@ -140,37 +140,58 @@ export default function Index() {
     // Fixed meals are not scaled — use the recipe's default batch size
     const fixedLogs = logs.filter((l) => l.is_fixed);
     const scalableLogs = logs.filter((l) => !l.is_fixed);
-    const fixedKcalUsed =
-      fixedLogs.reduce((s, l) => s + Number(l.kcal), 0) +
-      (isFixed ? perGram.kcal * Number(recipe.default_serving_g) : 0);
 
+    // Subtract fixed meals from the daily target, then split the rest evenly
+    const fixedConsumed = {
+      kcal: fixedLogs.reduce((s, l) => s + Number(l.kcal), 0) +
+        (isFixed ? perGram.kcal * Number(recipe.default_serving_g) : 0),
+      protein_g: fixedLogs.reduce((s, l) => s + Number(l.protein_g), 0) +
+        (isFixed ? perGram.protein_g * Number(recipe.default_serving_g) : 0),
+      carbs_g: fixedLogs.reduce((s, l) => s + Number(l.carbs_g), 0) +
+        (isFixed ? perGram.carbs_g * Number(recipe.default_serving_g) : 0),
+      fat_g: fixedLogs.reduce((s, l) => s + Number(l.fat_g), 0) +
+        (isFixed ? perGram.fat_g * Number(recipe.default_serving_g) : 0),
+    };
     const scalableCount = scalableLogs.length + (isFixed ? 0 : 1);
-    const remainingForScalable = Math.max(0, target.kcal - fixedKcalUsed);
-    const sharePerMeal =
-      scalableCount > 0 ? remainingForScalable / scalableCount : 0;
+    const share = {
+      kcal: Math.max(0, target.kcal - fixedConsumed.kcal) / Math.max(1, scalableCount),
+      protein_g: Math.max(0, target.protein_g - fixedConsumed.protein_g) / Math.max(1, scalableCount),
+      carbs_g: Math.max(0, target.carbs_g - fixedConsumed.carbs_g) / Math.max(1, scalableCount),
+      fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / Math.max(1, scalableCount),
+    };
 
     let grams: number;
     if (isFixed) {
       grams = Number(recipe.default_serving_g);
     } else {
-      const rawGrams = sharePerMeal > 0 ? sharePerMeal / perGram.kcal : Number(recipe.default_serving_g);
-      grams = clampGrams(rawGrams || Number(recipe.default_serving_g), 30, 5000);
+      const raw = balancedGramsForShare(perGram, share);
+      grams = clampGrams(raw || Number(recipe.default_serving_g), 30, 5000);
     }
     const totals = macrosFor(perGram, grams);
     const breakdown = ingredientBreakdown(recipe, grams);
 
     setAdding(true);
 
-    // Rescale only non-fixed existing meals
-    if (sharePerMeal > 0) {
+    // Rescale only non-fixed existing meals to their balanced share
+    if (scalableCount > 0) {
       for (const l of scalableLogs) {
+        const oldGrams = Number(l.total_grams);
         const oldKcal = Number(l.kcal);
-        if (!oldKcal) continue;
-        const factor = sharePerMeal / oldKcal;
+        if (!oldGrams || !oldKcal) continue;
+        // Reconstruct per-gram from the existing log
+        const lPerGram: PerGram = {
+          kcal: oldKcal / oldGrams,
+          protein_g: Number(l.protein_g) / oldGrams,
+          carbs_g: Number(l.carbs_g) / oldGrams,
+          fat_g: Number(l.fat_g) / oldGrams,
+        };
+        const newGramsRaw = balancedGramsForShare(lPerGram, share);
+        const newGrams = clampGrams(newGramsRaw || oldGrams, 30, 5000);
+        const factor = newGrams / oldGrams;
         const { error: upErr } = await supabase
           .from("meal_logs")
           .update({
-            total_grams: Math.round(Number(l.total_grams) * factor),
+            total_grams: Math.round(newGrams),
             kcal: Math.round(oldKcal * factor),
             protein_g: Math.round(Number(l.protein_g) * factor * 10) / 10,
             carbs_g: Math.round(Number(l.carbs_g) * factor * 10) / 10,
