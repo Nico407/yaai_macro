@@ -495,8 +495,8 @@ export default function Index() {
                     <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
                   )}
                 </button>
-              ))
-            )}
+              ));
+            })()}
           </div>
         </DialogContent>
       </Dialog>
