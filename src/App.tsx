@@ -10,6 +10,7 @@ import Recipes from "./pages/Recipes.tsx";
 import RecipeNew from "./pages/RecipeNew.tsx";
 import RecipeScale from "./pages/RecipeScale.tsx";
 import QuickLog from "./pages/QuickLog.tsx";
+import History from "./pages/History.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
