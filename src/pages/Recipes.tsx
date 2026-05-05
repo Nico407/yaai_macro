@@ -68,7 +68,7 @@ export default function Recipes() {
       const left = calcRemaining(target, consumed);
       const share = emptySlots > 0 ? left.kcal / emptySlots : left.kcal;
       const raw = share > 0 ? share / perGram.kcal : grams;
-      grams = clampGrams(raw || grams, Number(recipe.min_total_g), Number(recipe.max_total_g));
+      grams = clampGrams(raw || grams, 30, 5000);
     }
     const totals = macrosFor(perGram, grams);
     const breakdown = ingredientBreakdown(recipe, grams);
