@@ -59,6 +59,7 @@ export default function RecipeNew() {
     if (!isEdit || hydrated || !existing) return;
     setName(existing.name);
     setDescription(existing.description ?? "");
+    setInstructions(existing.instructions ?? "");
     setIsFixed(!!existing.is_fixed);
     const total = Number(existing.default_serving_g) || 0;
     setRows(
