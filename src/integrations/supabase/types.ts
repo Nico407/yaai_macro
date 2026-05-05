@@ -56,6 +56,7 @@ export type Database = {
           protein_g: number
           recipe_id: string | null
           recipe_name: string
+          slot: string | null
           total_grams: number
         }
         Insert: {
@@ -69,6 +70,7 @@ export type Database = {
           protein_g: number
           recipe_id?: string | null
           recipe_name: string
+          slot?: string | null
           total_grams: number
         }
         Update: {
@@ -82,6 +84,7 @@ export type Database = {
           protein_g?: number
           recipe_id?: string | null
           recipe_name?: string
+          slot?: string | null
           total_grams?: number
         }
         Relationships: [
