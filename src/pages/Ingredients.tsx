@@ -68,7 +68,6 @@ export default function Ingredients() {
   const [saving, setSaving] = useState(false);
 
   const [name, setName] = useState("");
-  const [kcal, setKcal] = useState("");
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
@@ -77,8 +76,16 @@ export default function Ingredients() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<OFFHit[] | null>(null);
 
+  // 4·P + 4·C + 9·F
+  const computedKcal =
+    Math.round(
+      (parseFloat(protein || "0") * 4 +
+        parseFloat(carbs || "0") * 4 +
+        parseFloat(fat || "0") * 9) * 10,
+    ) / 10;
+
   function reset() {
-    setName(""); setKcal(""); setProtein(""); setCarbs(""); setFat("");
+    setName(""); setProtein(""); setCarbs(""); setFat("");
   }
 
   async function onSearch(e: React.FormEvent) {
@@ -100,7 +107,6 @@ export default function Ingredients() {
 
   function pickResult(h: OFFHit) {
     setName(h.brand ? `${h.name} (${h.brand})` : h.name);
-    setKcal(String(Math.round(h.kcal)));
     setProtein(String(Math.round(h.protein * 10) / 10));
     setCarbs(String(Math.round(h.carbs * 10) / 10));
     setFat(String(Math.round(h.fat * 10) / 10));
@@ -111,11 +117,11 @@ export default function Ingredients() {
 
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !kcal) return;
+    if (!name.trim()) return;
     setSaving(true);
     const { error } = await supabase.from("ingredients").insert({
       name: name.trim(),
-      kcal_per_100g: parseFloat(kcal),
+      kcal_per_100g: computedKcal,
       protein_per_100g: parseFloat(protein || "0"),
       carbs_per_100g: parseFloat(carbs || "0"),
       fat_per_100g: parseFloat(fat || "0"),
