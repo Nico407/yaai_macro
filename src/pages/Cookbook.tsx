@@ -276,37 +276,91 @@ export default function Cookbook() {
               No meals match "{query}".
             </p>
           ) : (
-            filtered.map((r) => (
-              <Card key={r.id} className="rounded-2xl p-5">
-                <div className="flex items-start gap-4">
-                  <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-lg font-bold">{r.name}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
+            filtered.map((r) => {
+              const expanded = expandedId === r.id;
+              return (
+                <Card key={r.id} className="overflow-hidden rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(expanded ? null : r.id)}
+                    className="flex w-full items-start gap-4 p-5 text-left transition-colors hover:bg-secondary/40"
+                    aria-expanded={expanded}
+                  >
+                    <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="font-display text-lg font-bold">{r.name}</div>
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
+                        />
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {r.cookTimeMin} min
+                        </span>
+                        <span>
+                          {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex w-28 shrink-0 flex-col items-stretch gap-2 sm:w-32">
                     <img
                       src={r.image}
                       alt={r.name}
                       loading="lazy"
                       width={512}
                       height={512}
-                      className="aspect-square w-full rounded-xl object-cover"
+                      className="aspect-square w-28 shrink-0 rounded-xl object-cover sm:w-32"
                     />
-                    <Button
-                      size="sm"
-                      onClick={() => setPicking(r)}
-                      className="w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                    >
-                      <Plus className="mr-1 h-4 w-4" /> Add to plan
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))
+                  </button>
+
+                  {expanded && (
+                    <div className="border-t bg-secondary/20 px-5 py-5">
+                      <div className="grid gap-5 md:grid-cols-2">
+                        <div>
+                          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Ingredients
+                          </h4>
+                          <ul className="space-y-1 text-sm">
+                            {r.ingredients.map((ing, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="text-muted-foreground">•</span>
+                                <span>{ing}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Instructions
+                          </h4>
+                          <ol className="space-y-2 text-sm">
+                            {r.instructions.map((step, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="font-semibold text-primary">{i + 1}.</span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                      <div className="mt-5 flex justify-end">
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPicking(r);
+                          }}
+                          className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                        >
+                          <Plus className="mr-1 h-4 w-4" /> Add to plan
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })
           )}
         </div>
       </div>
