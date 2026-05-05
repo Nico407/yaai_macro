@@ -383,48 +383,67 @@ export default function Index() {
         )}
       </div>
 
-      {/* Edit dialog */}
+      {/* Meal details dialog (read-only) */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing?.recipe_name}</DialogTitle>
-            <DialogDescription>Adjust the grams — macros scale proportionally.</DialogDescription>
+            <DialogDescription>
+              {editing && (
+                <>
+                  {Math.round(Number(editing.total_grams))}g · {Math.round(Number(editing.kcal))} kcal · P{" "}
+                  {Math.round(Number(editing.protein_g))} · C {Math.round(Number(editing.carbs_g))} · F{" "}
+                  {Math.round(Number(editing.fat_g))}
+                </>
+              )}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="edit-grams">Total grams</Label>
-            <Input
-              id="edit-grams"
-              type="number"
-              inputMode="numeric"
-              value={editGrams}
-              onChange={(e) => setEditGrams(e.target.value)}
-            />
-            {editing && (() => {
-              const newG = parseFloat(editGrams);
-              const oldG = Number(editing.total_grams);
-              if (!newG || !oldG) return null;
-              const f = newG / oldG;
-              return (
-                <p className="text-xs text-muted-foreground">
-                  ≈ {Math.round(Number(editing.kcal) * f)} kcal · P {Math.round(Number(editing.protein_g) * f)} · C{" "}
-                  {Math.round(Number(editing.carbs_g) * f)} · F {Math.round(Number(editing.fat_g) * f)}
-                </p>
-              );
-            })()}
-          </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editing && deleteLog(editing.id)}
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="mr-1 h-4 w-4" /> Delete
-            </Button>
-            <Button onClick={saveEdit} disabled={busy}>
-              {busy ? "Saving…" : "Save"}
-            </Button>
-          </DialogFooter>
+
+          {editing && (() => {
+            const ings = Array.isArray(editing.ingredients_json)
+              ? (editing.ingredients_json as Array<{ name: string; grams: number }>)
+              : [];
+            const steps = (editing.instructions ?? "")
+              .split(/\r?\n/)
+              .map((s) => s.replace(/^\s*\d+[.)]\s*/, "").trim())
+              .filter(Boolean);
+            return (
+              <div className="space-y-5 text-sm">
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Ingredients
+                  </h3>
+                  {ings.length === 0 ? (
+                    <p className="text-muted-foreground">No ingredient breakdown saved.</p>
+                  ) : (
+                    <ul className="divide-y divide-border rounded-xl border">
+                      {ings.map((i, idx) => (
+                        <li key={idx} className="flex items-center justify-between px-3 py-2">
+                          <span>{i.name}</span>
+                          <span className="text-muted-foreground">{Math.round(Number(i.grams))} g</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    How to prep
+                  </h3>
+                  {steps.length === 0 ? (
+                    <p className="text-muted-foreground">No instructions yet.</p>
+                  ) : (
+                    <ol className="list-decimal space-y-1.5 pl-5">
+                      {steps.map((s, idx) => (
+                        <li key={idx}>{s}</li>
+                      ))}
+                    </ol>
+                  )}
+                </section>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
