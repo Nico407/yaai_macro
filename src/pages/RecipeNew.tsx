@@ -1,0 +1,291 @@
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
+import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+
+type Row = { ingredient_id: string; grams: string };
+
+export default function RecipeNew() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { data: ingredients = [], isLoading } = useIngredients();
+  const [saving, setSaving] = useState(false);
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [rows, setRows] = useState<Row[]>([
+    { ingredient_id: "", grams: "" },
+    { ingredient_id: "", grams: "" },
+  ]);
+
+  const ingMap = useMemo(() => {
+    const m = new Map<string, Ingredient>();
+    ingredients.forEach((i) => m.set(i.id, i));
+    return m;
+  }, [ingredients]);
+
+  const totals = useMemo(() => {
+    let totalG = 0;
+    let kcal = 0,
+      protein = 0,
+      carbs = 0,
+      fat = 0;
+    rows.forEach((r) => {
+      const g = parseFloat(r.grams);
+      const ing = ingMap.get(r.ingredient_id);
+      if (!ing || !Number.isFinite(g) || g <= 0) return;
+      totalG += g;
+      kcal += (Number(ing.kcal_per_100g) * g) / 100;
+      protein += (Number(ing.protein_per_100g) * g) / 100;
+      carbs += (Number(ing.carbs_per_100g) * g) / 100;
+      fat += (Number(ing.fat_per_100g) * g) / 100;
+    });
+    return { totalG, kcal, protein, carbs, fat };
+  }, [rows, ingMap]);
+
+  const valid =
+    name.trim().length > 0 &&
+    totals.totalG > 0 &&
+    rows.filter((r) => r.ingredient_id && parseFloat(r.grams) > 0).length >= 1;
+
+  function updateRow(idx: number, patch: Partial<Row>) {
+    setRows((rs) => rs.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  }
+  function addRow() {
+    setRows((rs) => [...rs, { ingredient_id: "", grams: "" }]);
+  }
+  function removeRow(idx: number) {
+    setRows((rs) => rs.filter((_, i) => i !== idx));
+  }
+
+  async function onSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!valid) return;
+    setSaving(true);
+
+    const valid_rows = rows.filter(
+      (r) => r.ingredient_id && parseFloat(r.grams) > 0,
+    );
+    const total = valid_rows.reduce((s, r) => s + parseFloat(r.grams), 0);
+
+    const { data: recipe, error: recErr } = await supabase
+      .from("recipes")
+      .insert({
+        name: name.trim(),
+        description: description.trim() || null,
+        default_serving_g: Math.round(total),
+        min_total_g: Math.max(50, Math.round(total * 0.5)),
+        max_total_g: Math.round(total * 3),
+      })
+      .select()
+      .single();
+
+    if (recErr || !recipe) {
+      setSaving(false);
+      toast({ title: "Couldn't save recipe", description: recErr?.message, variant: "destructive" });
+      return;
+    }
+
+    const ingredientPayload = valid_rows.map((r) => ({
+      recipe_id: recipe.id,
+      ingredient_id: r.ingredient_id,
+      ratio: parseFloat(r.grams) / total,
+    }));
+
+    const { error: riErr } = await supabase
+      .from("recipe_ingredients")
+      .insert(ingredientPayload);
+
+    setSaving(false);
+
+    if (riErr) {
+      toast({ title: "Couldn't save ingredients", description: riErr.message, variant: "destructive" });
+      return;
+    }
+
+    await qc.invalidateQueries({ queryKey: ["recipes"] });
+    toast({ title: "Recipe saved" });
+    navigate("/recipes");
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
+        <header className="mb-8">
+          <Link to="/recipes" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
+            <ArrowLeft className="h-4 w-4" /> Back to recipes
+          </Link>
+          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">New recipe</p>
+          <h1 className="font-display text-4xl font-bold md:text-5xl">Build a meal.</h1>
+          <p className="mt-2 text-muted-foreground">
+            Add ingredients with their grams for one batch. Ratios are calculated automatically.
+          </p>
+        </header>
+
+        <Card className="rounded-2xl p-6 shadow-soft md:p-8">
+          <form onSubmit={onSave} className="space-y-6">
+            <div>
+              <Label htmlFor="r-name">Name</Label>
+              <Input
+                id="r-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Spaghetti with tomato sauce"
+                className="mt-1.5"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="r-desc">Notes (optional)</Label>
+              <Textarea
+                id="r-desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Quick weeknight dinner"
+                className="mt-1.5"
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <Label>Ingredients</Label>
+                <span className="text-xs text-muted-foreground">grams in one batch</span>
+              </div>
+
+              {isLoading ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : ingredients.length === 0 ? (
+                <Card className="rounded-xl p-4 text-sm text-muted-foreground">
+                  No ingredients yet.{" "}
+                  <Link to="/ingredients" className="underline">
+                    Add some first
+                  </Link>
+                  .
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {rows.map((r, idx) => {
+                    const ing = ingMap.get(r.ingredient_id);
+                    const g = parseFloat(r.grams);
+                    const pct =
+                      totals.totalG > 0 && Number.isFinite(g) && g > 0
+                        ? (g / totals.totalG) * 100
+                        : 0;
+                    return (
+                      <div key={idx} className="flex items-start gap-2">
+                        <div className="flex-1">
+                          <Select
+                            value={r.ingredient_id}
+                            onValueChange={(v) => updateRow(idx, { ingredient_id: v })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pick an ingredient…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ingredients.map((i) => (
+                                <SelectItem key={i.id} value={i.id}>
+                                  {i.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {ing && (
+                            <p className="mt-1 text-[10px] text-muted-foreground">
+                              {Math.round(Number(ing.kcal_per_100g))} kcal · P{" "}
+                              {Number(ing.protein_per_100g)} · C {Number(ing.carbs_per_100g)} · F{" "}
+                              {Number(ing.fat_per_100g)} / 100g
+                            </p>
+                          )}
+                        </div>
+                        <div className="w-24">
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            step="1"
+                            min="0"
+                            value={r.grams}
+                            onChange={(e) => updateRow(idx, { grams: e.target.value })}
+                            placeholder="g"
+                          />
+                          {pct > 0 && (
+                            <p className="mt-1 text-right text-[10px] text-muted-foreground">
+                              {pct.toFixed(1)}%
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeRow(idx)}
+                          disabled={rows.length <= 1}
+                          aria-label="Remove ingredient"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+
+                  <Button type="button" variant="outline" size="sm" onClick={addRow}>
+                    <Plus className="mr-1 h-3 w-3" /> Add ingredient
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {totals.totalG > 0 && (
+              <div className="rounded-xl bg-secondary p-4">
+                <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wider text-muted-foreground">
+                  <span>One batch ({Math.round(totals.totalG)}g)</span>
+                  <span>per gram</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <Stat label="kcal" value={Math.round(totals.kcal)} per={(totals.kcal / totals.totalG).toFixed(2)} />
+                  <Stat label="protein" value={`${totals.protein.toFixed(1)}g`} per={(totals.protein / totals.totalG).toFixed(2)} />
+                  <Stat label="carbs" value={`${totals.carbs.toFixed(1)}g`} per={(totals.carbs / totals.totalG).toFixed(2)} />
+                  <Stat label="fat" value={`${totals.fat.toFixed(1)}g`} per={(totals.fat / totals.totalG).toFixed(2)} />
+                </div>
+              </div>
+            )}
+
+            <Button type="submit" size="lg" disabled={saving || !valid} className="w-full">
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save recipe
+            </Button>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, per }: { label: string; value: string | number; per: string }) {
+  return (
+    <div>
+      <div className="font-display text-lg font-bold">{value}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="text-[10px] text-muted-foreground opacity-70">{per}/g</div>
+    </div>
+  );
+}
