@@ -14,7 +14,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import { clampGrams, ingredientBreakdown, macrosFor, recipePerGram } from "@/lib/scaling";
+import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram } from "@/lib/scaling";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Pencil, Plus, Utensils } from "lucide-react";
