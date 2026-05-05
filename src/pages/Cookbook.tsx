@@ -184,28 +184,44 @@ export default function Cookbook() {
           </p>
         </Card>
 
+        <div className="relative mb-4">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search meals…"
+            className="pl-9"
+          />
+        </div>
+
         <div className="space-y-3">
-          {COOKBOOK.map((r) => (
-            <Card key={r.id} className="rounded-2xl p-5">
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-4 w-4 shrink-0 text-primary" />
-                <div className="min-w-0 flex-1">
-                  <div className="font-display text-lg font-bold">{r.name}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
+          {filtered.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              No meals match "{query}".
+            </p>
+          ) : (
+            filtered.map((r) => (
+              <Card key={r.id} className="rounded-2xl p-5">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display text-lg font-bold">{r.name}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
+                    </div>
                   </div>
+                  <Button
+                    size="sm"
+                    onClick={() => setPicking(r)}
+                    className="shrink-0 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                  >
+                    <Plus className="mr-1 h-4 w-4" /> Add to plan
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => setPicking(r)}
-                  className="shrink-0 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                >
-                  <Plus className="mr-1 h-4 w-4" /> Add to plan
-                </Button>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))
+          )}
         </div>
       </div>
 
