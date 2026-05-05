@@ -544,6 +544,81 @@ export default function Index() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Favorites dialog */}
+      <Dialog
+        open={favoritesOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setFavoritesOpen(false);
+            setFavoritesQuery("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Favorite dishes</DialogTitle>
+            <DialogDescription>
+              Star the recipes you love so they're easy to find.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={favoritesQuery}
+              onChange={(e) => setFavoritesQuery(e.target.value)}
+              placeholder="Search recipes…"
+              className="pl-9"
+            />
+          </div>
+          <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+            {(() => {
+              const q = favoritesQuery.trim().toLowerCase();
+              const favs = recipes.filter((r) => r.is_favorite);
+              const others = recipes.filter((r) => !r.is_favorite);
+              const filterFn = (r: RecipeRow) =>
+                !q ||
+                r.name.toLowerCase().includes(q) ||
+                (r.description ?? "").toLowerCase().includes(q);
+              const list = [...favs, ...others].filter(filterFn);
+              if (list.length === 0) {
+                return (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    No recipes found.
+                  </p>
+                );
+              }
+              return list.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"
+                >
+                  <div className="min-w-0">
+                    <div className="font-semibold">{r.name}</div>
+                    {r.description && (
+                      <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                        {r.description}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleFavorite(r)}
+                    disabled={togglingFav === r.id}
+                    aria-label={r.is_favorite ? "Unfavorite" : "Favorite"}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                  >
+                    <Star
+                      className="h-5 w-5"
+                      fill={r.is_favorite ? "currentColor" : "none"}
+                    />
+                  </button>
+                </div>
+              ));
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
