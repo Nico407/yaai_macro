@@ -17,7 +17,8 @@ import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram } from "@/lib/scaling";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Pencil, Plus, Utensils } from "lucide-react";
+import { ArrowLeft, Loader2, Pencil, Plus, Search, Utensils } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
