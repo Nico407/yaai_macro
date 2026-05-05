@@ -119,10 +119,15 @@ export default function Onboarding() {
                   id="age"
                   type="number"
                   inputMode="numeric"
+                  min={13}
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
                   className="mt-1.5"
+                  aria-invalid={!!ageError}
                 />
+                {ageError && (
+                  <p className="mt-1 text-xs text-destructive">{ageError}</p>
+                )}
               </div>
               <div>
                 <Label>Sex</Label>
