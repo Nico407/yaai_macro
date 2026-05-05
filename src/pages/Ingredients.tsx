@@ -343,6 +343,42 @@ export default function Ingredients() {
           )}
         </section>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit ingredient</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-ing-name">Name</Label>
+              <Input
+                id="edit-ing-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="protein (g)" value={editProtein} onChange={setEditProtein} />
+              <Field label="carbs (g)" value={editCarbs} onChange={setEditCarbs} />
+              <Field label="fat (g)" value={editFat} onChange={setEditFat} />
+            </div>
+            <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Calculated calories: </span>
+              <span className="font-display font-bold tabular-nums">{editKcal}</span>
+              <span className="text-muted-foreground"> kcal / 100g</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button onClick={onSaveEdit} disabled={savingEdit || !editName.trim() || editKcal <= 0}>
+              {savingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
