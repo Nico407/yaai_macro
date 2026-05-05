@@ -87,12 +87,19 @@ export default function Index() {
           </div>
         </Card>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <Link to="/ingredients">
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Link to="/recipes">
             <ActionCard
-              icon={<Carrot className="h-5 w-5" />}
-              title="Ingredients"
-              desc="Manage your pantry — the building blocks for recipes."
+              icon={<Sparkles className="h-5 w-5" />}
+              title="Pick & scale"
+              desc="Choose a recipe — we'll scale grams to fit remaining macros."
+            />
+          </Link>
+          <Link to="/quick-log">
+            <ActionCard
+              icon={<Zap className="h-5 w-5" />}
+              title="Quick log"
+              desc="Log raw ingredient grams without saving a recipe."
             />
           </Link>
           <Link to="/recipes">
@@ -102,11 +109,11 @@ export default function Index() {
               desc="Build meals from your pantry with grams per ingredient."
             />
           </Link>
-          <Link to="/recipes">
+          <Link to="/ingredients">
             <ActionCard
-              icon={<Sparkles className="h-5 w-5" />}
-              title="Pick & scale"
-              desc="Choose a recipe — we'll scale grams to fit remaining macros."
+              icon={<Carrot className="h-5 w-5" />}
+              title="Ingredients"
+              desc="Manage your pantry — the building blocks for recipes."
             />
           </Link>
         </div>
