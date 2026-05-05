@@ -368,7 +368,7 @@ export default function Index() {
       <Dialog open={!!pickerSlot} onOpenChange={(o) => !o && setPickerSlot(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add to {pickerSlot}</DialogTitle>
+            <DialogTitle>{pickerSlot === ("__extra__" as Slot) ? "Add extra" : `Add to ${pickerSlot}`}</DialogTitle>
             <DialogDescription>
               Pick a recipe — we'll auto-scale it to fit your remaining macros.
             </DialogDescription>
