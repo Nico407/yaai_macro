@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowLeft, BookOpen, Sparkles, Plus, Search } from "lucide-react";
+import { ArrowLeft, BookOpen, Sparkles, Plus, Search, Clock, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
@@ -120,6 +120,7 @@ export default function Cookbook() {
   const [picking, setPicking] = useState<CookbookItem | null>(null);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
