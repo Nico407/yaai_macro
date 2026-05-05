@@ -433,7 +433,15 @@ export default function Index() {
       </Dialog>
 
       {/* Slot picker dialog */}
-      <Dialog open={!!pickerSlot} onOpenChange={(o) => !o && setPickerSlot(null)}>
+      <Dialog
+        open={!!pickerSlot}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPickerSlot(null);
+            setPickerQuery("");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{pickerSlot === ("__extra__" as Slot) ? "Add extra" : `Add to ${pickerSlot}`}</DialogTitle>
@@ -441,6 +449,15 @@ export default function Index() {
               Pick a recipe — we'll auto-scale it to fit your remaining macros.
             </DialogDescription>
           </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={pickerQuery}
+              onChange={(e) => setPickerQuery(e.target.value)}
+              placeholder="Search recipes…"
+              className="pl-9"
+            />
+          </div>
           <div className="max-h-[60vh] space-y-2 overflow-y-auto">
             {recipes.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
@@ -450,8 +467,23 @@ export default function Index() {
                 </Link>
                 .
               </p>
-            ) : (
-              recipes.map((r) => (
+            ) : (() => {
+              const q = pickerQuery.trim().toLowerCase();
+              const filtered = q
+                ? recipes.filter(
+                    (r) =>
+                      r.name.toLowerCase().includes(q) ||
+                      (r.description ?? "").toLowerCase().includes(q),
+                  )
+                : recipes;
+              if (filtered.length === 0) {
+                return (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    No recipes match "{pickerQuery}".
+                  </p>
+                );
+              }
+              return filtered.map((r) => (
                 <button
                   key={r.id}
                   onClick={() => addRecipeToSlot(r)}
