@@ -66,6 +66,11 @@ export default function Ingredients() {
   const qc = useQueryClient();
   const { data: ingredients = [], isLoading } = useIngredients();
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState("");
+
+  const filteredIngredients = ingredients.filter((i) =>
+    i.name.toLowerCase().includes(filter.trim().toLowerCase()),
+  );
 
   const [name, setName] = useState("");
   const [protein, setProtein] = useState("");
