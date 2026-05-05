@@ -298,8 +298,10 @@ export default function Cookbook() {
                         <span className="inline-flex items-center gap-1">
                           <Clock className="h-3 w-3" /> {r.cookTimeMin} min
                         </span>
+                        <span>{r.kcal} kcal</span>
+                        <span className="basis-full" />
                         <span>
-                          {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
+                          P {r.p} · C {r.c} · F {r.f}
                         </span>
                       </div>
                       <div className="mt-1.5 text-xs text-muted-foreground">{r.desc}</div>
