@@ -15,6 +15,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { supabase } from "@/integrations/supabase/client";
+import { balancedGramsForShare, clampGrams, type PerGram } from "@/lib/scaling";
 import { toast } from "sonner";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
