@@ -7,6 +7,9 @@ import Index from "./pages/Index.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import Ingredients from "./pages/Ingredients.tsx";
 import Recipes from "./pages/Recipes.tsx";
+import RecipesHub from "./pages/RecipesHub.tsx";
+import Cookbook from "./pages/Cookbook.tsx";
+import Countries from "./pages/Countries.tsx";
 import RecipeNew from "./pages/RecipeNew.tsx";
 import RecipeScale from "./pages/RecipeScale.tsx";
 import QuickLog from "./pages/QuickLog.tsx";
@@ -25,7 +28,10 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/ingredients" element={<Ingredients />} />
-          <Route path="/recipes" element={<Recipes />} />
+          <Route path="/recipes" element={<RecipesHub />} />
+          <Route path="/recipes/cookbook" element={<Cookbook />} />
+          <Route path="/recipes/countries" element={<Countries />} />
+          <Route path="/recipes/mine" element={<Recipes />} />
           <Route path="/recipes/new" element={<RecipeNew />} />
           <Route path="/recipes/:id/edit" element={<RecipeNew />} />
           <Route path="/recipes/:id/scale" element={<RecipeScale />} />
