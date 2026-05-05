@@ -217,8 +217,23 @@ export default function Recipes() {
             </Button>
           </Card>
         ) : (
+          <>
+            <div className="relative mb-4">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search your creations…"
+                className="pl-9"
+              />
+            </div>
+            {filteredRecipes.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                No recipes match "{query}".
+              </p>
+            ) : (
           <div className="space-y-3">
-            {recipes.map((r) => {
+            {filteredRecipes.map((r) => {
               const total = r.default_serving_g;
               let kcal = 0, protein = 0, carbs = 0, fat = 0;
               r.recipe_ingredients.forEach((ri) => {
