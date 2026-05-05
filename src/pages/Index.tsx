@@ -26,7 +26,13 @@ import {
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search, Settings, Calendar, UserCog } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
@@ -232,13 +238,29 @@ export default function Index() {
               {profile.display_name ? `Hi, ${profile.display_name}` : "Your day"}
             </h1>
           </div>
-          <div className="flex flex-col items-end gap-1 text-sm">
-            <Link to="/history" className="text-muted-foreground underline-offset-4 hover:underline">
-              History
+          <div className="flex items-center gap-2">
+            <Link
+              to="/history"
+              aria-label="History"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <Calendar className="h-5 w-5" />
             </Link>
-            <Link to="/onboarding" className="text-muted-foreground underline-offset-4 hover:underline">
-              Edit profile
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="Settings"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+              >
+                <Settings className="h-5 w-5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/onboarding">
+                    <UserCog className="mr-2 h-4 w-4" /> Edit profile
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
