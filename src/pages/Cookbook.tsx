@@ -303,10 +303,17 @@ export default function Cookbook() {
               const expanded = expandedId === r.id;
               return (
                 <Card key={r.id} className="overflow-hidden rounded-2xl">
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setExpandedId(expanded ? null : r.id)}
-                    className="flex w-full items-start gap-4 p-5 text-left transition-colors hover:bg-secondary/40"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setExpandedId(expanded ? null : r.id);
+                      }
+                    }}
+                    className="flex w-full cursor-pointer items-start gap-4 p-5 text-left transition-colors hover:bg-secondary/40"
                     aria-expanded={expanded}
                   >
                     <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
@@ -328,6 +335,18 @@ export default function Cookbook() {
                         </span>
                       </div>
                       <div className="mt-1.5 text-xs text-muted-foreground">{r.desc}</div>
+                      <div className="mt-3">
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPicking(r);
+                          }}
+                          className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                        >
+                          <Plus className="mr-1 h-4 w-4" /> Add to plan
+                        </Button>
+                      </div>
                     </div>
                     <img
                       src={r.image}
@@ -337,7 +356,7 @@ export default function Cookbook() {
                       height={512}
                       className="aspect-square w-28 shrink-0 rounded-xl object-cover sm:w-32"
                     />
-                  </button>
+                  </div>
 
                   {expanded && (
                     <div className="border-t bg-secondary/20 px-5 py-5">
@@ -369,7 +388,22 @@ export default function Cookbook() {
                           </ol>
                         </div>
                       </div>
-                      <div className="mt-5 flex justify-end">
+                      <div className="mt-5 flex items-center justify-between gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(r.id);
+                          }}
+                          className="rounded-xl"
+                          aria-label={favorites.has(r.id) ? "Remove from favorites" : "Add to favorites"}
+                        >
+                          <Star
+                            className={`mr-1 h-4 w-4 ${favorites.has(r.id) ? "fill-yellow-400 text-yellow-400" : ""}`}
+                          />
+                          {favorites.has(r.id) ? "Favorited" : "Favorite"}
+                        </Button>
                         <Button
                           size="sm"
                           onClick={(e) => {
