@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,18 +13,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
+import { useRecipes } from "@/hooks/useRecipes";
 import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
 
 type Row = { ingredient_id: string; grams: string };
 
 export default function RecipeNew() {
+  const { id } = useParams<{ id: string }>();
+  const isEdit = !!id;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: ingredients = [], isLoading } = useIngredients();
+  const { data: recipes = [], isLoading: loadingRecipes } = useRecipes();
+  const existing = isEdit ? recipes.find((r) => r.id === id) : undefined;
+
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -32,6 +50,21 @@ export default function RecipeNew() {
     { ingredient_id: "", grams: "" },
     { ingredient_id: "", grams: "" },
   ]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!isEdit || hydrated || !existing) return;
+    setName(existing.name);
+    setDescription(existing.description ?? "");
+    const total = Number(existing.default_serving_g) || 0;
+    setRows(
+      existing.recipe_ingredients.map((ri) => ({
+        ingredient_id: ri.ingredient_id,
+        grams: String(Math.round(Number(ri.ratio) * total)),
+      })),
+    );
+    setHydrated(true);
+  }, [isEdit, hydrated, existing]);
 
   const ingMap = useMemo(() => {
     const m = new Map<string, Ingredient>();
