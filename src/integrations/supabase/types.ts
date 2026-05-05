@@ -50,6 +50,7 @@ export type Database = {
           fat_g: number
           id: string
           ingredients_json: Json | null
+          is_fixed: boolean
           kcal: number
           log_date: string
           logged_at: string
@@ -64,6 +65,7 @@ export type Database = {
           fat_g: number
           id?: string
           ingredients_json?: Json | null
+          is_fixed?: boolean
           kcal: number
           log_date?: string
           logged_at?: string
@@ -78,6 +80,7 @@ export type Database = {
           fat_g?: number
           id?: string
           ingredients_json?: Json | null
+          is_fixed?: boolean
           kcal?: number
           log_date?: string
           logged_at?: string
@@ -190,6 +193,7 @@ export type Database = {
           default_serving_g: number
           description: string | null
           id: string
+          is_fixed: boolean
           max_total_g: number
           min_total_g: number
           name: string
@@ -199,6 +203,7 @@ export type Database = {
           default_serving_g?: number
           description?: string | null
           id?: string
+          is_fixed?: boolean
           max_total_g?: number
           min_total_g?: number
           name: string
@@ -208,6 +213,7 @@ export type Database = {
           default_serving_g?: number
           description?: string | null
           id?: string
+          is_fixed?: boolean
           max_total_g?: number
           min_total_g?: number
           name?: string

@@ -14,6 +14,7 @@ export type MealLog = {
   logged_at: string;
   log_date: string;
   slot: string | null;
+  is_fixed: boolean;
 };
 
 function todayISO() {
