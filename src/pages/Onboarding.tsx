@@ -43,13 +43,18 @@ export default function Onboarding() {
   const [activity, setActivity] = useState<ActivityLevel>("moderate");
   const [goal, setGoal] = useState<Goal>("maintain");
 
+  const ageNum = parseFloat(age);
+  const ageError =
+    age !== "" && !isNaN(ageNum) && ageNum < 13
+      ? "Sorry, this app is only for ages 13 and up."
+      : null;
+
   const preview = (() => {
-    const a = parseFloat(age);
     const h = parseFloat(height);
     const w = parseFloat(weight);
-    if (!a || !h || !w) return null;
+    if (!ageNum || !h || !w || ageError) return null;
     return calcTargets({
-      age: a,
+      age: ageNum,
       sex,
       height_cm: h,
       weight_kg: w,
@@ -114,10 +119,15 @@ export default function Onboarding() {
                   id="age"
                   type="number"
                   inputMode="numeric"
+                  min={13}
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
                   className="mt-1.5"
+                  aria-invalid={!!ageError}
                 />
+                {ageError && (
+                  <p className="mt-1 text-xs text-destructive">{ageError}</p>
+                )}
               </div>
               <div>
                 <Label>Sex</Label>
