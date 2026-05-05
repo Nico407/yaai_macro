@@ -189,7 +189,7 @@ export default function Onboarding() {
                   </label>
                 ))}
               </RadioGroup>
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-center text-xs text-muted-foreground">
                 {ACTIVITY_OPTIONS.find((o) => o.value === activity)?.hint}
               </p>
             </div>
