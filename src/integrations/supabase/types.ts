@@ -197,6 +197,7 @@ export type Database = {
           description: string | null
           id: string
           instructions: string | null
+          is_favorite: boolean
           is_fixed: boolean
           max_total_g: number
           min_total_g: number
@@ -208,6 +209,7 @@ export type Database = {
           description?: string | null
           id?: string
           instructions?: string | null
+          is_favorite?: boolean
           is_fixed?: boolean
           max_total_g?: number
           min_total_g?: number
@@ -219,6 +221,7 @@ export type Database = {
           description?: string | null
           id?: string
           instructions?: string | null
+          is_favorite?: boolean
           is_fixed?: boolean
           max_total_g?: number
           min_total_g?: number
