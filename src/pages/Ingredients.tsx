@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients } from "@/hooks/useIngredients";
-import { ArrowLeft, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Ingredient } from "@/hooks/useIngredients";
 
 type OFFHit = {
   code: string;
@@ -150,6 +152,51 @@ export default function Ingredients() {
     await qc.invalidateQueries({ queryKey: ["ingredients"] });
   }
 
+  const [editing, setEditing] = useState<Ingredient | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editProtein, setEditProtein] = useState("");
+  const [editCarbs, setEditCarbs] = useState("");
+  const [editFat, setEditFat] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const editKcal =
+    Math.round(
+      (parseFloat(editProtein || "0") * 4 +
+        parseFloat(editCarbs || "0") * 4 +
+        parseFloat(editFat || "0") * 9) * 10,
+    ) / 10;
+
+  function openEdit(ing: Ingredient) {
+    setEditing(ing);
+    setEditName(ing.name);
+    setEditProtein(String(ing.protein_per_100g));
+    setEditCarbs(String(ing.carbs_per_100g));
+    setEditFat(String(ing.fat_per_100g));
+  }
+
+  async function onSaveEdit() {
+    if (!editing || !editName.trim()) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("ingredients")
+      .update({
+        name: editName.trim(),
+        kcal_per_100g: editKcal,
+        protein_per_100g: parseFloat(editProtein || "0"),
+        carbs_per_100g: parseFloat(editCarbs || "0"),
+        fat_per_100g: parseFloat(editFat || "0"),
+      })
+      .eq("id", editing.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: "Couldn't update", description: error.message, variant: "destructive" });
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["ingredients"] });
+    setEditing(null);
+    toast({ title: "Ingredient updated" });
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
@@ -275,6 +322,14 @@ export default function Ingredients() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => openEdit(ing)}
+                        aria-label={`Edit ${ing.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onDelete(ing.id)}
                         aria-label={`Delete ${ing.name}`}
                       >
@@ -288,6 +343,42 @@ export default function Ingredients() {
           )}
         </section>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit ingredient</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-ing-name">Name</Label>
+              <Input
+                id="edit-ing-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="mt-1.5"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="protein (g)" value={editProtein} onChange={setEditProtein} />
+              <Field label="carbs (g)" value={editCarbs} onChange={setEditCarbs} />
+              <Field label="fat (g)" value={editFat} onChange={setEditFat} />
+            </div>
+            <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Calculated calories: </span>
+              <span className="font-display font-bold tabular-nums">{editKcal}</span>
+              <span className="text-muted-foreground"> kcal / 100g</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button onClick={onSaveEdit} disabled={savingEdit || !editName.trim() || editKcal <= 0}>
+              {savingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
