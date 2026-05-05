@@ -95,18 +95,18 @@ export default function Index() {
               desc="Manage your pantry — the building blocks for recipes."
             />
           </Link>
+          <Link to="/recipes">
+            <ActionCard
+              icon={<Utensils className="h-5 w-5" />}
+              title="Recipes"
+              desc="Build meals from your pantry with grams per ingredient."
+            />
+          </Link>
           <ActionCard
             disabled
             icon={<Sparkles className="h-5 w-5" />}
-            title="Suggest a meal"
-            desc="Recipes that fit your remaining macros."
-            tag="Coming next"
-          />
-          <ActionCard
-            disabled
-            icon={<Utensils className="h-5 w-5" />}
             title="Pick & scale"
-            desc="Choose a recipe — we'll scale grams to fit."
+            desc="Choose a recipe — we'll scale grams to fit remaining macros."
             tag="Coming next"
           />
         </div>
