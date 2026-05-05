@@ -7,13 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +32,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
 import { useRecipes } from "@/hooks/useRecipes";
-import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 type Row = { ingredient_id: string; grams: string };
 
@@ -309,21 +312,47 @@ export default function RecipeNew() {
                     return (
                       <div key={idx} className="flex items-start gap-2">
                         <div className="flex-1">
-                          <Select
-                            value={r.ingredient_id}
-                            onValueChange={(v) => updateRow(idx, { ingredient_id: v })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Pick an ingredient…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ingredients.map((i) => (
-                                <SelectItem key={i.id} value={i.id}>
-                                  {i.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between font-normal",
+                                  !ing && "text-muted-foreground",
+                                )}
+                              >
+                                {ing ? ing.name : "Pick an ingredient…"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search ingredients…" />
+                                <CommandList>
+                                  <CommandEmpty>No ingredients found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {ingredients.map((i) => (
+                                      <CommandItem
+                                        key={i.id}
+                                        value={i.name}
+                                        onSelect={() => updateRow(idx, { ingredient_id: i.id })}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            r.ingredient_id === i.id ? "opacity-100" : "opacity-0",
+                                          )}
+                                        />
+                                        {i.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                           {ing && (
                             <p className="mt-1 text-[10px] text-muted-foreground">
                               {Math.round(Number(ing.kcal_per_100g))} kcal · P{" "}
