@@ -415,6 +415,7 @@ export default function Ingredients() {
               <Field label="carbs (g)" value={editCarbs} onChange={setEditCarbs} />
               <Field label="fat (g)" value={editFat} onChange={setEditFat} />
             </div>
+            <TagPicker value={editTags} onChange={setEditTags} />
             <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
               <span className="text-muted-foreground">Calculated calories: </span>
               <span className="font-display font-bold tabular-nums">{editKcal}</span>
