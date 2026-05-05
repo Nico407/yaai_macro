@@ -64,15 +64,42 @@ export default function Recipes() {
       return;
     }
     let grams = Number(recipe.default_serving_g);
+    let sharePerMeal = 0;
     if (target) {
-      const left = calcRemaining(target, consumed);
-      const raw = left.kcal > 0 ? left.kcal / perGram.kcal : grams;
+      const totalMeals = logs.length + 1;
+      sharePerMeal = target.kcal / totalMeals;
+      const raw = sharePerMeal / perGram.kcal;
       grams = clampGrams(raw || grams, 30, 5000);
     }
     const totals = macrosFor(perGram, grams);
     const breakdown = ingredientBreakdown(recipe, grams);
 
     setBusy(true);
+
+    // Rescale existing meals so each one represents 1/totalMeals of the day
+    if (target && sharePerMeal > 0) {
+      for (const l of logs) {
+        const oldKcal = Number(l.kcal);
+        if (!oldKcal) continue;
+        const factor = sharePerMeal / oldKcal;
+        const { error: upErr } = await supabase
+          .from("meal_logs")
+          .update({
+            total_grams: Math.round(Number(l.total_grams) * factor),
+            kcal: Math.round(oldKcal * factor),
+            protein_g: Math.round(Number(l.protein_g) * factor * 10) / 10,
+            carbs_g: Math.round(Number(l.carbs_g) * factor * 10) / 10,
+            fat_g: Math.round(Number(l.fat_g) * factor * 10) / 10,
+          })
+          .eq("id", l.id);
+        if (upErr) {
+          setBusy(false);
+          toast.error("Couldn't rescale meals", { description: upErr.message });
+          return;
+        }
+      }
+    }
+
     const { error } = await supabase.from("meal_logs").insert({
       recipe_id: recipe.id,
       recipe_name: recipe.name,
