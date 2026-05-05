@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -15,19 +15,34 @@ import {
 } from "@/components/ui/dialog";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
+import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
+import {
+  clampGrams,
+  ingredientBreakdown,
+  macrosFor,
+  recipePerGram,
+} from "@/lib/scaling";
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Utensils, Carrot, Zap, Trash2 } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Trash2, Plus } from "lucide-react";
+
+const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
+type Slot = (typeof SLOTS)[number];
 
 export default function Index() {
   const qc = useQueryClient();
   const { data: profile, isLoading } = useProfile();
   const { data: logs = [] } = useTodayLogs();
+  const { data: recipes = [] } = useRecipes();
+
   const [editing, setEditing] = useState<MealLog | null>(null);
   const [editGrams, setEditGrams] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const [pickerSlot, setPickerSlot] = useState<Slot | null>(null);
+  const [adding, setAdding] = useState(false);
 
   async function saveEdit() {
     if (!editing) return;
@@ -67,6 +82,94 @@ export default function Index() {
     toast.success("Meal deleted");
   }
 
+  const consumed = useMemo(
+    () =>
+      sumMacros(
+        logs.map((l) => ({
+          kcal: Number(l.kcal),
+          protein_g: Number(l.protein_g),
+          carbs_g: Number(l.carbs_g),
+          fat_g: Number(l.fat_g),
+        })),
+      ),
+    [logs],
+  );
+
+  const target = useMemo(
+    () =>
+      profile && profile.target_calories
+        ? {
+            kcal: Number(profile.target_calories),
+            protein_g: Number(profile.target_protein_g ?? 0),
+            carbs_g: Number(profile.target_carbs_g ?? 0),
+            fat_g: Number(profile.target_fat_g ?? 0),
+          }
+        : null,
+    [profile],
+  );
+
+  // Group logs by slot (first match wins; extras remain unslotted)
+  const slotLogs = useMemo(() => {
+    const map: Record<string, MealLog | undefined> = {};
+    logs.forEach((l) => {
+      if (l.slot && SLOTS.includes(l.slot as Slot) && !map[l.slot]) {
+        map[l.slot] = l;
+      }
+    });
+    return map;
+  }, [logs]);
+
+  const unslottedLogs = useMemo(
+    () => logs.filter((l) => !l.slot || !SLOTS.includes(l.slot as Slot)),
+    [logs],
+  );
+
+  const emptySlots = SLOTS.filter((s) => !slotLogs[s]).length;
+
+  async function addRecipeToSlot(recipe: RecipeRow) {
+    if (!pickerSlot || !target) return;
+    const perGram = recipePerGram(recipe);
+    if (!perGram.kcal) {
+      toast.error("Recipe has no calories");
+      return;
+    }
+    const left = calcRemaining(target, consumed);
+    const share = emptySlots > 0 ? left.kcal / emptySlots : left.kcal;
+    const rawGrams = share > 0 ? share / perGram.kcal : Number(recipe.default_serving_g);
+    const grams = clampGrams(
+      rawGrams || Number(recipe.default_serving_g),
+      Number(recipe.min_total_g),
+      Number(recipe.max_total_g),
+    );
+    const totals = macrosFor(perGram, grams);
+    const breakdown = ingredientBreakdown(recipe, grams);
+
+    setAdding(true);
+    const { error } = await supabase.from("meal_logs").insert({
+      recipe_id: recipe.id,
+      recipe_name: recipe.name,
+      total_grams: Math.round(grams),
+      kcal: Math.round(totals.kcal),
+      protein_g: Math.round(totals.protein_g * 10) / 10,
+      carbs_g: Math.round(totals.carbs_g * 10) / 10,
+      fat_g: Math.round(totals.fat_g * 10) / 10,
+      slot: pickerSlot,
+      ingredients_json: breakdown.map((b) => ({
+        ingredient_id: b.ingredient_id,
+        name: b.name,
+        grams: Math.round(b.grams),
+      })),
+    });
+    setAdding(false);
+    if (error) {
+      toast.error("Couldn't add", { description: error.message });
+      return;
+    }
+    setPickerSlot(null);
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
+    toast.success(`${recipe.name} added to ${pickerSlot}`);
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -75,24 +178,10 @@ export default function Index() {
     );
   }
 
-  if (!profile || !profile.target_calories) {
+  if (!profile || !profile.target_calories || !target) {
     return <Welcome />;
   }
 
-  const consumed = sumMacros(
-    logs.map((l) => ({
-      kcal: Number(l.kcal),
-      protein_g: Number(l.protein_g),
-      carbs_g: Number(l.carbs_g),
-      fat_g: Number(l.fat_g),
-    })),
-  );
-  const target = {
-    kcal: Number(profile.target_calories),
-    protein_g: Number(profile.target_protein_g ?? 0),
-    carbs_g: Number(profile.target_carbs_g ?? 0),
-    fat_g: Number(profile.target_fat_g ?? 0),
-  };
   const left = calcRemaining(target, consumed);
 
   return (
@@ -117,78 +206,86 @@ export default function Index() {
 
         <Card className="rounded-2xl p-6 shadow-soft md:p-8">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-            <MacroRing
-              consumed={consumed.kcal}
-              target={target.kcal}
-              label="Calories"
-              unit="kcal"
-              colorVar="--macro-calories"
-            />
-            <MacroRing
-              consumed={consumed.protein_g}
-              target={target.protein_g}
-              label="Protein"
-              unit="g"
-              colorVar="--macro-protein"
-            />
-            <MacroRing
-              consumed={consumed.carbs_g}
-              target={target.carbs_g}
-              label="Carbs"
-              unit="g"
-              colorVar="--macro-carbs"
-            />
-            <MacroRing
-              consumed={consumed.fat_g}
-              target={target.fat_g}
-              label="Fat"
-              unit="g"
-              colorVar="--macro-fat"
-            />
+            <MacroRing consumed={consumed.kcal} target={target.kcal} label="Calories" unit="kcal" colorVar="--macro-calories" />
+            <MacroRing consumed={consumed.protein_g} target={target.protein_g} label="Protein" unit="g" colorVar="--macro-protein" />
+            <MacroRing consumed={consumed.carbs_g} target={target.carbs_g} label="Carbs" unit="g" colorVar="--macro-carbs" />
+            <MacroRing consumed={consumed.fat_g} target={target.fat_g} label="Fat" unit="g" colorVar="--macro-fat" />
           </div>
         </Card>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        {/* Today's plan */}
+        <section className="mt-8">
+          <div className="mb-3 flex items-end justify-between">
+            <h2 className="font-display text-xl font-bold">Today's plan</h2>
+            <p className="text-xs text-muted-foreground">
+              {Math.round(left.kcal)} kcal left
+              {emptySlots > 0 && ` · ~${Math.round(left.kcal / emptySlots)} per empty slot`}
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {SLOTS.map((slot) => {
+              const log = slotLogs[slot];
+              if (log) {
+                return (
+                  <Card
+                    key={slot}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setEditing(log);
+                      setEditGrams(String(Math.round(Number(log.total_grams))));
+                    }}
+                    className="cursor-pointer rounded-2xl p-4 transition-colors hover:bg-accent/40"
+                  >
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{slot}</div>
+                    <div className="mt-1 font-semibold">{log.recipe_name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
+                      {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
+                      {Math.round(Number(log.fat_g))}
+                    </div>
+                  </Card>
+                );
+              }
+              return (
+                <Card
+                  key={slot}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setPickerSlot(slot)}
+                  className="flex cursor-pointer items-center justify-between rounded-2xl border-dashed p-4 text-muted-foreground transition-colors hover:bg-accent/40"
+                >
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider">{slot}</div>
+                    <div className="mt-1 text-sm">Add a meal</div>
+                  </div>
+                  <Plus className="h-5 w-5" />
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
           <Link to="/plan">
-            <ActionCard
-              icon={<Sparkles className="h-5 w-5" />}
-              title="Plan my meals"
-              desc="Choose a recipe — we'll scale grams to fit remaining macros."
-            />
+            <ActionCard icon={<Sparkles className="h-5 w-5" />} title="Plan my meals" desc="Browse cookbook & your creations." />
           </Link>
           <Link to="/quick-log">
-            <ActionCard
-              icon={<Zap className="h-5 w-5" />}
-              title="Quick log"
-              desc="Log raw ingredient grams without saving a recipe."
-            />
+            <ActionCard icon={<Zap className="h-5 w-5" />} title="Quick log" desc="Log raw ingredient grams without a recipe." />
           </Link>
           <Link to="/recipes">
-            <ActionCard
-              icon={<Utensils className="h-5 w-5" />}
-              title="My creations"
-              desc="Build meals from your pantry with grams per ingredient."
-            />
+            <ActionCard icon={<Utensils className="h-5 w-5" />} title="My creations" desc="Build meals from your pantry." />
           </Link>
           <Link to="/ingredients">
-            <ActionCard
-              icon={<Carrot className="h-5 w-5" />}
-              title="Ingredients"
-              desc="Manage your pantry — the building blocks for recipes."
-            />
+            <ActionCard icon={<Carrot className="h-5 w-5" />} title="Ingredients" desc="Manage your pantry." />
           </Link>
         </div>
 
-        <section className="mt-8">
-          <h2 className="mb-3 font-display text-xl font-bold">Today's meals</h2>
-          {logs.length === 0 ? (
-            <Card className="rounded-2xl p-8 text-center text-muted-foreground">
-              No meals logged yet. Remaining: <strong className="text-foreground">{Math.round(left.kcal)}</strong>{" "}
-              kcal · <strong className="text-foreground">{Math.round(left.protein_g)}g</strong> protein.
-            </Card>
-          ) : (
+        {unslottedLogs.length > 0 && (
+          <section className="mt-8">
+            <h2 className="mb-3 font-display text-xl font-bold">Other meals today</h2>
             <div className="space-y-2">
-              {logs.map((l) => (
+              {unslottedLogs.map((l) => (
                 <Card
                   key={l.id}
                   role="button"
@@ -206,23 +303,21 @@ export default function Index() {
                     </div>
                   </div>
                   <div className="text-right text-xs text-muted-foreground">
-                    P {Math.round(Number(l.protein_g))} · C {Math.round(Number(l.carbs_g))} · F{" "}
-                    {Math.round(Number(l.fat_g))}
+                    P {Math.round(Number(l.protein_g))} · C {Math.round(Number(l.carbs_g))} · F {Math.round(Number(l.fat_g))}
                   </div>
                 </Card>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
       </div>
 
+      {/* Edit dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing?.recipe_name}</DialogTitle>
-            <DialogDescription>
-              Adjust the grams — macros scale proportionally.
-            </DialogDescription>
+            <DialogDescription>Adjust the grams — macros scale proportionally.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="edit-grams">Total grams</Label>
@@ -240,10 +335,8 @@ export default function Index() {
               const f = newG / oldG;
               return (
                 <p className="text-xs text-muted-foreground">
-                  ≈ {Math.round(Number(editing.kcal) * f)} kcal · P{" "}
-                  {Math.round(Number(editing.protein_g) * f)} · C{" "}
-                  {Math.round(Number(editing.carbs_g) * f)} · F{" "}
-                  {Math.round(Number(editing.fat_g) * f)}
+                  ≈ {Math.round(Number(editing.kcal) * f)} kcal · P {Math.round(Number(editing.protein_g) * f)} · C{" "}
+                  {Math.round(Number(editing.carbs_g) * f)} · F {Math.round(Number(editing.fat_g) * f)}
                 </p>
               );
             })()}
@@ -261,6 +354,43 @@ export default function Index() {
               {busy ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Slot picker dialog */}
+      <Dialog open={!!pickerSlot} onOpenChange={(o) => !o && setPickerSlot(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add to {pickerSlot}</DialogTitle>
+            <DialogDescription>
+              Pick a recipe — we'll auto-scale it to fit your remaining macros.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+            {recipes.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No recipes yet.{" "}
+                <Link to="/recipes" className="underline" onClick={() => setPickerSlot(null)}>
+                  Create one
+                </Link>
+                .
+              </p>
+            ) : (
+              recipes.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => addRecipeToSlot(r)}
+                  disabled={adding}
+                  className="w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                >
+                  <div className="font-semibold">{r.name}</div>
+                  {r.description && (
+                    <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
