@@ -211,13 +211,17 @@ export default function Ingredients() {
                 className="mt-1.5"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <Field label="kcal / 100g" value={kcal} onChange={setKcal} />
+            <div className="grid grid-cols-3 gap-3">
               <Field label="protein (g)" value={protein} onChange={setProtein} />
               <Field label="carbs (g)" value={carbs} onChange={setCarbs} />
               <Field label="fat (g)" value={fat} onChange={setFat} />
             </div>
-            <Button type="submit" disabled={saving || !name.trim() || !kcal} className="w-full sm:w-auto">
+            <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Calculated calories: </span>
+              <span className="font-display font-bold tabular-nums">{computedKcal}</span>
+              <span className="text-muted-foreground"> kcal / 100g</span>
+            </div>
+            <Button type="submit" disabled={saving || !name.trim() || computedKcal <= 0} className="w-full sm:w-auto">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
               Add ingredient
             </Button>
