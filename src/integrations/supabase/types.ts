@@ -14,7 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ingredients: {
+        Row: {
+          carbs_per_100g: number
+          created_at: string
+          fat_per_100g: number
+          id: string
+          kcal_per_100g: number
+          name: string
+          protein_per_100g: number
+        }
+        Insert: {
+          carbs_per_100g?: number
+          created_at?: string
+          fat_per_100g?: number
+          id?: string
+          kcal_per_100g: number
+          name: string
+          protein_per_100g?: number
+        }
+        Update: {
+          carbs_per_100g?: number
+          created_at?: string
+          fat_per_100g?: number
+          id?: string
+          kcal_per_100g?: number
+          name?: string
+          protein_per_100g?: number
+        }
+        Relationships: []
+      }
+      meal_logs: {
+        Row: {
+          carbs_g: number
+          fat_g: number
+          id: string
+          ingredients_json: Json | null
+          kcal: number
+          log_date: string
+          logged_at: string
+          protein_g: number
+          recipe_id: string | null
+          recipe_name: string
+          total_grams: number
+        }
+        Insert: {
+          carbs_g: number
+          fat_g: number
+          id?: string
+          ingredients_json?: Json | null
+          kcal: number
+          log_date?: string
+          logged_at?: string
+          protein_g: number
+          recipe_id?: string | null
+          recipe_name: string
+          total_grams: number
+        }
+        Update: {
+          carbs_g?: number
+          fat_g?: number
+          id?: string
+          ingredients_json?: Json | null
+          kcal?: number
+          log_date?: string
+          logged_at?: string
+          protein_g?: number
+          recipe_id?: string | null
+          recipe_name?: string
+          total_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_logs_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile: {
+        Row: {
+          activity_level: string | null
+          age: number | null
+          created_at: string
+          display_name: string | null
+          goal: string | null
+          height_cm: number | null
+          id: string
+          sex: string | null
+          target_calories: number | null
+          target_carbs_g: number | null
+          target_fat_g: number | null
+          target_protein_g: number | null
+          updated_at: string
+          weight_kg: number | null
+        }
+        Insert: {
+          activity_level?: string | null
+          age?: number | null
+          created_at?: string
+          display_name?: string | null
+          goal?: string | null
+          height_cm?: number | null
+          id?: string
+          sex?: string | null
+          target_calories?: number | null
+          target_carbs_g?: number | null
+          target_fat_g?: number | null
+          target_protein_g?: number | null
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Update: {
+          activity_level?: string | null
+          age?: number | null
+          created_at?: string
+          display_name?: string | null
+          goal?: string | null
+          height_cm?: number | null
+          id?: string
+          sex?: string | null
+          target_calories?: number | null
+          target_carbs_g?: number | null
+          target_fat_g?: number | null
+          target_protein_g?: number | null
+          updated_at?: string
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      recipe_ingredients: {
+        Row: {
+          id: string
+          ingredient_id: string
+          ratio: number
+          recipe_id: string
+        }
+        Insert: {
+          id?: string
+          ingredient_id: string
+          ratio: number
+          recipe_id: string
+        }
+        Update: {
+          id?: string
+          ingredient_id?: string
+          ratio?: number
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          created_at: string
+          default_serving_g: number
+          description: string | null
+          id: string
+          max_total_g: number
+          min_total_g: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          default_serving_g?: number
+          description?: string | null
+          id?: string
+          max_total_g?: number
+          min_total_g?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          default_serving_g?: number
+          description?: string | null
+          id?: string
+          max_total_g?: number
+          min_total_g?: number
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
