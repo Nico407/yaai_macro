@@ -309,9 +309,7 @@ export default function Ingredients() {
               <Field label="carbs (g)" value={carbs} onChange={setCarbs} />
               <Field label="fat (g)" value={fat} onChange={setFat} />
             </div>
-            <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Calculated calories: </span>
-              <span className="font-display font-bold tabular-nums">{computedKcal}</span>
+            <TagPicker value={tags} onChange={setTags} />
               <span className="text-muted-foreground"> kcal / 100g</span>
             </div>
             <Button type="submit" disabled={saving || !name.trim() || computedKcal <= 0} className="w-full sm:w-auto">
