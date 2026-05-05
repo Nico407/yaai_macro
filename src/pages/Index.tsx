@@ -264,6 +264,13 @@ export default function Index() {
               );
             })}
           </div>
+          <Button
+            variant="outline"
+            className="mt-3 w-full rounded-xl border-dashed"
+            onClick={() => setPickerSlot("__extra__" as Slot)}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Add more
+          </Button>
         </section>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
