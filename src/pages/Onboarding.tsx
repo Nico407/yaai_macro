@@ -108,7 +108,7 @@ export default function Onboarding() {
     e.preventDefault();
     if (!preview) return;
     setSaving(true);
-    const { error } = await supabase.from("profile").insert({
+    const payload = {
       display_name: displayName || null,
       age: parseInt(age, 10),
       sex,
@@ -122,7 +122,10 @@ export default function Onboarding() {
       target_fat_g: preview.fat_g,
       nutrition_preference: nutritionPref,
       dietary_restrictions: restrictions,
-    });
+    };
+    const { error } = existing?.id
+      ? await supabase.from("profile").update(payload).eq("id", existing.id)
+      : await supabase.from("profile").insert(payload);
     setSaving(false);
     if (error) {
       toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
