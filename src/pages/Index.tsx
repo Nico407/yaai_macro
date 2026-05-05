@@ -153,7 +153,7 @@ export default function Index() {
       protein_g: Math.round(totals.protein_g * 10) / 10,
       carbs_g: Math.round(totals.carbs_g * 10) / 10,
       fat_g: Math.round(totals.fat_g * 10) / 10,
-      slot: pickerSlot,
+      slot: pickerSlot === ("__extra__" as Slot) ? null : pickerSlot,
       ingredients_json: breakdown.map((b) => ({
         ingredient_id: b.ingredient_id,
         name: b.name,
