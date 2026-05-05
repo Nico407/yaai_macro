@@ -288,21 +288,6 @@ export default function Index() {
           </Button>
         </section>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <Link to="/plan">
-            <ActionCard icon={<Sparkles className="h-5 w-5" />} title="Plan my meals" desc="Browse cookbook & your creations." />
-          </Link>
-          <Link to="/quick-log">
-            <ActionCard icon={<Zap className="h-5 w-5" />} title="Quick log" desc="Log raw ingredient grams without a recipe." />
-          </Link>
-          <Link to="/recipes">
-            <ActionCard icon={<Utensils className="h-5 w-5" />} title="My creations" desc="Build meals from your pantry." />
-          </Link>
-          <Link to="/ingredients">
-            <ActionCard icon={<Carrot className="h-5 w-5" />} title="Ingredients" desc="Manage your pantry." />
-          </Link>
-        </div>
-
         {unslottedLogs.length > 0 && (
           <section className="mt-8">
             <h2 className="mb-3 font-display text-xl font-bold">Other meals today</h2>
