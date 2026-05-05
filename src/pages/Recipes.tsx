@@ -14,12 +14,12 @@ export default function Recipes() {
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
         <header className="mb-8">
-          <Link to="/recipes" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
+          <Link to="/main" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your library</p>
+              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Cookbook</p>
               <h1 className="font-display text-4xl font-bold md:text-5xl">My creations</h1>
             </div>
             <div className="flex flex-col gap-2">

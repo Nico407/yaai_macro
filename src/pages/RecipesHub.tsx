@@ -8,32 +8,32 @@ export default function RecipesHub() {
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
         <header className="mb-8">
           <Link
-            to="/"
+            to="/main"
             className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
-            Cookbook
+            Plan my meals
           </p>
-          <h1 className="font-display text-4xl font-bold md:text-5xl">Recipes</h1>
+          <h1 className="font-display text-4xl font-bold md:text-5xl">Choose a source</h1>
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">
           <HubCard
-            to="/recipes/cookbook"
+            to="/plan/cookbook"
             icon={<BookOpen className="h-5 w-5" />}
             title="Cook Book"
             desc="A free starter library of macro-friendly recipes."
           />
           <HubCard
-            to="/recipes/mine"
+            to="/recipes"
             icon={<ChefHat className="h-5 w-5" />}
             title="My creations"
-            desc="Recipes you've built from your own pantry."
+            desc="Plan from recipes you've built yourself."
           />
           <HubCard
-            to="/recipes/countries"
+            to="/plan/countries"
             icon={<Globe className="h-5 w-5" />}
             title="Add countries"
             desc="Unlock recipe packs from around the world."
