@@ -153,6 +153,46 @@ export default function Ingredients() {
           </p>
         </header>
 
+        <Card className="mb-4 rounded-2xl p-5 shadow-soft md:p-6">
+          <form onSubmit={onSearch} className="flex gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search foods (e.g. greek yogurt, oats)…"
+            />
+            <Button type="submit" disabled={searching || !query.trim()}>
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-2 hidden sm:inline">Search</span>
+            </Button>
+          </form>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Powered by Open Food Facts. Pick a result to pre-fill the form.
+          </p>
+          {results && results.length > 0 && (
+            <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">
+              {results.map((h) => (
+                <button
+                  key={h.code}
+                  type="button"
+                  onClick={() => pickResult(h)}
+                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{h.name}</div>
+                    {h.brand && (
+                      <div className="truncate text-xs text-muted-foreground">{h.brand}</div>
+                    )}
+                  </div>
+                  <div className="shrink-0 text-right text-xs text-muted-foreground">
+                    {Math.round(h.kcal)} kcal · P {Math.round(h.protein)} · C {Math.round(h.carbs)} · F{" "}
+                    {Math.round(h.fat)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </Card>
+
         <Card className="rounded-2xl p-6 shadow-soft md:p-8">
           <form onSubmit={onAdd} className="space-y-4">
             <div>
