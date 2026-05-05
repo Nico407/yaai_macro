@@ -116,26 +116,43 @@ export default function RecipeNew() {
     );
     const total = valid_rows.reduce((s, r) => s + parseFloat(r.grams), 0);
 
-    const { data: recipe, error: recErr } = await supabase
-      .from("recipes")
-      .insert({
-        name: name.trim(),
-        description: description.trim() || null,
-        default_serving_g: Math.round(total),
-        min_total_g: Math.max(50, Math.round(total * 0.5)),
-        max_total_g: Math.round(total * 3),
-      })
-      .select()
-      .single();
+    const recipePayload = {
+      name: name.trim(),
+      description: description.trim() || null,
+      default_serving_g: Math.round(total),
+      min_total_g: Math.max(50, Math.round(total * 0.5)),
+      max_total_g: Math.round(total * 3),
+    };
 
-    if (recErr || !recipe) {
-      setSaving(false);
-      toast({ title: "Couldn't save recipe", description: recErr?.message, variant: "destructive" });
-      return;
+    let recipeId = id;
+    if (isEdit) {
+      const { error: upErr } = await supabase
+        .from("recipes")
+        .update(recipePayload)
+        .eq("id", id!);
+      if (upErr) {
+        setSaving(false);
+        toast({ title: "Couldn't save recipe", description: upErr.message, variant: "destructive" });
+        return;
+      }
+      // Replace ingredients
+      await supabase.from("recipe_ingredients").delete().eq("recipe_id", id!);
+    } else {
+      const { data: recipe, error: recErr } = await supabase
+        .from("recipes")
+        .insert(recipePayload)
+        .select()
+        .single();
+      if (recErr || !recipe) {
+        setSaving(false);
+        toast({ title: "Couldn't save recipe", description: recErr?.message, variant: "destructive" });
+        return;
+      }
+      recipeId = recipe.id;
     }
 
     const ingredientPayload = valid_rows.map((r) => ({
-      recipe_id: recipe.id,
+      recipe_id: recipeId!,
       ingredient_id: r.ingredient_id,
       ratio: parseFloat(r.grams) / total,
     }));
@@ -152,8 +169,41 @@ export default function RecipeNew() {
     }
 
     await qc.invalidateQueries({ queryKey: ["recipes"] });
-    toast({ title: "Recipe saved" });
+    toast({ title: isEdit ? "Recipe updated" : "Recipe saved" });
     navigate("/recipes");
+  }
+
+  async function onDelete() {
+    if (!isEdit) return;
+    setDeleting(true);
+    await supabase.from("recipe_ingredients").delete().eq("recipe_id", id!);
+    const { error } = await supabase.from("recipes").delete().eq("id", id!);
+    setDeleting(false);
+    if (error) {
+      toast({ title: "Couldn't delete", description: error.message, variant: "destructive" });
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["recipes"] });
+    toast({ title: "Recipe deleted" });
+    navigate("/recipes");
+  }
+
+  if (isEdit && loadingRecipes && !existing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (isEdit && !loadingRecipes && !existing) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12 text-center">
+        <p className="text-muted-foreground">Recipe not found.</p>
+        <Button asChild variant="outline" className="mt-4">
+          <Link to="/recipes">Back to recipes</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -163,8 +213,12 @@ export default function RecipeNew() {
           <Link to="/recipes" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back to recipes
           </Link>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">New recipe</p>
-          <h1 className="font-display text-4xl font-bold md:text-5xl">Build a meal.</h1>
+          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+            {isEdit ? "Edit recipe" : "New recipe"}
+          </p>
+          <h1 className="font-display text-4xl font-bold md:text-5xl">
+            {isEdit ? name || "Edit meal" : "Build a meal."}
+          </h1>
           <p className="mt-2 text-muted-foreground">
             Add ingredients with their grams for one batch. Ratios are calculated automatically.
           </p>
