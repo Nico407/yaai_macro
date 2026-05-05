@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
@@ -25,7 +26,7 @@ import {
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2 } from "lucide-react";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 type Slot = (typeof SLOTS)[number];
@@ -40,6 +41,20 @@ export default function Index() {
 
   const [pickerSlot, setPickerSlot] = useState<Slot | null>(null);
   const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteLog(id: string) {
+    setDeleting(true);
+    const { error } = await supabase.from("meal_logs").delete().eq("id", id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Couldn't remove", { description: error.message });
+      return;
+    }
+    setEditing(null);
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
+    toast.success("Meal removed");
+  }
 
   const consumed = useMemo(
     () =>
@@ -399,6 +414,19 @@ export default function Index() {
               </div>
             );
           })()}
+
+          {editing && (
+            <DialogFooter>
+              <Button
+                variant="destructive"
+                onClick={() => deleteLog(editing.id)}
+                disabled={deleting}
+              >
+                <Trash2 className="mr-1 h-4 w-4" />
+                {deleting ? "Removing…" : "Remove meal"}
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
