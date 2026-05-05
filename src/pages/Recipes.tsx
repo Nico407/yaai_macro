@@ -77,8 +77,10 @@ export default function Recipes() {
                       <Button asChild size="sm">
                         <Link to={`/recipes/${r.id}/scale`}>Pick</Link>
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onDelete(r.id, r.name)}>
-                        Delete
+                      <Button asChild variant="ghost" size="sm">
+                        <Link to={`/recipes/${r.id}/edit`}>
+                          <Pencil className="mr-1 h-3 w-3" /> Edit
+                        </Link>
                       </Button>
                     </div>
                   </div>
