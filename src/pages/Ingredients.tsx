@@ -152,6 +152,51 @@ export default function Ingredients() {
     await qc.invalidateQueries({ queryKey: ["ingredients"] });
   }
 
+  const [editing, setEditing] = useState<Ingredient | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editProtein, setEditProtein] = useState("");
+  const [editCarbs, setEditCarbs] = useState("");
+  const [editFat, setEditFat] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const editKcal =
+    Math.round(
+      (parseFloat(editProtein || "0") * 4 +
+        parseFloat(editCarbs || "0") * 4 +
+        parseFloat(editFat || "0") * 9) * 10,
+    ) / 10;
+
+  function openEdit(ing: Ingredient) {
+    setEditing(ing);
+    setEditName(ing.name);
+    setEditProtein(String(ing.protein_per_100g));
+    setEditCarbs(String(ing.carbs_per_100g));
+    setEditFat(String(ing.fat_per_100g));
+  }
+
+  async function onSaveEdit() {
+    if (!editing || !editName.trim()) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("ingredients")
+      .update({
+        name: editName.trim(),
+        kcal_per_100g: editKcal,
+        protein_per_100g: parseFloat(editProtein || "0"),
+        carbs_per_100g: parseFloat(editCarbs || "0"),
+        fat_per_100g: parseFloat(editFat || "0"),
+      })
+      .eq("id", editing.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: "Couldn't update", description: error.message, variant: "destructive" });
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["ingredients"] });
+    setEditing(null);
+    toast({ title: "Ingredient updated" });
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
