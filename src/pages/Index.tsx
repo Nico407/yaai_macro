@@ -50,6 +50,24 @@ export default function Index() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [favoritesQuery, setFavoritesQuery] = useState("");
+  const [togglingFav, setTogglingFav] = useState<string | null>(null);
+
+  async function toggleFavorite(r: RecipeRow) {
+    setTogglingFav(r.id);
+    const { error } = await supabase
+      .from("recipes")
+      .update({ is_favorite: !r.is_favorite })
+      .eq("id", r.id);
+    setTogglingFav(null);
+    if (error) {
+      toast.error("Couldn't update favorite", { description: error.message });
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["recipes"] });
+    toast.success(r.is_favorite ? "Removed from favorites" : "Added to favorites");
+  }
 
   async function deleteLog(id: string) {
     setDeleting(true);
