@@ -63,22 +63,32 @@ export default function Recipes() {
       toast.error("Recipe has no calories");
       return;
     }
+    const isFixed = !!recipe.is_fixed;
+
+    const fixedLogs = logs.filter((l) => l.is_fixed);
+    const scalableLogs = logs.filter((l) => !l.is_fixed);
+
     let grams = Number(recipe.default_serving_g);
     let sharePerMeal = 0;
     if (target) {
-      const totalMeals = logs.length + 1;
-      sharePerMeal = target.kcal / totalMeals;
-      const raw = sharePerMeal / perGram.kcal;
-      grams = clampGrams(raw || grams, 30, 5000);
+      const fixedKcalUsed =
+        fixedLogs.reduce((s, l) => s + Number(l.kcal), 0) +
+        (isFixed ? perGram.kcal * Number(recipe.default_serving_g) : 0);
+      const scalableCount = scalableLogs.length + (isFixed ? 0 : 1);
+      const remainingForScalable = Math.max(0, target.kcal - fixedKcalUsed);
+      sharePerMeal = scalableCount > 0 ? remainingForScalable / scalableCount : 0;
+      if (!isFixed) {
+        const raw = sharePerMeal > 0 ? sharePerMeal / perGram.kcal : grams;
+        grams = clampGrams(raw || grams, 30, 5000);
+      }
     }
     const totals = macrosFor(perGram, grams);
     const breakdown = ingredientBreakdown(recipe, grams);
 
     setBusy(true);
 
-    // Rescale existing meals so each one represents 1/totalMeals of the day
     if (target && sharePerMeal > 0) {
-      for (const l of logs) {
+      for (const l of scalableLogs) {
         const oldKcal = Number(l.kcal);
         if (!oldKcal) continue;
         const factor = sharePerMeal / oldKcal;
@@ -109,6 +119,7 @@ export default function Recipes() {
       carbs_g: Math.round(totals.carbs_g * 10) / 10,
       fat_g: Math.round(totals.fat_g * 10) / 10,
       slot: slot === "__extra__" ? null : slot,
+      is_fixed: isFixed,
       ingredients_json: breakdown.map((b) => ({
         ingredient_id: b.ingredient_id,
         name: b.name,
