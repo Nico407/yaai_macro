@@ -28,7 +28,10 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/ingredients" element={<Ingredients />} />
-          <Route path="/recipes" element={<Recipes />} />
+          <Route path="/recipes" element={<RecipesHub />} />
+          <Route path="/recipes/cookbook" element={<Cookbook />} />
+          <Route path="/recipes/countries" element={<Countries />} />
+          <Route path="/recipes/mine" element={<Recipes />} />
           <Route path="/recipes/new" element={<RecipeNew />} />
           <Route path="/recipes/:id/edit" element={<RecipeNew />} />
           <Route path="/recipes/:id/scale" element={<RecipeScale />} />
