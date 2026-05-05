@@ -360,6 +360,15 @@ export default function Ingredients() {
                           {Math.round(Number(ing.kcal_per_100g))} kcal · P {Number(ing.protein_per_100g)} · C{" "}
                           {Number(ing.carbs_per_100g)} · F {Number(ing.fat_per_100g)} <span className="opacity-60">/ 100g</span>
                         </div>
+                        {ing.dietary_tags && ing.dietary_tags.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {ing.dietary_tags.map((t) => (
+                              <span key={t} className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                {t.replace("contains_", "+ ")}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <Button
                         variant="ghost"
