@@ -256,6 +256,19 @@ export default function RecipeNew() {
               />
             </div>
 
+            <div>
+              <Label htmlFor="r-instr">How to prep (optional)</Label>
+              <Textarea
+                id="r-instr"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder={"1. Cook the pasta…\n2. Heat the sauce…\n3. Combine and serve."}
+                className="mt-1.5"
+                rows={5}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">One step per line.</p>
+            </div>
+
             <div className="flex items-start justify-between gap-4 rounded-xl border bg-secondary/40 p-4">
               <div className="flex-1">
                 <Label htmlFor="r-fixed" className="font-semibold">Fixed serving size</Label>
