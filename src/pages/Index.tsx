@@ -23,6 +23,7 @@ import {
   ingredientBreakdown,
   macrosFor,
   recipePerGram,
+  type PerGram,
 } from "@/lib/scaling";
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
