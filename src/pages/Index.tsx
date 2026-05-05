@@ -43,6 +43,7 @@ export default function Index() {
   const [pickerSlot, setPickerSlot] = useState<Slot | null>(null);
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
 
   async function deleteLog(id: string) {
     setDeleting(true);
