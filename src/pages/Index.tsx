@@ -5,7 +5,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { MacroRing } from "@/components/MacroRing";
-import { Loader2, Sparkles, Utensils } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot } from "lucide-react";
 
 export default function Index() {
   const { data: profile, isLoading } = useProfile();
@@ -87,7 +87,14 @@ export default function Index() {
           </div>
         </Card>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <Link to="/ingredients">
+            <ActionCard
+              icon={<Carrot className="h-5 w-5" />}
+              title="Ingredients"
+              desc="Manage your pantry — the building blocks for recipes."
+            />
+          </Link>
           <ActionCard
             disabled
             icon={<Sparkles className="h-5 w-5" />}
