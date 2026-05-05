@@ -1,0 +1,1 @@
+ALTER TABLE public.profile ADD COLUMN IF NOT EXISTS nutrition_preference text, ADD COLUMN IF NOT EXISTS dietary_restrictions text[] NOT NULL DEFAULT '{}'::text[];

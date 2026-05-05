@@ -162,10 +162,12 @@ export type Database = {
           activity_level: string | null
           age: number | null
           created_at: string
+          dietary_restrictions: string[]
           display_name: string | null
           goal: string | null
           height_cm: number | null
           id: string
+          nutrition_preference: string | null
           sex: string | null
           target_calories: number | null
           target_carbs_g: number | null
@@ -178,10 +180,12 @@ export type Database = {
           activity_level?: string | null
           age?: number | null
           created_at?: string
+          dietary_restrictions?: string[]
           display_name?: string | null
           goal?: string | null
           height_cm?: number | null
           id?: string
+          nutrition_preference?: string | null
           sex?: string | null
           target_calories?: number | null
           target_carbs_g?: number | null
@@ -194,10 +198,12 @@ export type Database = {
           activity_level?: string | null
           age?: number | null
           created_at?: string
+          dietary_restrictions?: string[]
           display_name?: string | null
           goal?: string | null
           height_cm?: number | null
           id?: string
+          nutrition_preference?: string | null
           sex?: string | null
           target_calories?: number | null
           target_carbs_g?: number | null
