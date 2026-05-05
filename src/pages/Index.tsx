@@ -217,6 +217,7 @@ export default function Index() {
       fat_g: Math.round(totals.fat_g * 10) / 10,
       slot: pickerSlot === ("__extra__" as Slot) ? null : pickerSlot,
       is_fixed: isFixed,
+      instructions: recipe.instructions ?? null,
       ingredients_json: breakdown.map((b) => ({
         ingredient_id: b.ingredient_id,
         name: b.name,
