@@ -102,13 +102,13 @@ export default function Index() {
               desc="Build meals from your pantry with grams per ingredient."
             />
           </Link>
-          <ActionCard
-            disabled
-            icon={<Sparkles className="h-5 w-5" />}
-            title="Pick & scale"
-            desc="Choose a recipe — we'll scale grams to fit remaining macros."
-            tag="Coming next"
-          />
+          <Link to="/recipes">
+            <ActionCard
+              icon={<Sparkles className="h-5 w-5" />}
+              title="Pick & scale"
+              desc="Choose a recipe — we'll scale grams to fit remaining macros."
+            />
+          </Link>
         </div>
 
         <section className="mt-8">

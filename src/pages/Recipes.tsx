@@ -75,8 +75,8 @@ export default function Recipes() {
               return (
                 <Card key={r.id} className="rounded-2xl p-5">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-display text-lg font-bold">{r.name}</div>
+                    <Link to={`/recipes/${r.id}/scale`} className="min-w-0 flex-1">
+                      <div className="font-display text-lg font-bold hover:underline">{r.name}</div>
                       {r.description && (
                         <div className="mt-0.5 text-xs text-muted-foreground">{r.description}</div>
                       )}
@@ -87,10 +87,15 @@ export default function Recipes() {
                         {Math.round(kcal)} kcal · P {Math.round(protein)} · C {Math.round(carbs)} · F{" "}
                         {Math.round(fat)}
                       </div>
+                    </Link>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      <Button asChild size="sm">
+                        <Link to={`/recipes/${r.id}/scale`}>Pick</Link>
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => onDelete(r.id, r.name)}>
+                        Delete
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => onDelete(r.id, r.name)}>
-                      Delete
-                    </Button>
                   </div>
                 </Card>
               );
