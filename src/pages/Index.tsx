@@ -136,11 +136,8 @@ export default function Index() {
     const left = calcRemaining(target, consumed);
     const share = emptySlots > 0 ? left.kcal / emptySlots : left.kcal;
     const rawGrams = share > 0 ? share / perGram.kcal : Number(recipe.default_serving_g);
-    const grams = clampGrams(
-      rawGrams || Number(recipe.default_serving_g),
-      Number(recipe.min_total_g),
-      Number(recipe.max_total_g),
-    );
+    // Loose bounds so scaling can actually fit the remaining macros (30g floor, 5kg ceiling)
+    const grams = clampGrams(rawGrams || Number(recipe.default_serving_g), 30, 5000);
     const totals = macrosFor(perGram, grams);
     const breakdown = ingredientBreakdown(recipe, grams);
 
