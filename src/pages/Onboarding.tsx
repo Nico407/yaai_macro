@@ -229,7 +229,7 @@ export default function Onboarding() {
                   [
                     { v: "hard_cut", label: "Hard cut", hint: "-0.5 kg/weekweek" },
                     { v: "cut", label: "Cut", hint: "-0.25 kg/week" },
-                    { v: "maintain", label: "Maintain", hint: "0%" },
+                    { v: "maintain", label: "Maintain" },
                     { v: "bulk", label: "Bulk", hint: "+0.25 kg/week" },
                     { v: "hard_bulk", label: "Hard bulk", hint: "+0.5 kg/week" },
                   ] as { v: Goal; label: string; hint: string }[]
