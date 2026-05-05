@@ -44,6 +44,15 @@ export default function Cookbook() {
   const { data: logs = [] } = useTodayLogs();
   const [picking, setPicking] = useState<CookbookItem | null>(null);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return COOKBOOK;
+    return COOKBOOK.filter(
+      (r) => r.name.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q),
+    );
+  }, [query]);
 
   const consumed = useMemo(
     () =>
