@@ -33,12 +33,13 @@ type CookbookItem = {
   p: number;
   c: number;
   f: number;
+  image: string;
 };
 
 const COOKBOOK: CookbookItem[] = [
-  { id: "cb-chicken-rice", name: "Chicken & rice bowl", desc: "Lean protein staple, easy to scale.", kcal: 520, p: 45, c: 60, f: 10 },
-  { id: "cb-oats-protein", name: "Protein oats", desc: "Breakfast that actually fills you up.", kcal: 430, p: 35, c: 55, f: 9 },
-  { id: "cb-salmon-veg", name: "Salmon & veg tray", desc: "Omega-3s, easy macros, one pan.", kcal: 580, p: 42, c: 30, f: 28 },
+  { id: "cb-chicken-rice", name: "Chicken & rice bowl", desc: "Lean protein staple, easy to scale.", kcal: 520, p: 45, c: 60, f: 10, image: chickenRiceImg },
+  { id: "cb-oats-protein", name: "Protein oats", desc: "Breakfast that actually fills you up.", kcal: 430, p: 35, c: 55, f: 9, image: proteinOatsImg },
+  { id: "cb-salmon-veg", name: "Salmon & veg tray", desc: "Omega-3s, easy macros, one pan.", kcal: 580, p: 42, c: 30, f: 28, image: salmonVegImg },
 ];
 
 export default function Cookbook() {
