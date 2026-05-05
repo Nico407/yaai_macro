@@ -129,7 +129,7 @@ export default function Ingredients() {
     ) / 10;
 
   function reset() {
-    setName(""); setProtein(""); setCarbs(""); setFat("");
+    setName(""); setProtein(""); setCarbs(""); setFat(""); setTags([]);
   }
 
   async function onSearch(e: React.FormEvent) {
