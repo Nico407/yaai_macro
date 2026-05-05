@@ -1,15 +1,71 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useProfile } from "@/hooks/useProfile";
-import { useTodayLogs } from "@/hooks/useTodayLogs";
+import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { MacroRing } from "@/components/MacroRing";
-import { Loader2, Sparkles, Utensils, Carrot, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Trash2 } from "lucide-react";
 
 export default function Index() {
+  const qc = useQueryClient();
   const { data: profile, isLoading } = useProfile();
   const { data: logs = [] } = useTodayLogs();
+  const [editing, setEditing] = useState<MealLog | null>(null);
+  const [editGrams, setEditGrams] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function saveEdit() {
+    if (!editing) return;
+    const newGrams = parseFloat(editGrams);
+    const oldGrams = Number(editing.total_grams);
+    if (!newGrams || newGrams <= 0 || !oldGrams) return;
+    const factor = newGrams / oldGrams;
+    setBusy(true);
+    const { error } = await supabase
+      .from("meal_logs")
+      .update({
+        total_grams: newGrams,
+        kcal: Number(editing.kcal) * factor,
+        protein_g: Number(editing.protein_g) * factor,
+        carbs_g: Number(editing.carbs_g) * factor,
+        fat_g: Number(editing.fat_g) * factor,
+      })
+      .eq("id", editing.id);
+    setBusy(false);
+    if (error) {
+      toast.error("Couldn't update", { description: error.message });
+      return;
+    }
+    setEditing(null);
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
+    toast.success("Meal updated");
+  }
+
+  async function deleteLog(id: string) {
+    const { error } = await supabase.from("meal_logs").delete().eq("id", id);
+    if (error) {
+      toast.error("Couldn't delete", { description: error.message });
+      return;
+    }
+    setEditing(null);
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
+    toast.success("Meal deleted");
+  }
 
   if (isLoading) {
     return (
