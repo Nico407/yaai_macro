@@ -41,6 +41,20 @@ export default function Index() {
 
   const [pickerSlot, setPickerSlot] = useState<Slot | null>(null);
   const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteLog(id: string) {
+    setDeleting(true);
+    const { error } = await supabase.from("meal_logs").delete().eq("id", id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Couldn't remove", { description: error.message });
+      return;
+    }
+    setEditing(null);
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
+    toast.success("Meal removed");
+  }
 
   const consumed = useMemo(
     () =>
