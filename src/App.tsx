@@ -9,6 +9,7 @@ import Ingredients from "./pages/Ingredients.tsx";
 import Recipes from "./pages/Recipes.tsx";
 import RecipeNew from "./pages/RecipeNew.tsx";
 import RecipeScale from "./pages/RecipeScale.tsx";
+import QuickLog from "./pages/QuickLog.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/recipes/new" element={<RecipeNew />} />
           <Route path="/recipes/:id/edit" element={<RecipeNew />} />
           <Route path="/recipes/:id/scale" element={<RecipeScale />} />
+          <Route path="/quick-log" element={<QuickLog />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
