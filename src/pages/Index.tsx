@@ -153,7 +153,7 @@ export default function Index() {
       protein_g: Math.round(totals.protein_g * 10) / 10,
       carbs_g: Math.round(totals.carbs_g * 10) / 10,
       fat_g: Math.round(totals.fat_g * 10) / 10,
-      slot: pickerSlot,
+      slot: pickerSlot === ("__extra__" as Slot) ? null : pickerSlot,
       ingredients_json: breakdown.map((b) => ({
         ingredient_id: b.ingredient_id,
         name: b.name,
@@ -264,6 +264,13 @@ export default function Index() {
               );
             })}
           </div>
+          <Button
+            variant="outline"
+            className="mt-3 w-full rounded-xl border-dashed"
+            onClick={() => setPickerSlot("__extra__" as Slot)}
+          >
+            <Plus className="mr-1 h-4 w-4" /> Add more
+          </Button>
         </section>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -361,7 +368,7 @@ export default function Index() {
       <Dialog open={!!pickerSlot} onOpenChange={(o) => !o && setPickerSlot(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add to {pickerSlot}</DialogTitle>
+            <DialogTitle>{pickerSlot === ("__extra__" as Slot) ? "Add extra" : `Add to ${pickerSlot}`}</DialogTitle>
             <DialogDescription>
               Pick a recipe — we'll auto-scale it to fit your remaining macros.
             </DialogDescription>
