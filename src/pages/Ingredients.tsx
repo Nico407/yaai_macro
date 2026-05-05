@@ -8,7 +8,59 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients } from "@/hooks/useIngredients";
-import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Search, Trash2 } from "lucide-react";
+
+type OFFHit = {
+  code: string;
+  name: string;
+  brand?: string;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+async function searchOpenFoodFacts(q: string): Promise<OFFHit[]> {
+  const url = new URL("https://world.openfoodfacts.org/cgi/search.pl");
+  url.searchParams.set("search_terms", q);
+  url.searchParams.set("search_simple", "1");
+  url.searchParams.set("action", "process");
+  url.searchParams.set("json", "1");
+  url.searchParams.set("page_size", "12");
+  url.searchParams.set(
+    "fields",
+    "code,product_name,brands,nutriments",
+  );
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("Search failed");
+  const data = await res.json();
+  const products: any[] = data.products ?? [];
+  return products
+    .map((p) => {
+      const n = p.nutriments ?? {};
+      const kcal =
+        Number(n["energy-kcal_100g"]) ||
+        (n["energy_100g"] ? Number(n["energy_100g"]) / 4.184 : NaN);
+      return {
+        code: p.code,
+        name: p.product_name || "Unnamed",
+        brand: p.brands || undefined,
+        kcal,
+        protein: Number(n.proteins_100g),
+        carbs: Number(n.carbohydrates_100g),
+        fat: Number(n.fat_100g),
+      } as OFFHit;
+    })
+    .filter(
+      (h) =>
+        h.name &&
+        Number.isFinite(h.kcal) &&
+        Number.isFinite(h.protein) &&
+        Number.isFinite(h.carbs) &&
+        Number.isFinite(h.fat),
+    );
+}
+
 
 export default function Ingredients() {
   const qc = useQueryClient();
