@@ -36,6 +36,38 @@ export function gramsForTarget(
   return Math.max(0, remaining) / denom;
 }
 
+/**
+ * Balanced fit: choose grams so the meal lands as close as possible to the
+ * given share of EACH macro (kcal, protein, carbs, fat) — not just one.
+ * Uses weighted least squares: g* = Σ(pm·Tm) / Σ(pm²).
+ * This naturally allows small over/undershoot on individual macros while
+ * keeping the overall macro profile balanced.
+ */
+export function balancedGramsForShare(
+  perGram: PerGram,
+  share: { kcal: number; protein_g: number; carbs_g: number; fat_g: number },
+  weights: { kcal?: number; protein_g?: number; carbs_g?: number; fat_g?: number } = {},
+): number {
+  const w = {
+    kcal: weights.kcal ?? 1,
+    protein_g: weights.protein_g ?? 1.5, // protein matters most for body comp
+    carbs_g: weights.carbs_g ?? 1,
+    fat_g: weights.fat_g ?? 1,
+  };
+  const keys: (keyof PerGram)[] = ["kcal", "protein_g", "carbs_g", "fat_g"];
+  let num = 0;
+  let den = 0;
+  for (const k of keys) {
+    const pm = perGram[k];
+    const tm = share[k];
+    if (!pm || pm <= 0 || !tm || tm <= 0) continue;
+    num += w[k] * pm * tm;
+    den += w[k] * pm * pm;
+  }
+  if (den <= 0) return 0;
+  return num / den;
+}
+
 export function clampGrams(
   grams: number,
   min: number,
