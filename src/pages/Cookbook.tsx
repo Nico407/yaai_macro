@@ -10,7 +10,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowLeft, BookOpen, Sparkles, Plus } from "lucide-react";
+import { ArrowLeft, BookOpen, Sparkles, Plus, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
