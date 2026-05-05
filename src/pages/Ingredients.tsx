@@ -8,7 +8,59 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients } from "@/hooks/useIngredients";
-import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Search, Trash2 } from "lucide-react";
+
+type OFFHit = {
+  code: string;
+  name: string;
+  brand?: string;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+async function searchOpenFoodFacts(q: string): Promise<OFFHit[]> {
+  const url = new URL("https://world.openfoodfacts.org/cgi/search.pl");
+  url.searchParams.set("search_terms", q);
+  url.searchParams.set("search_simple", "1");
+  url.searchParams.set("action", "process");
+  url.searchParams.set("json", "1");
+  url.searchParams.set("page_size", "12");
+  url.searchParams.set(
+    "fields",
+    "code,product_name,brands,nutriments",
+  );
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("Search failed");
+  const data = await res.json();
+  const products: any[] = data.products ?? [];
+  return products
+    .map((p) => {
+      const n = p.nutriments ?? {};
+      const kcal =
+        Number(n["energy-kcal_100g"]) ||
+        (n["energy_100g"] ? Number(n["energy_100g"]) / 4.184 : NaN);
+      return {
+        code: p.code,
+        name: p.product_name || "Unnamed",
+        brand: p.brands || undefined,
+        kcal,
+        protein: Number(n.proteins_100g),
+        carbs: Number(n.carbohydrates_100g),
+        fat: Number(n.fat_100g),
+      } as OFFHit;
+    })
+    .filter(
+      (h) =>
+        h.name &&
+        Number.isFinite(h.kcal) &&
+        Number.isFinite(h.protein) &&
+        Number.isFinite(h.carbs) &&
+        Number.isFinite(h.fat),
+    );
+}
+
 
 export default function Ingredients() {
   const qc = useQueryClient();
@@ -21,8 +73,40 @@ export default function Ingredients() {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
 
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<OFFHit[] | null>(null);
+
   function reset() {
     setName(""); setKcal(""); setProtein(""); setCarbs(""); setFat("");
+  }
+
+  async function onSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setSearching(true);
+    try {
+      const hits = await searchOpenFoodFacts(query.trim());
+      setResults(hits);
+      if (hits.length === 0) {
+        toast({ title: "No results", description: "Try different keywords." });
+      }
+    } catch (err: any) {
+      toast({ title: "Search failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function pickResult(h: OFFHit) {
+    setName(h.brand ? `${h.name} (${h.brand})` : h.name);
+    setKcal(String(Math.round(h.kcal)));
+    setProtein(String(Math.round(h.protein * 10) / 10));
+    setCarbs(String(Math.round(h.carbs * 10) / 10));
+    setFat(String(Math.round(h.fat * 10) / 10));
+    setResults(null);
+    setQuery("");
+    toast({ title: "Loaded — review & save below" });
   }
 
   async function onAdd(e: React.FormEvent) {
@@ -68,6 +152,46 @@ export default function Ingredients() {
             Building blocks for your recipes. Macros are per 100g.
           </p>
         </header>
+
+        <Card className="mb-4 rounded-2xl p-5 shadow-soft md:p-6">
+          <form onSubmit={onSearch} className="flex gap-2">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search foods (e.g. greek yogurt, oats)…"
+            />
+            <Button type="submit" disabled={searching || !query.trim()}>
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-2 hidden sm:inline">Search</span>
+            </Button>
+          </form>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Powered by Open Food Facts. Pick a result to pre-fill the form.
+          </p>
+          {results && results.length > 0 && (
+            <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">
+              {results.map((h) => (
+                <button
+                  key={h.code}
+                  type="button"
+                  onClick={() => pickResult(h)}
+                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary hover:bg-primary/5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{h.name}</div>
+                    {h.brand && (
+                      <div className="truncate text-xs text-muted-foreground">{h.brand}</div>
+                    )}
+                  </div>
+                  <div className="shrink-0 text-right text-xs text-muted-foreground">
+                    {Math.round(h.kcal)} kcal · P {Math.round(h.protein)} · C {Math.round(h.carbs)} · F{" "}
+                    {Math.round(h.fat)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </Card>
 
         <Card className="rounded-2xl p-6 shadow-soft md:p-8">
           <form onSubmit={onAdd} className="space-y-4">
