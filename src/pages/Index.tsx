@@ -18,6 +18,7 @@ import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
 import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import {
+  balancedGramsForShare,
   clampGrams,
   ingredientBreakdown,
   macrosFor,
