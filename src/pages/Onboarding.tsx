@@ -42,6 +42,26 @@ export default function Onboarding() {
   const [weight, setWeight] = useState("75");
   const [activity, setActivity] = useState<ActivityLevel>("moderate");
   const [goal, setGoal] = useState<Goal>("maintain");
+  const [nutritionPref, setNutritionPref] = useState<"omnivore" | "vegetarian" | "vegan" | "pescatarian">("omnivore");
+  const [restrictions, setRestrictions] = useState<string[]>([]);
+
+  const RESTRICTION_OPTIONS = [
+    "Gluten-free",
+    "Lactose-free",
+    "Nut-free",
+    "Soy-free",
+    "Egg-free",
+    "Shellfish-free",
+    "Low-FODMAP",
+    "Halal",
+    "Kosher",
+  ];
+
+  function toggleRestriction(r: string) {
+    setRestrictions((prev) =>
+      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r],
+    );
+  }
 
   const ageNum = parseFloat(age);
   const ageError =
