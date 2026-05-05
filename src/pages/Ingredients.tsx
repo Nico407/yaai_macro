@@ -195,6 +195,7 @@ export default function Ingredients() {
   const [editProtein, setEditProtein] = useState("");
   const [editCarbs, setEditCarbs] = useState("");
   const [editFat, setEditFat] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
   const editKcal =
