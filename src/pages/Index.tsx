@@ -149,10 +149,10 @@ export default function Index() {
         </Card>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <Link to="/recipes">
+          <Link to="/plan">
             <ActionCard
               icon={<Sparkles className="h-5 w-5" />}
-              title="Pick & scale"
+              title="Plan my meals"
               desc="Choose a recipe — we'll scale grams to fit remaining macros."
             />
           </Link>
@@ -166,7 +166,7 @@ export default function Index() {
           <Link to="/recipes">
             <ActionCard
               icon={<Utensils className="h-5 w-5" />}
-              title="Recipes"
+              title="My creations"
               desc="Build meals from your pantry with grams per ingredient."
             />
           </Link>
