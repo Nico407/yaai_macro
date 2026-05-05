@@ -322,6 +322,14 @@ export default function Ingredients() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => openEdit(ing)}
+                        aria-label={`Edit ${ing.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onDelete(ing.id)}
                         aria-label={`Delete ${ing.name}`}
                       >
