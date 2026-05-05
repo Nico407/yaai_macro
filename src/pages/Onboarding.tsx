@@ -99,6 +99,8 @@ export default function Onboarding() {
       target_protein_g: preview.protein_g,
       target_carbs_g: preview.carbs_g,
       target_fat_g: preview.fat_g,
+      nutrition_preference: nutritionPref,
+      dietary_restrictions: restrictions,
     });
     setSaving(false);
     if (error) {
