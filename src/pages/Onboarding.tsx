@@ -7,21 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  calcTargets,
-  type ActivityLevel,
-  type Goal,
-  type Sex,
-} from "@/lib/macros";
+import { calcTargets, type ActivityLevel, type Goal, type Sex } from "@/lib/macros";
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] = [
   { value: "sedentary", label: "Sedentary", hint: "Desk job, no exercise" },
@@ -79,16 +68,11 @@ export default function Onboarding() {
   ];
 
   function toggleRestriction(r: string) {
-    setRestrictions((prev) =>
-      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r],
-    );
+    setRestrictions((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
   }
 
   const ageNum = parseFloat(age);
-  const ageError =
-    age !== "" && !isNaN(ageNum) && ageNum < 13
-      ? "Sorry, this app is only for ages 13 and up."
-      : null;
+  const ageError = age !== "" && !isNaN(ageNum) && ageNum < 13 ? "Sorry, this app is only for ages 13 and up." : null;
 
   const preview = (() => {
     const h = parseFloat(height);
@@ -171,17 +155,11 @@ export default function Onboarding() {
                   className="mt-1.5"
                   aria-invalid={!!ageError}
                 />
-                {ageError && (
-                  <p className="mt-1 text-xs text-destructive">{ageError}</p>
-                )}
+                {ageError && <p className="mt-1 text-xs text-destructive">{ageError}</p>}
               </div>
               <div>
                 <Label>Sex</Label>
-                <RadioGroup
-                  value={sex}
-                  onValueChange={(v) => setSex(v as Sex)}
-                  className="mt-2 flex gap-3"
-                >
+                <RadioGroup value={sex} onValueChange={(v) => setSex(v as Sex)} className="mt-2 flex gap-3">
                   <label className="flex flex-1 cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                     <RadioGroupItem value="male" /> <span className="text-sm">Male</span>
                   </label>
@@ -247,13 +225,15 @@ export default function Onboarding() {
                 onValueChange={(v) => setGoal(v as Goal)}
                 className="mt-2 grid grid-cols-5 gap-2"
               >
-                {([
-                  { v: "hard_cut", label: "Hard cut", hint: "-30%" },
-                  { v: "cut", label: "Cut", hint: "-20%" },
-                  { v: "maintain", label: "Maintain", hint: "0%" },
-                  { v: "bulk", label: "Bulk", hint: "+15%" },
-                  { v: "hard_bulk", label: "Hard bulk", hint: "+25%" },
-                ] as { v: Goal; label: string; hint: string }[]).map((g) => (
+                {(
+                  [
+                    { v: "hard_cut", label: "Hard cut", hint: "-0.5 kg/weekweek" },
+                    { v: "cut", label: "Cut", hint: "-0.25 kg/week" },
+                    { v: "maintain", label: "Maintain", hint: "0%" },
+                    { v: "bulk", label: "Bulk", hint: "+0.25 kg/week" },
+                    { v: "hard_bulk", label: "Hard bulk", hint: "+0.5 kg/week" },
+                  ] as { v: Goal; label: string; hint: string }[]
+                ).map((g) => (
                   <label
                     key={g.v}
                     className="flex cursor-pointer flex-col items-center gap-0.5 rounded-lg border border-input bg-background px-2 py-3 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5"
