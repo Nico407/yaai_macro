@@ -114,6 +114,7 @@ export default function Ingredients() {
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
