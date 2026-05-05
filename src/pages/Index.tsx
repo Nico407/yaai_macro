@@ -189,7 +189,16 @@ export default function Index() {
           ) : (
             <div className="space-y-2">
               {logs.map((l) => (
-                <Card key={l.id} className="flex items-center justify-between rounded-xl p-4">
+                <Card
+                  key={l.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setEditing(l);
+                    setEditGrams(String(Math.round(Number(l.total_grams))));
+                  }}
+                  className="flex cursor-pointer items-center justify-between rounded-xl p-4 transition-colors hover:bg-accent/40"
+                >
                   <div>
                     <div className="font-semibold">{l.recipe_name}</div>
                     <div className="text-xs text-muted-foreground">
@@ -206,6 +215,54 @@ export default function Index() {
           )}
         </section>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing?.recipe_name}</DialogTitle>
+            <DialogDescription>
+              Adjust the grams — macros scale proportionally.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="edit-grams">Total grams</Label>
+            <Input
+              id="edit-grams"
+              type="number"
+              inputMode="numeric"
+              value={editGrams}
+              onChange={(e) => setEditGrams(e.target.value)}
+            />
+            {editing && (() => {
+              const newG = parseFloat(editGrams);
+              const oldG = Number(editing.total_grams);
+              if (!newG || !oldG) return null;
+              const f = newG / oldG;
+              return (
+                <p className="text-xs text-muted-foreground">
+                  ≈ {Math.round(Number(editing.kcal) * f)} kcal · P{" "}
+                  {Math.round(Number(editing.protein_g) * f)} · C{" "}
+                  {Math.round(Number(editing.carbs_g) * f)} · F{" "}
+                  {Math.round(Number(editing.fat_g) * f)}
+                </p>
+              );
+            })()}
+          </div>
+          <DialogFooter className="flex-row justify-between sm:justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editing && deleteLog(editing.id)}
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="mr-1 h-4 w-4" /> Delete
+            </Button>
+            <Button onClick={saveEdit} disabled={busy}>
+              {busy ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
