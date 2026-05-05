@@ -292,10 +292,6 @@ export default function Index() {
         <section className="mt-8">
           <div className="mb-3 flex items-end justify-between">
             <h2 className="font-display text-xl font-bold">Today's plan</h2>
-            <p className="text-xs text-muted-foreground">
-              {Math.round(left.kcal)} kcal left
-              {emptySlots > 0 && ` · ~${Math.round(left.kcal / emptySlots)} per empty slot`}
-            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {SLOTS.map((slot) => {
