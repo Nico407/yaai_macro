@@ -66,8 +66,7 @@ export default function Recipes() {
     let grams = Number(recipe.default_serving_g);
     if (target) {
       const left = calcRemaining(target, consumed);
-      const share = emptySlots > 0 ? left.kcal / emptySlots : left.kcal;
-      const raw = share > 0 ? share / perGram.kcal : grams;
+      const raw = left.kcal > 0 ? left.kcal / perGram.kcal : grams;
       grams = clampGrams(raw || grams, 30, 5000);
     }
     const totals = macrosFor(perGram, grams);
