@@ -169,6 +169,7 @@ export default function Ingredients() {
       protein_per_100g: parseFloat(protein || "0"),
       carbs_per_100g: parseFloat(carbs || "0"),
       fat_per_100g: parseFloat(fat || "0"),
+      dietary_tags: tags,
     });
     setSaving(false);
     if (error) {
