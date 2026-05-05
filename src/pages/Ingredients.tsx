@@ -7,10 +7,46 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useIngredients } from "@/hooks/useIngredients";
+import { useIngredients, DIETARY_TAGS } from "@/hooks/useIngredients";
 import { ArrowLeft, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Ingredient } from "@/hooks/useIngredients";
+
+function TagPicker({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  function toggle(t: string) {
+    onChange(value.includes(t) ? value.filter((x) => x !== t) : [...value, t]);
+  }
+  return (
+    <div>
+      <Label className="text-xs">Dietary tags</Label>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {DIETARY_TAGS.map((t) => {
+          const active = value.includes(t);
+          return (
+            <button
+              type="button"
+              key={t}
+              onClick={() => toggle(t)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                active
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-input bg-background hover:bg-muted"
+              }`}
+            >
+              {t.replace("contains_", "+ ")}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 type OFFHit = {
   code: string;
@@ -78,6 +114,7 @@ export default function Ingredients() {
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -92,7 +129,7 @@ export default function Ingredients() {
     ) / 10;
 
   function reset() {
-    setName(""); setProtein(""); setCarbs(""); setFat("");
+    setName(""); setProtein(""); setCarbs(""); setFat(""); setTags([]);
   }
 
   async function onSearch(e: React.FormEvent) {
@@ -132,6 +169,7 @@ export default function Ingredients() {
       protein_per_100g: parseFloat(protein || "0"),
       carbs_per_100g: parseFloat(carbs || "0"),
       fat_per_100g: parseFloat(fat || "0"),
+      dietary_tags: tags,
     });
     setSaving(false);
     if (error) {
@@ -157,6 +195,7 @@ export default function Ingredients() {
   const [editProtein, setEditProtein] = useState("");
   const [editCarbs, setEditCarbs] = useState("");
   const [editFat, setEditFat] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
   const editKcal =
@@ -172,6 +211,7 @@ export default function Ingredients() {
     setEditProtein(String(ing.protein_per_100g));
     setEditCarbs(String(ing.carbs_per_100g));
     setEditFat(String(ing.fat_per_100g));
+    setEditTags(ing.dietary_tags ?? []);
   }
 
   async function onSaveEdit() {
@@ -185,6 +225,7 @@ export default function Ingredients() {
         protein_per_100g: parseFloat(editProtein || "0"),
         carbs_per_100g: parseFloat(editCarbs || "0"),
         fat_per_100g: parseFloat(editFat || "0"),
+        dietary_tags: editTags,
       })
       .eq("id", editing.id);
     setSavingEdit(false);
@@ -268,6 +309,7 @@ export default function Ingredients() {
               <Field label="carbs (g)" value={carbs} onChange={setCarbs} />
               <Field label="fat (g)" value={fat} onChange={setFat} />
             </div>
+            <TagPicker value={tags} onChange={setTags} />
             <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
               <span className="text-muted-foreground">Calculated calories: </span>
               <span className="font-display font-bold tabular-nums">{computedKcal}</span>
@@ -318,6 +360,15 @@ export default function Ingredients() {
                           {Math.round(Number(ing.kcal_per_100g))} kcal · P {Number(ing.protein_per_100g)} · C{" "}
                           {Number(ing.carbs_per_100g)} · F {Number(ing.fat_per_100g)} <span className="opacity-60">/ 100g</span>
                         </div>
+                        {ing.dietary_tags && ing.dietary_tags.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {ing.dietary_tags.map((t) => (
+                              <span key={t} className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                {t.replace("contains_", "+ ")}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <Button
                         variant="ghost"
@@ -364,6 +415,7 @@ export default function Ingredients() {
               <Field label="carbs (g)" value={editCarbs} onChange={setEditCarbs} />
               <Field label="fat (g)" value={editFat} onChange={setEditFat} />
             </div>
+            <TagPicker value={editTags} onChange={setEditTags} />
             <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
               <span className="text-muted-foreground">Calculated calories: </span>
               <span className="font-display font-bold tabular-nums">{editKcal}</span>

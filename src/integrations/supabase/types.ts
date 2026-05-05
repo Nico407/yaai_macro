@@ -20,6 +20,7 @@ export type Database = {
           cook_time_min: number
           country: string | null
           created_at: string
+          cuisine_tags: string[]
           description: string | null
           fat_g: number
           id: string
@@ -37,6 +38,7 @@ export type Database = {
           cook_time_min?: number
           country?: string | null
           created_at?: string
+          cuisine_tags?: string[]
           description?: string | null
           fat_g?: number
           id?: string
@@ -54,6 +56,7 @@ export type Database = {
           cook_time_min?: number
           country?: string | null
           created_at?: string
+          cuisine_tags?: string[]
           description?: string | null
           fat_g?: number
           id?: string
@@ -72,6 +75,7 @@ export type Database = {
         Row: {
           carbs_per_100g: number
           created_at: string
+          dietary_tags: string[]
           fat_per_100g: number
           id: string
           kcal_per_100g: number
@@ -81,6 +85,7 @@ export type Database = {
         Insert: {
           carbs_per_100g?: number
           created_at?: string
+          dietary_tags?: string[]
           fat_per_100g?: number
           id?: string
           kcal_per_100g: number
@@ -90,6 +95,7 @@ export type Database = {
         Update: {
           carbs_per_100g?: number
           created_at?: string
+          dietary_tags?: string[]
           fat_per_100g?: number
           id?: string
           kcal_per_100g?: number
@@ -253,6 +259,7 @@ export type Database = {
       recipes: {
         Row: {
           created_at: string
+          cuisine_tags: string[]
           default_serving_g: number
           description: string | null
           id: string
@@ -265,6 +272,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          cuisine_tags?: string[]
           default_serving_g?: number
           description?: string | null
           id?: string
@@ -277,6 +285,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          cuisine_tags?: string[]
           default_serving_g?: number
           description?: string | null
           id?: string
