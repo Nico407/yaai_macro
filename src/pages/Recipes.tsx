@@ -2,25 +2,10 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRecipes } from "@/hooks/useRecipes";
-import { ArrowLeft, Loader2, Plus, Utensils } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { ArrowLeft, Loader2, Pencil, Plus, Utensils } from "lucide-react";
 
 export default function Recipes() {
   const { data: recipes = [], isLoading } = useRecipes();
-  const qc = useQueryClient();
-
-  async function onDelete(id: string, name: string) {
-    if (!confirm(`Delete "${name}"?`)) return;
-    await supabase.from("recipe_ingredients").delete().eq("recipe_id", id);
-    const { error } = await supabase.from("recipes").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Couldn't delete", description: error.message, variant: "destructive" });
-      return;
-    }
-    await qc.invalidateQueries({ queryKey: ["recipes"] });
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,8 +77,10 @@ export default function Recipes() {
                       <Button asChild size="sm">
                         <Link to={`/recipes/${r.id}/scale`}>Pick</Link>
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onDelete(r.id, r.name)}>
-                        Delete
+                      <Button asChild variant="ghost" size="sm">
+                        <Link to={`/recipes/${r.id}/edit`}>
+                          <Pencil className="mr-1 h-3 w-3" /> Edit
+                        </Link>
                       </Button>
                     </div>
                   </div>

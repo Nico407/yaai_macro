@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,18 +13,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
+import { useRecipes } from "@/hooks/useRecipes";
 import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
 
 type Row = { ingredient_id: string; grams: string };
 
 export default function RecipeNew() {
+  const { id } = useParams<{ id: string }>();
+  const isEdit = !!id;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: ingredients = [], isLoading } = useIngredients();
+  const { data: recipes = [], isLoading: loadingRecipes } = useRecipes();
+  const existing = isEdit ? recipes.find((r) => r.id === id) : undefined;
+
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -32,6 +50,21 @@ export default function RecipeNew() {
     { ingredient_id: "", grams: "" },
     { ingredient_id: "", grams: "" },
   ]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!isEdit || hydrated || !existing) return;
+    setName(existing.name);
+    setDescription(existing.description ?? "");
+    const total = Number(existing.default_serving_g) || 0;
+    setRows(
+      existing.recipe_ingredients.map((ri) => ({
+        ingredient_id: ri.ingredient_id,
+        grams: String(Math.round(Number(ri.ratio) * total)),
+      })),
+    );
+    setHydrated(true);
+  }, [isEdit, hydrated, existing]);
 
   const ingMap = useMemo(() => {
     const m = new Map<string, Ingredient>();
@@ -83,26 +116,43 @@ export default function RecipeNew() {
     );
     const total = valid_rows.reduce((s, r) => s + parseFloat(r.grams), 0);
 
-    const { data: recipe, error: recErr } = await supabase
-      .from("recipes")
-      .insert({
-        name: name.trim(),
-        description: description.trim() || null,
-        default_serving_g: Math.round(total),
-        min_total_g: Math.max(50, Math.round(total * 0.5)),
-        max_total_g: Math.round(total * 3),
-      })
-      .select()
-      .single();
+    const recipePayload = {
+      name: name.trim(),
+      description: description.trim() || null,
+      default_serving_g: Math.round(total),
+      min_total_g: Math.max(50, Math.round(total * 0.5)),
+      max_total_g: Math.round(total * 3),
+    };
 
-    if (recErr || !recipe) {
-      setSaving(false);
-      toast({ title: "Couldn't save recipe", description: recErr?.message, variant: "destructive" });
-      return;
+    let recipeId = id;
+    if (isEdit) {
+      const { error: upErr } = await supabase
+        .from("recipes")
+        .update(recipePayload)
+        .eq("id", id!);
+      if (upErr) {
+        setSaving(false);
+        toast({ title: "Couldn't save recipe", description: upErr.message, variant: "destructive" });
+        return;
+      }
+      // Replace ingredients
+      await supabase.from("recipe_ingredients").delete().eq("recipe_id", id!);
+    } else {
+      const { data: recipe, error: recErr } = await supabase
+        .from("recipes")
+        .insert(recipePayload)
+        .select()
+        .single();
+      if (recErr || !recipe) {
+        setSaving(false);
+        toast({ title: "Couldn't save recipe", description: recErr?.message, variant: "destructive" });
+        return;
+      }
+      recipeId = recipe.id;
     }
 
     const ingredientPayload = valid_rows.map((r) => ({
-      recipe_id: recipe.id,
+      recipe_id: recipeId!,
       ingredient_id: r.ingredient_id,
       ratio: parseFloat(r.grams) / total,
     }));
@@ -119,8 +169,41 @@ export default function RecipeNew() {
     }
 
     await qc.invalidateQueries({ queryKey: ["recipes"] });
-    toast({ title: "Recipe saved" });
+    toast({ title: isEdit ? "Recipe updated" : "Recipe saved" });
     navigate("/recipes");
+  }
+
+  async function onDelete() {
+    if (!isEdit) return;
+    setDeleting(true);
+    await supabase.from("recipe_ingredients").delete().eq("recipe_id", id!);
+    const { error } = await supabase.from("recipes").delete().eq("id", id!);
+    setDeleting(false);
+    if (error) {
+      toast({ title: "Couldn't delete", description: error.message, variant: "destructive" });
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["recipes"] });
+    toast({ title: "Recipe deleted" });
+    navigate("/recipes");
+  }
+
+  if (isEdit && loadingRecipes && !existing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (isEdit && !loadingRecipes && !existing) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12 text-center">
+        <p className="text-muted-foreground">Recipe not found.</p>
+        <Button asChild variant="outline" className="mt-4">
+          <Link to="/recipes">Back to recipes</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -130,8 +213,12 @@ export default function RecipeNew() {
           <Link to="/recipes" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back to recipes
           </Link>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">New recipe</p>
-          <h1 className="font-display text-4xl font-bold md:text-5xl">Build a meal.</h1>
+          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+            {isEdit ? "Edit recipe" : "New recipe"}
+          </p>
+          <h1 className="font-display text-4xl font-bold md:text-5xl">
+            {isEdit ? name || "Edit meal" : "Build a meal."}
+          </h1>
           <p className="mt-2 text-muted-foreground">
             Add ingredients with their grams for one batch. Ratios are calculated automatically.
           </p>
@@ -269,8 +356,41 @@ export default function RecipeNew() {
 
             <Button type="submit" size="lg" disabled={saving || !valid} className="w-full">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save recipe
+              {isEdit ? "Save changes" : "Save recipe"}
             </Button>
+
+            {isEdit && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete recipe
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this recipe?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      "{name}" will be removed permanently. Past meal logs are kept.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={onDelete}
+                      disabled={deleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {deleting ? "Deleting…" : "Delete"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </form>
         </Card>
       </div>
