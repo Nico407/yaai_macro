@@ -129,10 +129,12 @@ export default function Cookbook() {
                     {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
                   </div>
                 </div>
+              </div>
+              <div className="mt-4 flex justify-center">
                 <Button
                   size="sm"
                   onClick={() => setPicking(r)}
-                  className="shrink-0 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                  className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
                 >
                   <Plus className="mr-1 h-4 w-4" /> Add to plan
                 </Button>
