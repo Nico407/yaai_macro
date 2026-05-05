@@ -134,38 +134,53 @@ export default function Index() {
       return;
     }
 
-    // Total meals after this addition (existing logs + the new one)
-    const totalMeals = logs.length + 1;
-    const sharePerMeal = target.kcal / totalMeals;
+    const isFixed = !!recipe.is_fixed;
 
-    // New meal: scale to one share of the daily target
-    const rawGrams = sharePerMeal / perGram.kcal;
-    const grams = clampGrams(rawGrams || Number(recipe.default_serving_g), 30, 5000);
+    // Fixed meals are not scaled — use the recipe's default batch size
+    const fixedLogs = logs.filter((l) => l.is_fixed);
+    const scalableLogs = logs.filter((l) => !l.is_fixed);
+    const fixedKcalUsed =
+      fixedLogs.reduce((s, l) => s + Number(l.kcal), 0) +
+      (isFixed ? perGram.kcal * Number(recipe.default_serving_g) : 0);
+
+    const scalableCount = scalableLogs.length + (isFixed ? 0 : 1);
+    const remainingForScalable = Math.max(0, target.kcal - fixedKcalUsed);
+    const sharePerMeal =
+      scalableCount > 0 ? remainingForScalable / scalableCount : 0;
+
+    let grams: number;
+    if (isFixed) {
+      grams = Number(recipe.default_serving_g);
+    } else {
+      const rawGrams = sharePerMeal > 0 ? sharePerMeal / perGram.kcal : Number(recipe.default_serving_g);
+      grams = clampGrams(rawGrams || Number(recipe.default_serving_g), 30, 5000);
+    }
     const totals = macrosFor(perGram, grams);
     const breakdown = ingredientBreakdown(recipe, grams);
 
     setAdding(true);
 
-    // Rescale every existing meal so each one equals 1/totalMeals of the day
-    for (const l of logs) {
-      const oldKcal = Number(l.kcal);
-      if (!oldKcal) continue;
-      const factor = sharePerMeal / oldKcal;
-      const newGrams = Number(l.total_grams) * factor;
-      const { error: upErr } = await supabase
-        .from("meal_logs")
-        .update({
-          total_grams: Math.round(newGrams),
-          kcal: Math.round(oldKcal * factor),
-          protein_g: Math.round(Number(l.protein_g) * factor * 10) / 10,
-          carbs_g: Math.round(Number(l.carbs_g) * factor * 10) / 10,
-          fat_g: Math.round(Number(l.fat_g) * factor * 10) / 10,
-        })
-        .eq("id", l.id);
-      if (upErr) {
-        setAdding(false);
-        toast.error("Couldn't rescale meals", { description: upErr.message });
-        return;
+    // Rescale only non-fixed existing meals
+    if (sharePerMeal > 0) {
+      for (const l of scalableLogs) {
+        const oldKcal = Number(l.kcal);
+        if (!oldKcal) continue;
+        const factor = sharePerMeal / oldKcal;
+        const { error: upErr } = await supabase
+          .from("meal_logs")
+          .update({
+            total_grams: Math.round(Number(l.total_grams) * factor),
+            kcal: Math.round(oldKcal * factor),
+            protein_g: Math.round(Number(l.protein_g) * factor * 10) / 10,
+            carbs_g: Math.round(Number(l.carbs_g) * factor * 10) / 10,
+            fat_g: Math.round(Number(l.fat_g) * factor * 10) / 10,
+          })
+          .eq("id", l.id);
+        if (upErr) {
+          setAdding(false);
+          toast.error("Couldn't rescale meals", { description: upErr.message });
+          return;
+        }
       }
     }
 
@@ -178,6 +193,7 @@ export default function Index() {
       carbs_g: Math.round(totals.carbs_g * 10) / 10,
       fat_g: Math.round(totals.fat_g * 10) / 10,
       slot: pickerSlot === ("__extra__" as Slot) ? null : pickerSlot,
+      is_fixed: isFixed,
       ingredients_json: breakdown.map((b) => ({
         ingredient_id: b.ingredient_id,
         name: b.name,
