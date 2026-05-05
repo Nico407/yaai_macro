@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,9 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] 
 export default function Onboarding() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { data: existing } = useProfile();
   const [saving, setSaving] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
   const [age, setAge] = useState("28");
@@ -44,6 +47,24 @@ export default function Onboarding() {
   const [goal, setGoal] = useState<Goal>("maintain");
   const [nutritionPref, setNutritionPref] = useState<"omnivore" | "vegetarian" | "vegan" | "pescatarian">("omnivore");
   const [restrictions, setRestrictions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!existing || hydrated) return;
+    setDisplayName(existing.display_name ?? "");
+    if (existing.age != null) setAge(String(existing.age));
+    if (existing.sex) setSex(existing.sex);
+    if (existing.height_cm != null) setHeight(String(existing.height_cm));
+    if (existing.weight_kg != null) setWeight(String(existing.weight_kg));
+    if (existing.activity_level) setActivity(existing.activity_level);
+    if (existing.goal) setGoal(existing.goal);
+    const anyExisting = existing as unknown as {
+      nutrition_preference?: typeof nutritionPref | null;
+      dietary_restrictions?: string[] | null;
+    };
+    if (anyExisting.nutrition_preference) setNutritionPref(anyExisting.nutrition_preference);
+    if (anyExisting.dietary_restrictions) setRestrictions(anyExisting.dietary_restrictions);
+    setHydrated(true);
+  }, [existing, hydrated]);
 
   const RESTRICTION_OPTIONS = [
     "Gluten-free",
@@ -87,7 +108,7 @@ export default function Onboarding() {
     e.preventDefault();
     if (!preview) return;
     setSaving(true);
-    const { error } = await supabase.from("profile").insert({
+    const payload = {
       display_name: displayName || null,
       age: parseInt(age, 10),
       sex,
@@ -101,7 +122,10 @@ export default function Onboarding() {
       target_fat_g: preview.fat_g,
       nutrition_preference: nutritionPref,
       dietary_restrictions: restrictions,
-    });
+    };
+    const { error } = existing?.id
+      ? await supabase.from("profile").update(payload).eq("id", existing.id)
+      : await supabase.from("profile").insert(payload);
     setSaving(false);
     if (error) {
       toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
