@@ -142,6 +142,7 @@ export default function Recipes() {
       fat_g: Math.round(totals.fat_g * 10) / 10,
       slot: slot === "__extra__" ? null : slot,
       is_fixed: isFixed,
+      instructions: recipe.instructions ?? null,
       ingredients_json: breakdown.map((b) => ({
         ingredient_id: b.ingredient_id,
         name: b.name,

@@ -3,14 +3,11 @@ import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useProfile } from "@/hooks/useProfile";
@@ -28,7 +25,7 @@ import {
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Utensils, Carrot, Zap, Trash2, Plus } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus } from "lucide-react";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 type Slot = (typeof SLOTS)[number];
@@ -40,49 +37,9 @@ export default function Index() {
   const { data: recipes = [] } = useRecipes();
 
   const [editing, setEditing] = useState<MealLog | null>(null);
-  const [editGrams, setEditGrams] = useState("");
-  const [busy, setBusy] = useState(false);
 
   const [pickerSlot, setPickerSlot] = useState<Slot | null>(null);
   const [adding, setAdding] = useState(false);
-
-  async function saveEdit() {
-    if (!editing) return;
-    const newGrams = parseFloat(editGrams);
-    const oldGrams = Number(editing.total_grams);
-    if (!newGrams || newGrams <= 0 || !oldGrams) return;
-    const factor = newGrams / oldGrams;
-    setBusy(true);
-    const { error } = await supabase
-      .from("meal_logs")
-      .update({
-        total_grams: newGrams,
-        kcal: Number(editing.kcal) * factor,
-        protein_g: Number(editing.protein_g) * factor,
-        carbs_g: Number(editing.carbs_g) * factor,
-        fat_g: Number(editing.fat_g) * factor,
-      })
-      .eq("id", editing.id);
-    setBusy(false);
-    if (error) {
-      toast.error("Couldn't update", { description: error.message });
-      return;
-    }
-    setEditing(null);
-    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
-    toast.success("Meal updated");
-  }
-
-  async function deleteLog(id: string) {
-    const { error } = await supabase.from("meal_logs").delete().eq("id", id);
-    if (error) {
-      toast.error("Couldn't delete", { description: error.message });
-      return;
-    }
-    setEditing(null);
-    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
-    toast.success("Meal deleted");
-  }
 
   const consumed = useMemo(
     () =>
@@ -217,6 +174,7 @@ export default function Index() {
       fat_g: Math.round(totals.fat_g * 10) / 10,
       slot: pickerSlot === ("__extra__" as Slot) ? null : pickerSlot,
       is_fixed: isFixed,
+      instructions: recipe.instructions ?? null,
       ingredients_json: breakdown.map((b) => ({
         ingredient_id: b.ingredient_id,
         name: b.name,
@@ -311,7 +269,6 @@ export default function Index() {
                     tabIndex={0}
                     onClick={() => {
                       setEditing(log);
-                      setEditGrams(String(Math.round(Number(log.total_grams))));
                     }}
                     className="cursor-pointer rounded-2xl p-4 transition-colors hover:bg-accent/40"
                   >
@@ -362,7 +319,6 @@ export default function Index() {
                   tabIndex={0}
                   onClick={() => {
                     setEditing(l);
-                    setEditGrams(String(Math.round(Number(l.total_grams))));
                   }}
                   className="flex cursor-pointer items-center justify-between rounded-xl p-4 transition-colors hover:bg-accent/40"
                 >
@@ -382,48 +338,67 @@ export default function Index() {
         )}
       </div>
 
-      {/* Edit dialog */}
+      {/* Meal details dialog (read-only) */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing?.recipe_name}</DialogTitle>
-            <DialogDescription>Adjust the grams — macros scale proportionally.</DialogDescription>
+            <DialogDescription>
+              {editing && (
+                <>
+                  {Math.round(Number(editing.total_grams))}g · {Math.round(Number(editing.kcal))} kcal · P{" "}
+                  {Math.round(Number(editing.protein_g))} · C {Math.round(Number(editing.carbs_g))} · F{" "}
+                  {Math.round(Number(editing.fat_g))}
+                </>
+              )}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="edit-grams">Total grams</Label>
-            <Input
-              id="edit-grams"
-              type="number"
-              inputMode="numeric"
-              value={editGrams}
-              onChange={(e) => setEditGrams(e.target.value)}
-            />
-            {editing && (() => {
-              const newG = parseFloat(editGrams);
-              const oldG = Number(editing.total_grams);
-              if (!newG || !oldG) return null;
-              const f = newG / oldG;
-              return (
-                <p className="text-xs text-muted-foreground">
-                  ≈ {Math.round(Number(editing.kcal) * f)} kcal · P {Math.round(Number(editing.protein_g) * f)} · C{" "}
-                  {Math.round(Number(editing.carbs_g) * f)} · F {Math.round(Number(editing.fat_g) * f)}
-                </p>
-              );
-            })()}
-          </div>
-          <DialogFooter className="flex-row justify-between sm:justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => editing && deleteLog(editing.id)}
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="mr-1 h-4 w-4" /> Delete
-            </Button>
-            <Button onClick={saveEdit} disabled={busy}>
-              {busy ? "Saving…" : "Save"}
-            </Button>
-          </DialogFooter>
+
+          {editing && (() => {
+            const ings = Array.isArray(editing.ingredients_json)
+              ? (editing.ingredients_json as Array<{ name: string; grams: number }>)
+              : [];
+            const steps = (editing.instructions ?? "")
+              .split(/\r?\n/)
+              .map((s) => s.replace(/^\s*\d+[.)]\s*/, "").trim())
+              .filter(Boolean);
+            return (
+              <div className="space-y-5 text-sm">
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Ingredients
+                  </h3>
+                  {ings.length === 0 ? (
+                    <p className="text-muted-foreground">No ingredient breakdown saved.</p>
+                  ) : (
+                    <ul className="divide-y divide-border rounded-xl border">
+                      {ings.map((i, idx) => (
+                        <li key={idx} className="flex items-center justify-between px-3 py-2">
+                          <span>{i.name}</span>
+                          <span className="text-muted-foreground">{Math.round(Number(i.grams))} g</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    How to prep
+                  </h3>
+                  {steps.length === 0 ? (
+                    <p className="text-muted-foreground">No instructions yet.</p>
+                  ) : (
+                    <ol className="list-decimal space-y-1.5 pl-5">
+                      {steps.map((s, idx) => (
+                        <li key={idx}>{s}</li>
+                      ))}
+                    </ol>
+                  )}
+                </section>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

@@ -47,6 +47,7 @@ export default function RecipeNew() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [isFixed, setIsFixed] = useState(false);
   const [rows, setRows] = useState<Row[]>([
     { ingredient_id: "", grams: "" },
@@ -58,6 +59,7 @@ export default function RecipeNew() {
     if (!isEdit || hydrated || !existing) return;
     setName(existing.name);
     setDescription(existing.description ?? "");
+    setInstructions(existing.instructions ?? "");
     setIsFixed(!!existing.is_fixed);
     const total = Number(existing.default_serving_g) || 0;
     setRows(
@@ -122,6 +124,7 @@ export default function RecipeNew() {
     const recipePayload = {
       name: name.trim(),
       description: description.trim() || null,
+      instructions: instructions.trim() || null,
       default_serving_g: Math.round(total),
       min_total_g: Math.max(50, Math.round(total * 0.5)),
       max_total_g: Math.round(total * 3),
@@ -251,6 +254,19 @@ export default function RecipeNew() {
                 className="mt-1.5"
                 rows={2}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="r-instr">How to prep (optional)</Label>
+              <Textarea
+                id="r-instr"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder={"1. Cook the pasta…\n2. Heat the sauce…\n3. Combine and serve."}
+                className="mt-1.5"
+                rows={5}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">One step per line.</p>
             </div>
 
             <div className="flex items-start justify-between gap-4 rounded-xl border bg-secondary/40 p-4">
