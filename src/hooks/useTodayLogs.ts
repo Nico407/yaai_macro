@@ -13,6 +13,7 @@ export type MealLog = {
   ingredients_json: unknown;
   logged_at: string;
   log_date: string;
+  slot: string | null;
 };
 
 function todayISO() {
