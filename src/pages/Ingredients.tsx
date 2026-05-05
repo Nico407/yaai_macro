@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients } from "@/hooks/useIngredients";
-import { ArrowLeft, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Ingredient } from "@/hooks/useIngredients";
 
 type OFFHit = {
   code: string;
