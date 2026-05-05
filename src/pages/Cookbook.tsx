@@ -18,6 +18,9 @@ import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { supabase } from "@/integrations/supabase/client";
 import { balancedGramsForShare, clampGrams, type PerGram } from "@/lib/scaling";
 import { toast } from "sonner";
+import chickenRiceImg from "@/assets/cookbook/chicken-rice.jpg";
+import proteinOatsImg from "@/assets/cookbook/protein-oats.jpg";
+import salmonVegImg from "@/assets/cookbook/salmon-veg.jpg";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 type Slot = (typeof SLOTS)[number];
