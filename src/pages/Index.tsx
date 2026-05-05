@@ -414,6 +414,19 @@ export default function Index() {
               </div>
             );
           })()}
+
+          {editing && (
+            <DialogFooter>
+              <Button
+                variant="destructive"
+                onClick={() => deleteLog(editing.id)}
+                disabled={deleting}
+              >
+                <Trash2 className="mr-1 h-4 w-4" />
+                {deleting ? "Removing…" : "Remove meal"}
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
