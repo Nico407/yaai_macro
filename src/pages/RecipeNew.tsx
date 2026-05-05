@@ -253,6 +253,16 @@ export default function RecipeNew() {
               />
             </div>
 
+            <div className="flex items-start justify-between gap-4 rounded-xl border bg-secondary/40 p-4">
+              <div className="flex-1">
+                <Label htmlFor="r-fixed" className="font-semibold">Fixed serving size</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  When on, this meal won't be auto-scaled to your macros (e.g. a protein shake). Other meals on the day still scale around it.
+                </p>
+              </div>
+              <Switch id="r-fixed" checked={isFixed} onCheckedChange={setIsFixed} />
+            </div>
+
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <Label>Ingredients</Label>
