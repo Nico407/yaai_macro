@@ -32,6 +32,17 @@ export default function Recipes() {
   const [editMode, setEditMode] = useState(false);
   const [picking, setPicking] = useState<RecipeRow | null>(null);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filteredRecipes = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return recipes;
+    return recipes.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        (r.description ?? "").toLowerCase().includes(q),
+    );
+  }, [recipes, query]);
 
   const consumed = useMemo(
     () =>
