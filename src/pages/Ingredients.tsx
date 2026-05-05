@@ -73,8 +73,40 @@ export default function Ingredients() {
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
 
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<OFFHit[] | null>(null);
+
   function reset() {
     setName(""); setKcal(""); setProtein(""); setCarbs(""); setFat("");
+  }
+
+  async function onSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setSearching(true);
+    try {
+      const hits = await searchOpenFoodFacts(query.trim());
+      setResults(hits);
+      if (hits.length === 0) {
+        toast({ title: "No results", description: "Try different keywords." });
+      }
+    } catch (err: any) {
+      toast({ title: "Search failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function pickResult(h: OFFHit) {
+    setName(h.brand ? `${h.name} (${h.brand})` : h.name);
+    setKcal(String(Math.round(h.kcal)));
+    setProtein(String(Math.round(h.protein * 10) / 10));
+    setCarbs(String(Math.round(h.carbs * 10) / 10));
+    setFat(String(Math.round(h.fat * 10) / 10));
+    setResults(null);
+    setQuery("");
+    toast({ title: "Loaded — review & save below" });
   }
 
   async function onAdd(e: React.FormEvent) {
