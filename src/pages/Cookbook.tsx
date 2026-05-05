@@ -40,7 +40,7 @@ export default function Cookbook() {
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
         <header className="mb-8">
           <Link
-            to="/recipes"
+            to="/plan"
             className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
           >
             <ArrowLeft className="h-4 w-4" /> Back
