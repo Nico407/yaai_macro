@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      cookbook_recipes: {
+        Row: {
+          carbs_g: number
+          cook_time_min: number
+          country: string | null
+          created_at: string
+          description: string | null
+          fat_g: number
+          id: string
+          image_url: string | null
+          ingredients: string[]
+          instructions: string[]
+          is_favorite: boolean
+          kcal: number
+          name: string
+          protein_g: number
+          sort_order: number
+        }
+        Insert: {
+          carbs_g?: number
+          cook_time_min?: number
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          fat_g?: number
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          instructions?: string[]
+          is_favorite?: boolean
+          kcal: number
+          name: string
+          protein_g?: number
+          sort_order?: number
+        }
+        Update: {
+          carbs_g?: number
+          cook_time_min?: number
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          fat_g?: number
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          instructions?: string[]
+          is_favorite?: boolean
+          kcal?: number
+          name?: string
+          protein_g?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           carbs_per_100g: number

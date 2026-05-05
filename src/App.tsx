@@ -10,6 +10,7 @@ import Recipes from "./pages/Recipes.tsx";
 import RecipesHub from "./pages/RecipesHub.tsx";
 import Cookbook from "./pages/Cookbook.tsx";
 import Countries from "./pages/Countries.tsx";
+import CountryCookbook from "./pages/CountryCookbook.tsx";
 import RecipeNew from "./pages/RecipeNew.tsx";
 import RecipeScale from "./pages/RecipeScale.tsx";
 import QuickLog from "./pages/QuickLog.tsx";
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/plan" element={<RecipesHub />} />
           <Route path="/plan/cookbook" element={<Cookbook />} />
           <Route path="/plan/countries" element={<Countries />} />
+          <Route path="/plan/countries/:country" element={<CountryCookbook />} />
           <Route path="/plan/mine" element={<Navigate to="/recipes" replace />} />
           <Route path="/quick-log" element={<QuickLog />} />
           <Route path="/history" element={<History />} />
