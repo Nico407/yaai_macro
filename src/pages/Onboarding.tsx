@@ -174,19 +174,24 @@ export default function Onboarding() {
 
             <div>
               <Label>Activity level</Label>
-              <Select value={activity} onValueChange={(v) => setActivity(v as ActivityLevel)}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACTIVITY_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      <span className="font-medium">{o.label}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{o.hint}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <RadioGroup
+                value={activity}
+                onValueChange={(v) => setActivity(v as ActivityLevel)}
+                className="mt-2 grid grid-cols-5 gap-2"
+              >
+                {ACTIVITY_OPTIONS.map((o) => (
+                  <label
+                    key={o.value}
+                    className="flex cursor-pointer flex-col items-center gap-0.5 rounded-lg border border-input bg-background px-2 py-3 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value={o.value} className="sr-only" />
+                    <span className="text-xs font-medium leading-tight">{o.label}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {ACTIVITY_OPTIONS.find((o) => o.value === activity)?.hint}
+              </p>
             </div>
 
             <div>
