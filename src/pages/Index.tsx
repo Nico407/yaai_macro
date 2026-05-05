@@ -37,49 +37,9 @@ export default function Index() {
   const { data: recipes = [] } = useRecipes();
 
   const [editing, setEditing] = useState<MealLog | null>(null);
-  const [editGrams, setEditGrams] = useState("");
-  const [busy, setBusy] = useState(false);
 
   const [pickerSlot, setPickerSlot] = useState<Slot | null>(null);
   const [adding, setAdding] = useState(false);
-
-  async function saveEdit() {
-    if (!editing) return;
-    const newGrams = parseFloat(editGrams);
-    const oldGrams = Number(editing.total_grams);
-    if (!newGrams || newGrams <= 0 || !oldGrams) return;
-    const factor = newGrams / oldGrams;
-    setBusy(true);
-    const { error } = await supabase
-      .from("meal_logs")
-      .update({
-        total_grams: newGrams,
-        kcal: Number(editing.kcal) * factor,
-        protein_g: Number(editing.protein_g) * factor,
-        carbs_g: Number(editing.carbs_g) * factor,
-        fat_g: Number(editing.fat_g) * factor,
-      })
-      .eq("id", editing.id);
-    setBusy(false);
-    if (error) {
-      toast.error("Couldn't update", { description: error.message });
-      return;
-    }
-    setEditing(null);
-    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
-    toast.success("Meal updated");
-  }
-
-  async function deleteLog(id: string) {
-    const { error } = await supabase.from("meal_logs").delete().eq("id", id);
-    if (error) {
-      toast.error("Couldn't delete", { description: error.message });
-      return;
-    }
-    setEditing(null);
-    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
-    toast.success("Meal deleted");
-  }
 
   const consumed = useMemo(
     () =>
