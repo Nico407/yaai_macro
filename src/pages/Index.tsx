@@ -49,9 +49,14 @@ export default function Index() {
               {profile.display_name ? `Hi, ${profile.display_name}` : "Your day"}
             </h1>
           </div>
-          <Link to="/onboarding" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-            Edit profile
-          </Link>
+          <div className="flex flex-col items-end gap-1 text-sm">
+            <Link to="/history" className="text-muted-foreground underline-offset-4 hover:underline">
+              History
+            </Link>
+            <Link to="/onboarding" className="text-muted-foreground underline-offset-4 hover:underline">
+              Edit profile
+            </Link>
+          </div>
         </header>
 
         <Card className="rounded-2xl p-6 shadow-soft md:p-8">
