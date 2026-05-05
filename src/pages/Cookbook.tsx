@@ -18,6 +18,9 @@ import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { supabase } from "@/integrations/supabase/client";
 import { balancedGramsForShare, clampGrams, type PerGram } from "@/lib/scaling";
 import { toast } from "sonner";
+import chickenRiceImg from "@/assets/cookbook/chicken-rice.jpg";
+import proteinOatsImg from "@/assets/cookbook/protein-oats.jpg";
+import salmonVegImg from "@/assets/cookbook/salmon-veg.jpg";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 type Slot = (typeof SLOTS)[number];
@@ -30,12 +33,13 @@ type CookbookItem = {
   p: number;
   c: number;
   f: number;
+  image: string;
 };
 
 const COOKBOOK: CookbookItem[] = [
-  { id: "cb-chicken-rice", name: "Chicken & rice bowl", desc: "Lean protein staple, easy to scale.", kcal: 520, p: 45, c: 60, f: 10 },
-  { id: "cb-oats-protein", name: "Protein oats", desc: "Breakfast that actually fills you up.", kcal: 430, p: 35, c: 55, f: 9 },
-  { id: "cb-salmon-veg", name: "Salmon & veg tray", desc: "Omega-3s, easy macros, one pan.", kcal: 580, p: 42, c: 30, f: 28 },
+  { id: "cb-chicken-rice", name: "Chicken & rice bowl", desc: "Lean protein staple, easy to scale.", kcal: 520, p: 45, c: 60, f: 10, image: chickenRiceImg },
+  { id: "cb-oats-protein", name: "Protein oats", desc: "Breakfast that actually fills you up.", kcal: 430, p: 35, c: 55, f: 9, image: proteinOatsImg },
+  { id: "cb-salmon-veg", name: "Salmon & veg tray", desc: "Omega-3s, easy macros, one pan.", kcal: 580, p: 42, c: 30, f: 28, image: salmonVegImg },
 ];
 
 export default function Cookbook() {
@@ -202,8 +206,8 @@ export default function Cookbook() {
           ) : (
             filtered.map((r) => (
               <Card key={r.id} className="rounded-2xl p-5">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+                <div className="flex items-start gap-4">
+                  <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-lg font-bold">{r.name}</div>
                     <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
@@ -211,13 +215,23 @@ export default function Cookbook() {
                       {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => setPicking(r)}
-                    className="shrink-0 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                  >
-                    <Plus className="mr-1 h-4 w-4" /> Add to plan
-                  </Button>
+                  <div className="flex w-28 shrink-0 flex-col items-stretch gap-2 sm:w-32">
+                    <img
+                      src={r.image}
+                      alt={r.name}
+                      loading="lazy"
+                      width={512}
+                      height={512}
+                      className="aspect-square w-full rounded-xl object-cover"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => setPicking(r)}
+                      className="w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                    >
+                      <Plus className="mr-1 h-4 w-4" /> Add to plan
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))
