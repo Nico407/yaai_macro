@@ -211,6 +211,7 @@ export default function Ingredients() {
     setEditProtein(String(ing.protein_per_100g));
     setEditCarbs(String(ing.carbs_per_100g));
     setEditFat(String(ing.fat_per_100g));
+    setEditTags(ing.dietary_tags ?? []);
   }
 
   async function onSaveEdit() {
