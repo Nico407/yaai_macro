@@ -225,6 +225,7 @@ export default function Ingredients() {
         protein_per_100g: parseFloat(editProtein || "0"),
         carbs_per_100g: parseFloat(editCarbs || "0"),
         fat_per_100g: parseFloat(editFat || "0"),
+        dietary_tags: editTags,
       })
       .eq("id", editing.id);
     setSavingEdit(false);
