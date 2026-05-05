@@ -7,10 +7,46 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useIngredients } from "@/hooks/useIngredients";
+import { useIngredients, DIETARY_TAGS } from "@/hooks/useIngredients";
 import { ArrowLeft, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Ingredient } from "@/hooks/useIngredients";
+
+function TagPicker({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  function toggle(t: string) {
+    onChange(value.includes(t) ? value.filter((x) => x !== t) : [...value, t]);
+  }
+  return (
+    <div>
+      <Label className="text-xs">Dietary tags</Label>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {DIETARY_TAGS.map((t) => {
+          const active = value.includes(t);
+          return (
+            <button
+              type="button"
+              key={t}
+              onClick={() => toggle(t)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                active
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-input bg-background hover:bg-muted"
+              }`}
+            >
+              {t.replace("contains_", "+ ")}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 type OFFHit = {
   code: string;
