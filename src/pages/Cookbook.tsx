@@ -69,26 +69,58 @@ export default function Cookbook() {
   const usedSlots = new Set(logs.map((l) => l.slot).filter(Boolean));
 
   async function addToSlot(item: CookbookItem, slot: Slot | "__extra__") {
-    let factor = 1;
-    let sharePerMeal = 0;
+    // Cookbook items list macros for the default 100g serving — treat as per-gram basis
+    const perGram: PerGram = {
+      kcal: item.kcal / 100,
+      protein_g: item.p / 100,
+      carbs_g: item.c / 100,
+      fat_g: item.f / 100,
+    };
+    let grams = 100;
+    let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+    let scalableCount = 0;
     if (target) {
-      const totalMeals = logs.length + 1;
-      sharePerMeal = target.kcal / totalMeals;
-      if (sharePerMeal > 0 && item.kcal > 0) {
-        factor = sharePerMeal / item.kcal;
-      }
+      const scalableLogs = logs.filter((l) => !l.is_fixed);
+      const fixedLogs = logs.filter((l) => l.is_fixed);
+      const fixedConsumed = {
+        kcal: fixedLogs.reduce((s, l) => s + Number(l.kcal), 0),
+        protein_g: fixedLogs.reduce((s, l) => s + Number(l.protein_g), 0),
+        carbs_g: fixedLogs.reduce((s, l) => s + Number(l.carbs_g), 0),
+        fat_g: fixedLogs.reduce((s, l) => s + Number(l.fat_g), 0),
+      };
+      scalableCount = scalableLogs.length + 1;
+      const denom = Math.max(1, scalableCount);
+      share = {
+        kcal: Math.max(0, target.kcal - fixedConsumed.kcal) / denom,
+        protein_g: Math.max(0, target.protein_g - fixedConsumed.protein_g) / denom,
+        carbs_g: Math.max(0, target.carbs_g - fixedConsumed.carbs_g) / denom,
+        fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / denom,
+      };
+      const raw = balancedGramsForShare(perGram, share);
+      grams = clampGrams(raw || 100, 30, 5000);
     }
+
     setBusy(true);
 
-    if (target && sharePerMeal > 0) {
-      for (const l of logs) {
+    if (target && scalableCount > 0) {
+      const scalableLogs = logs.filter((l) => !l.is_fixed);
+      for (const l of scalableLogs) {
+        const oldGrams = Number(l.total_grams);
         const oldKcal = Number(l.kcal);
-        if (!oldKcal) continue;
-        const f = sharePerMeal / oldKcal;
+        if (!oldGrams || !oldKcal) continue;
+        const lPerGram: PerGram = {
+          kcal: oldKcal / oldGrams,
+          protein_g: Number(l.protein_g) / oldGrams,
+          carbs_g: Number(l.carbs_g) / oldGrams,
+          fat_g: Number(l.fat_g) / oldGrams,
+        };
+        const newGramsRaw = balancedGramsForShare(lPerGram, share);
+        const newGrams = clampGrams(newGramsRaw || oldGrams, 30, 5000);
+        const f = newGrams / oldGrams;
         const { error: upErr } = await supabase
           .from("meal_logs")
           .update({
-            total_grams: Math.round(Number(l.total_grams) * f),
+            total_grams: Math.round(newGrams),
             kcal: Math.round(oldKcal * f),
             protein_g: Math.round(Number(l.protein_g) * f * 10) / 10,
             carbs_g: Math.round(Number(l.carbs_g) * f * 10) / 10,
@@ -106,11 +138,11 @@ export default function Cookbook() {
     const { error } = await supabase.from("meal_logs").insert({
       recipe_id: null,
       recipe_name: item.name,
-      total_grams: Math.round(100 * factor),
-      kcal: Math.round(item.kcal * factor),
-      protein_g: Math.round(item.p * factor * 10) / 10,
-      carbs_g: Math.round(item.c * factor * 10) / 10,
-      fat_g: Math.round(item.f * factor * 10) / 10,
+      total_grams: Math.round(grams),
+      kcal: Math.round(perGram.kcal * grams),
+      protein_g: Math.round(perGram.protein_g * grams * 10) / 10,
+      carbs_g: Math.round(perGram.carbs_g * grams * 10) / 10,
+      fat_g: Math.round(perGram.fat_g * grams * 10) / 10,
       slot: slot === "__extra__" ? null : slot,
     });
     setBusy(false);
