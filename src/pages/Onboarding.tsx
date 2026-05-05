@@ -256,6 +256,54 @@ export default function Onboarding() {
               </div>
             )}
 
+            <div className="rounded-xl border border-input bg-background p-4">
+              <Label className="text-sm font-semibold">Nutrition preference</Label>
+              <RadioGroup
+                value={nutritionPref}
+                onValueChange={(v) => setNutritionPref(v as typeof nutritionPref)}
+                className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4"
+              >
+                {[
+                  { v: "omnivore", label: "Omnivore" },
+                  { v: "pescatarian", label: "Pescatarian" },
+                  { v: "vegetarian", label: "Vegetarian" },
+                  { v: "vegan", label: "Vegan" },
+                ].map((o) => (
+                  <label
+                    key={o.v}
+                    className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value={o.v} className="sr-only" />
+                    <span className="text-xs font-medium">{o.label}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+
+            <div className="rounded-xl border border-input bg-background p-4">
+              <Label className="text-sm font-semibold">Dietary restrictions</Label>
+              <p className="mt-1 text-xs text-muted-foreground">Select any that apply.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {RESTRICTION_OPTIONS.map((r) => {
+                  const active = restrictions.includes(r);
+                  return (
+                    <button
+                      type="button"
+                      key={r}
+                      onClick={() => toggleRestriction(r)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-input bg-background hover:bg-muted"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <Button type="submit" size="lg" className="w-full" disabled={saving || !preview}>
               {saving ? "Saving…" : "Save and continue"}
             </Button>
