@@ -34,7 +34,9 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; hint: string }[] 
 export default function Onboarding() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { data: existing } = useProfile();
   const [saving, setSaving] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
   const [age, setAge] = useState("28");
@@ -45,6 +47,24 @@ export default function Onboarding() {
   const [goal, setGoal] = useState<Goal>("maintain");
   const [nutritionPref, setNutritionPref] = useState<"omnivore" | "vegetarian" | "vegan" | "pescatarian">("omnivore");
   const [restrictions, setRestrictions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!existing || hydrated) return;
+    setDisplayName(existing.display_name ?? "");
+    if (existing.age != null) setAge(String(existing.age));
+    if (existing.sex) setSex(existing.sex);
+    if (existing.height_cm != null) setHeight(String(existing.height_cm));
+    if (existing.weight_kg != null) setWeight(String(existing.weight_kg));
+    if (existing.activity_level) setActivity(existing.activity_level);
+    if (existing.goal) setGoal(existing.goal);
+    const anyExisting = existing as unknown as {
+      nutrition_preference?: typeof nutritionPref | null;
+      dietary_restrictions?: string[] | null;
+    };
+    if (anyExisting.nutrition_preference) setNutritionPref(anyExisting.nutrition_preference);
+    if (anyExisting.dietary_restrictions) setRestrictions(anyExisting.dietary_restrictions);
+    setHydrated(true);
+  }, [existing, hydrated]);
 
   const RESTRICTION_OPTIONS = [
     "Gluten-free",
