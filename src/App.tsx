@@ -25,16 +25,18 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Navigate to="/main" replace />} />
+          <Route path="/main" element={<Index />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/ingredients" element={<Ingredients />} />
-          <Route path="/recipes" element={<RecipesHub />} />
-          <Route path="/recipes/cookbook" element={<Cookbook />} />
-          <Route path="/recipes/countries" element={<Countries />} />
-          <Route path="/recipes/mine" element={<Recipes />} />
+          <Route path="/recipes" element={<Recipes />} />
           <Route path="/recipes/new" element={<RecipeNew />} />
           <Route path="/recipes/:id/edit" element={<RecipeNew />} />
           <Route path="/recipes/:id/scale" element={<RecipeScale />} />
+          <Route path="/plan" element={<RecipesHub />} />
+          <Route path="/plan/cookbook" element={<Cookbook />} />
+          <Route path="/plan/countries" element={<Countries />} />
+          <Route path="/plan/mine" element={<Navigate to="/recipes" replace />} />
           <Route path="/quick-log" element={<QuickLog />} />
           <Route path="/history" element={<History />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
