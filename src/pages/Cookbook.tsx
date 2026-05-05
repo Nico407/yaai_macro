@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ArrowLeft, BookOpen, Sparkles, Plus, Search } from "lucide-react";
+import { ArrowLeft, BookOpen, Sparkles, Plus, Search, Clock, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
@@ -34,12 +34,83 @@ type CookbookItem = {
   c: number;
   f: number;
   image: string;
+  cookTimeMin: number;
+  ingredients: string[];
+  instructions: string[];
 };
 
 const COOKBOOK: CookbookItem[] = [
-  { id: "cb-chicken-rice", name: "Chicken & rice bowl", desc: "Lean protein staple, easy to scale.", kcal: 520, p: 45, c: 60, f: 10, image: chickenRiceImg },
-  { id: "cb-oats-protein", name: "Protein oats", desc: "Breakfast that actually fills you up.", kcal: 430, p: 35, c: 55, f: 9, image: proteinOatsImg },
-  { id: "cb-salmon-veg", name: "Salmon & veg tray", desc: "Omega-3s, easy macros, one pan.", kcal: 580, p: 42, c: 30, f: 28, image: salmonVegImg },
+  {
+    id: "cb-chicken-rice",
+    name: "Chicken & rice bowl",
+    desc: "Lean protein staple, easy to scale.",
+    kcal: 520,
+    p: 45,
+    c: 60,
+    f: 10,
+    image: chickenRiceImg,
+    cookTimeMin: 25,
+    ingredients: [
+      "180g chicken breast",
+      "150g cooked white rice",
+      "100g broccoli florets",
+      "1 tsp olive oil",
+      "Salt, pepper, paprika",
+    ],
+    instructions: [
+      "Season chicken with salt, pepper and paprika.",
+      "Sear in olive oil over medium heat for 5–6 min per side until cooked through.",
+      "Steam broccoli for 4 minutes until bright green and tender.",
+      "Plate rice, slice chicken on top, add broccoli on the side.",
+    ],
+  },
+  {
+    id: "cb-oats-protein",
+    name: "Protein oats",
+    desc: "Breakfast that actually fills you up.",
+    kcal: 430,
+    p: 35,
+    c: 55,
+    f: 9,
+    image: proteinOatsImg,
+    cookTimeMin: 8,
+    ingredients: [
+      "60g rolled oats",
+      "250ml milk (or alt)",
+      "1 scoop whey protein (~30g)",
+      "1 tbsp peanut butter",
+      "Handful of berries",
+    ],
+    instructions: [
+      "Simmer oats with milk for 4–5 minutes, stirring.",
+      "Remove from heat and let cool 1 minute, then stir in protein powder.",
+      "Top with peanut butter and fresh berries.",
+    ],
+  },
+  {
+    id: "cb-salmon-veg",
+    name: "Salmon & veg tray",
+    desc: "Omega-3s, easy macros, one pan.",
+    kcal: 580,
+    p: 42,
+    c: 30,
+    f: 28,
+    image: salmonVegImg,
+    cookTimeMin: 30,
+    ingredients: [
+      "200g salmon fillet",
+      "200g mixed vegetables (peppers, zucchini, sweet potato)",
+      "1 tbsp olive oil",
+      "Lemon, garlic, rosemary",
+      "Salt and pepper",
+    ],
+    instructions: [
+      "Preheat oven to 200°C (400°F).",
+      "Toss vegetables with olive oil, garlic, salt and pepper on a sheet pan.",
+      "Roast for 15 minutes, then add the salmon fillet skin-side down.",
+      "Top salmon with lemon slices and rosemary, roast another 12–14 minutes.",
+    ],
+  },
 ];
 
 export default function Cookbook() {
@@ -49,6 +120,7 @@ export default function Cookbook() {
   const [picking, setPicking] = useState<CookbookItem | null>(null);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -204,37 +276,91 @@ export default function Cookbook() {
               No meals match "{query}".
             </p>
           ) : (
-            filtered.map((r) => (
-              <Card key={r.id} className="rounded-2xl p-5">
-                <div className="flex items-start gap-4">
-                  <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-lg font-bold">{r.name}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
+            filtered.map((r) => {
+              const expanded = expandedId === r.id;
+              return (
+                <Card key={r.id} className="overflow-hidden rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(expanded ? null : r.id)}
+                    className="flex w-full items-start gap-4 p-5 text-left transition-colors hover:bg-secondary/40"
+                    aria-expanded={expanded}
+                  >
+                    <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="font-display text-lg font-bold">{r.name}</div>
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
+                        />
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {r.cookTimeMin} min
+                        </span>
+                        <span>
+                          {r.kcal} kcal · P {r.p} · C {r.c} · F {r.f}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex w-28 shrink-0 flex-col items-stretch gap-2 sm:w-32">
                     <img
                       src={r.image}
                       alt={r.name}
                       loading="lazy"
                       width={512}
                       height={512}
-                      className="aspect-square w-full rounded-xl object-cover"
+                      className="aspect-square w-28 shrink-0 rounded-xl object-cover sm:w-32"
                     />
-                    <Button
-                      size="sm"
-                      onClick={() => setPicking(r)}
-                      className="w-full rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-                    >
-                      <Plus className="mr-1 h-4 w-4" /> Add to plan
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))
+                  </button>
+
+                  {expanded && (
+                    <div className="border-t bg-secondary/20 px-5 py-5">
+                      <div className="grid gap-5 md:grid-cols-2">
+                        <div>
+                          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Ingredients
+                          </h4>
+                          <ul className="space-y-1 text-sm">
+                            {r.ingredients.map((ing, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="text-muted-foreground">•</span>
+                                <span>{ing}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Instructions
+                          </h4>
+                          <ol className="space-y-2 text-sm">
+                            {r.instructions.map((step, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="font-semibold text-primary">{i + 1}.</span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                      <div className="mt-5 flex justify-end">
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPicking(r);
+                          }}
+                          className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                        >
+                          <Plus className="mr-1 h-4 w-4" /> Add to plan
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })
           )}
         </div>
       </div>
