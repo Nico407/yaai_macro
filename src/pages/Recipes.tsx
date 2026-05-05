@@ -204,7 +204,14 @@ export default function Recipes() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <div className="font-display text-lg font-bold">{r.name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-display text-lg font-bold">{r.name}</div>
+                        {r.is_fixed && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                            Fixed
+                          </span>
+                        )}
+                      </div>
                       {r.description && <div className="mt-0.5 text-xs text-muted-foreground">{r.description}</div>}
                       <div className="mt-2 text-xs text-muted-foreground">
                         {r.recipe_ingredients.length} ingredients · {Math.round(total)}g batch
