@@ -147,7 +147,7 @@ export default function Onboarding() {
                 id="name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Nico"
+                placeholder="Name"
                 className="mt-1.5"
               />
             </div>
