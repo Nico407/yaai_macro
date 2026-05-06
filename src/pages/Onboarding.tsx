@@ -92,7 +92,15 @@ export default function Onboarding() {
     e.preventDefault();
     if (!preview) return;
     setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSaving(false);
+      toast({ title: "Not signed in", variant: "destructive" });
+      navigate("/auth");
+      return;
+    }
     const payload = {
+      user_id: user.id,
       display_name: displayName || null,
       age: parseInt(age, 10),
       sex,
