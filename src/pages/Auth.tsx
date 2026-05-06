@@ -40,6 +40,10 @@ export default function Auth() {
 
   async function onEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (mode === "signup" && !PW_RULES.every((r) => r.test(password))) {
+      toast({ title: "Password too weak", description: "Please meet all password requirements.", variant: "destructive" });
+      return;
+    }
     setBusy(true);
     if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
