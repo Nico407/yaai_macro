@@ -443,11 +443,11 @@ export default function Index() {
                     onClick={() => {
                       setEditing(log);
                     }}
-                    className="cursor-pointer rounded-2xl p-4 transition-colors hover:bg-accent/40"
+                    className="cursor-pointer rounded-2xl p-3 transition-colors hover:bg-accent/40 md:p-4"
                   >
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{slot}</div>
-                    <div className="mt-1 font-semibold">{log.recipe_name}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
+                    <div className="mt-0.5 font-semibold">{log.recipe_name}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
                       {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
                       {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
                       {Math.round(Number(log.fat_g))}
@@ -461,11 +461,11 @@ export default function Index() {
                   role="button"
                   tabIndex={0}
                   onClick={() => setPickerSlot(slot)}
-                  className="flex cursor-pointer items-center justify-between rounded-2xl border-dashed p-4 text-muted-foreground transition-colors hover:bg-accent/40"
+                  className="flex cursor-pointer items-center justify-between rounded-2xl border-dashed p-3 text-muted-foreground transition-colors hover:bg-accent/40 md:p-4"
                 >
                   <div>
                     <div className="text-[10px] uppercase tracking-wider">{slot}</div>
-                    <div className="mt-1 text-sm">Add a meal</div>
+                    <div className="mt-0.5 text-sm">Add a meal</div>
                   </div>
                   <Plus className="h-5 w-5" />
                 </Card>
