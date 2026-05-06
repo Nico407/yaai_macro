@@ -785,7 +785,7 @@ export default function Index() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="filter" className="flex h-[50vh] flex-col gap-3">
+                <TabsContent value="filter" className="flex max-h-[50vh] flex-col gap-3">
                   <div className="space-y-2">
                     <div>
                       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuisine tags</p>
