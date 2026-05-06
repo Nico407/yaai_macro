@@ -92,7 +92,9 @@ export default function Onboarding() {
     e.preventDefault();
     if (!preview) return;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       setSaving(false);
       toast({ title: "Not signed in", variant: "destructive" });
@@ -235,7 +237,7 @@ export default function Onboarding() {
               >
                 {(
                   [
-                    { v: "hard_cut", label: "Hard cut", hint: "-0.5 kg/weekweek" },
+                    { v: "hard_cut", label: "Hard cut", hint: "-0.5 kg/week" },
                     { v: "cut", label: "Cut", hint: "-0.25 kg/week" },
                     { v: "maintain", label: "Maintain" },
                     { v: "bulk", label: "Bulk", hint: "+0.25 kg/week" },
