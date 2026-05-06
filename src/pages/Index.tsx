@@ -870,7 +870,7 @@ export default function Index() {
                             {cuisineOptions.length === 0 && (
                               <span className="text-xs text-muted-foreground">No cuisine tags yet.</span>
                             )}
-                            {cuisineOptions.filter((t) => !filterCuisine.includes(t)).map((tag) => (
+                            {cuisineOptions.filter((t) => !filterCuisine.includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())).map((tag) => (
                               <button
                                 key={tag}
                                 type="button"
