@@ -869,12 +869,12 @@ function ActionCard({
   disabled?: boolean;
 }) {
   return (
-    <Card className={`rounded-2xl p-5 ${disabled ? "opacity-60" : ""}`}>
-      <div className="mb-2 flex items-center gap-2 text-primary">
+    <Card className={`rounded-2xl p-3 md:p-5 ${disabled ? "opacity-60" : ""}`}>
+      <div className="mb-1 flex items-center gap-2 text-primary md:mb-2">
         {icon}
-        <h3 className="font-display text-lg font-bold">{title}</h3>
+        <h3 className="font-display text-base font-bold md:text-lg">{title}</h3>
       </div>
-      <p className="text-sm text-muted-foreground">{desc}</p>
+      <p className="text-xs text-muted-foreground md:text-sm">{desc}</p>
       {tag && (
         <span className="mt-3 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wider">
           {tag}
