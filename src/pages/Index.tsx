@@ -850,23 +850,31 @@ export default function Index() {
                       </div>
                     </div>
                     {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilterCuisine([]);
-                          setFilterIngredient([]);
-                        }}
-                        className="text-xs text-muted-foreground underline"
-                      >
-                        Clear filters
-                      </button>
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilterCuisine([]);
+                            setFilterIngredient([]);
+                            setFilterApplied(false);
+                          }}
+                          className="text-xs text-muted-foreground underline"
+                        >
+                          Clear filters
+                        </button>
+                        {!filterApplied && (
+                          <Button size="sm" onClick={() => setFilterApplied(true)}>
+                            Done
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {(filterCuisine.length > 0 || filterIngredient.length > 0 || pickerQuery.trim().length > 0) && (
+                  {filterApplied && (filterCuisine.length > 0 || filterIngredient.length > 0) && (
                     <div className="flex-1 space-y-2 overflow-y-auto border-t pt-2">
                       {filterList.length === 0 ? (
                         <p className="py-6 text-center text-sm text-muted-foreground">
-                          No recipes match your search.
+                          No recipes match your filters.
                         </p>
                       ) : (
                         filterList.map((it) =>
