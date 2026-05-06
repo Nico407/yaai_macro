@@ -794,6 +794,17 @@ export default function Index() {
                       <span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-[9px] uppercase tracking-wider">Coming soon</span>
                     </button>
                   </div>
+                  <div className="max-h-[40vh] space-y-2 overflow-y-auto">
+                    {cookbookList.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-muted-foreground">
+                        No recipes here yet.
+                      </p>
+                    ) : (
+                      cookbookList.map((it) =>
+                        it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
+                      )
+                    )}
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="filter" className="flex max-h-[50vh] flex-col gap-3 overflow-hidden">
