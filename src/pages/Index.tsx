@@ -859,19 +859,16 @@ export default function Index() {
                         {ingredientOptions.length === 0 && (
                           <span className="text-xs text-muted-foreground">No ingredients yet.</span>
                         )}
-                        {ingredientOptions.map((tag) => {
-                          const active = filterIngredient.includes(tag);
+                        {ingredientOptions.filter((t) => !filterIngredient.includes(t)).map((tag) => {
                           return (
                             <button
                               key={tag}
                               type="button"
                               onClick={() => {
                                 setFilterApplied(false);
-                                setFilterIngredient((prev) =>
-                                  active ? prev.filter((t) => t !== tag) : [...prev, tag],
-                                );
+                                setFilterIngredient((prev) => [...prev, tag]);
                               }}
-                              className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:bg-secondary"}`}
+                              className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary"
                             >
                               {tag}
                             </button>
