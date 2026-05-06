@@ -598,7 +598,7 @@ export default function Index() {
           }
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="flex max-h-[90vh] max-w-lg flex-col">
           <DialogHeader>
             <DialogTitle>{pickerSlot === ("__extra__" as Slot) ? "Add extra" : `Add to ${pickerSlot}`}</DialogTitle>
             <DialogDescription>
