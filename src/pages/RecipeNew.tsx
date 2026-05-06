@@ -233,33 +233,35 @@ export default function RecipeNew() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-        <header className="mb-8">
+      <div className="mx-auto max-w-3xl px-4 py-6 md:py-12">
+        <header className="mb-5 md:mb-8">
           <Link to="/recipes" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back to recipes
           </Link>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground md:text-sm">
             {isEdit ? "Edit recipe" : "New recipe"}
           </p>
-          <h1 className="font-display text-4xl font-bold md:text-5xl">
+          <h1 className="font-display text-3xl font-bold md:text-5xl">
             {isEdit ? name || "Edit meal" : "Build a meal."}
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground md:text-base">
             Add ingredients with their grams for one batch. Ratios are calculated automatically.
           </p>
         </header>
 
-        <Card className="rounded-2xl p-6 shadow-soft md:p-8">
-          <form onSubmit={onSave} className="space-y-6">
+        <Card className="rounded-2xl p-4 shadow-soft md:p-8">
+          <form onSubmit={onSave} className="space-y-4 md:space-y-6">
             <div>
               <Label htmlFor="r-name">Name</Label>
               <Input
                 id="r-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.slice(0, 32))}
                 placeholder="Spaghetti with tomato sauce"
+                maxLength={32}
                 className="mt-1.5"
               />
+              <p className="mt-1 text-right text-[10px] text-muted-foreground">{name.length}/32</p>
             </div>
 
             <div>
