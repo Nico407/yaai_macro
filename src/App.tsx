@@ -17,6 +17,7 @@ import RecipeScale from "./pages/RecipeScale.tsx";
 import QuickLog from "./pages/QuickLog.tsx";
 import History from "./pages/History.tsx";
 import Auth from "./pages/Auth.tsx";
+import Settings from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
           <Route path="/plan/mine" element={<Navigate to="/recipes" replace />} />
           <Route path="/quick-log" element={<P><QuickLog /></P>} />
           <Route path="/history" element={<P><History /></P>} />
+          <Route path="/settings" element={<P><Settings /></P>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
