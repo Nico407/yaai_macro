@@ -95,7 +95,10 @@ export default function QuickLog() {
   async function onLog() {
     if (rows.length === 0 || totalGrams <= 0) return;
     setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); navigate("/auth"); return; }
     const { error } = await supabase.from("meal_logs").insert({
+      user_id: user.id,
       recipe_id: null,
       recipe_name: name.trim() || "Quick meal",
       total_grams: Math.round(totalGrams),

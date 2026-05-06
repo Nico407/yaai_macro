@@ -212,7 +212,10 @@ export default function Index() {
       }
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAdding(false); toast.error("Sign in required"); return; }
     const { error } = await supabase.from("meal_logs").insert({
+      user_id: user.id,
       recipe_id: recipe.id,
       recipe_name: recipe.name,
       total_grams: Math.round(grams),
@@ -303,7 +306,10 @@ export default function Index() {
       }
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAdding(false); toast.error("Sign in required"); return; }
     const { error } = await supabase.from("meal_logs").insert({
+      user_id: user.id,
       recipe_id: null,
       recipe_name: item.name,
       total_grams: Math.round(grams),
@@ -377,6 +383,14 @@ export default function Index() {
                   <Link to="/onboarding">
                     <UserCog className="mr-2 h-4 w-4" /> Edit profile
                   </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    window.location.href = "/auth";
+                  }}
+                >
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
