@@ -869,10 +869,10 @@ function ActionCard({
   disabled?: boolean;
 }) {
   return (
-    <Card className={`rounded-2xl p-3 md:p-5 ${disabled ? "opacity-60" : ""}`}>
-      <div className="mb-1 flex items-center gap-2 text-primary md:mb-2">
-        {icon}
-        <h3 className="font-display text-base font-bold md:text-lg">{title}</h3>
+    <Card className={`flex h-full flex-col rounded-2xl p-3 md:p-5 ${disabled ? "opacity-60" : ""}`}>
+      <div className="mb-1 flex min-h-[3rem] items-start gap-2 text-primary md:mb-2 md:min-h-0">
+        <span className="mt-0.5 shrink-0">{icon}</span>
+        <h3 className="font-display text-base font-bold leading-tight md:text-lg">{title}</h3>
       </div>
       <p className="text-xs text-muted-foreground md:text-sm">{desc}</p>
       {tag && (
