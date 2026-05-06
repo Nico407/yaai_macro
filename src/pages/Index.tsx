@@ -640,9 +640,39 @@ export default function Index() {
                 .map((r) => ({ kind: "cookbook" as const, r }));
             }
 
-            const allList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [
-              ...recipes.filter((r) => matchQ(r.name, r.description)).map((r) => ({ kind: "recipe" as const, r })),
-              ...cookbookAll.filter((r) => matchQ(r.name, r.description)).map((r) => ({ kind: "cookbook" as const, r })),
+            // Build tag pools
+            const cuisineSet = new Set<string>();
+            recipes.forEach((r) => (r.cuisine_tags ?? []).forEach((t) => cuisineSet.add(t)));
+            cookbookAll.forEach((r) => r.country && cuisineSet.add(r.country));
+            const cuisineOptions = Array.from(cuisineSet).sort();
+
+            const ingredientSet = new Set<string>();
+            recipes.forEach((r) =>
+              r.recipe_ingredients?.forEach((ri) => ri.ingredient?.name && ingredientSet.add(ri.ingredient.name.toLowerCase())),
+            );
+            cookbookAll.forEach((r) => r.ingredients?.forEach((n) => n && ingredientSet.add(n.toLowerCase())));
+            const ingredientOptions = Array.from(ingredientSet).sort();
+
+            const recipeMatchesFilters = (r: RecipeRow) => {
+              if (filterCuisine.length && !filterCuisine.some((t) => (r.cuisine_tags ?? []).includes(t))) return false;
+              if (filterIngredient.length) {
+                const names = (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.name?.toLowerCase() ?? "");
+                if (!filterIngredient.every((t) => names.includes(t))) return false;
+              }
+              return true;
+            };
+            const cookbookMatchesFilters = (r: CookbookRecipe) => {
+              if (filterCuisine.length && !filterCuisine.some((t) => r.country === t)) return false;
+              if (filterIngredient.length) {
+                const names = (r.ingredients ?? []).map((n) => n.toLowerCase());
+                if (!filterIngredient.every((t) => names.includes(t))) return false;
+              }
+              return true;
+            };
+
+            const filterList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [
+              ...recipes.filter((r) => matchQ(r.name, r.description) && recipeMatchesFilters(r)).map((r) => ({ kind: "recipe" as const, r })),
+              ...cookbookAll.filter((r) => matchQ(r.name, r.description) && cookbookMatchesFilters(r)).map((r) => ({ kind: "cookbook" as const, r })),
             ];
 
             const renderRecipeBtn = (r: RecipeRow) => (
