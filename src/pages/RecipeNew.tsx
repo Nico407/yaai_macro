@@ -286,6 +286,37 @@ export default function RecipeNew() {
             </div>
 
             <div>
+              <Label>Cuisine tags</Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Help filter and recommend this recipe.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {CUISINE_TAGS.map((tag) => {
+                  const active = cuisineTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() =>
+                        setCuisineTags((prev) =>
+                          active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                        )
+                      }
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-xs transition-colors",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-muted-foreground hover:bg-secondary",
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
               <div className="mb-2 flex items-center justify-between">
                 <Label>Ingredients</Label>
                 <span className="text-xs text-muted-foreground">grams in one batch</span>
