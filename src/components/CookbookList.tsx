@@ -228,11 +228,16 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
                 >
                   <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <div className="font-display text-lg font-bold">{r.name}</div>
                       <ChevronDown
                         className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
                       />
+                      {prefsActive && matchMap.get(r.id) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          <Check className="h-3 w-3" /> matches your prefs
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
