@@ -579,62 +579,157 @@ export default function Index() {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{pickerSlot === ("__extra__" as Slot) ? "Add extra" : `Add to ${pickerSlot}`}</DialogTitle>
             <DialogDescription>
               Pick a recipe — we'll auto-scale it to fit your remaining macros.
             </DialogDescription>
           </DialogHeader>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={pickerQuery}
-              onChange={(e) => setPickerQuery(e.target.value)}
-              placeholder="Search recipes…"
-              className="pl-9"
-            />
-          </div>
-          <div className="max-h-[60vh] space-y-2 overflow-y-auto">
-            {recipes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                No recipes yet.{" "}
-                <Link to="/recipes" className="underline" onClick={() => setPickerSlot(null)}>
-                  Create one
-                </Link>
-                .
-              </p>
-            ) : (() => {
-              const q = pickerQuery.trim().toLowerCase();
-              const filtered = q
-                ? recipes.filter(
-                    (r) =>
-                      r.name.toLowerCase().includes(q) ||
-                      (r.description ?? "").toLowerCase().includes(q),
-                  )
-                : recipes;
-              if (filtered.length === 0) {
-                return (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    No recipes match "{pickerQuery}".
-                  </p>
-                );
-              }
-              return filtered.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => addRecipeToSlot(r)}
-                  disabled={adding}
-                  className="w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
-                >
-                  <div className="font-semibold">{r.name}</div>
-                  {r.description && (
-                    <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
+
+          {(() => {
+            const q = pickerQuery.trim().toLowerCase();
+            const matchQ = (name: string, desc?: string | null) =>
+              !q || name.toLowerCase().includes(q) || (desc ?? "").toLowerCase().includes(q);
+
+            const favRecipes = recipes.filter((r) => r.is_favorite && matchQ(r.name, r.description));
+            const favCookbook = cookbookAll.filter((r) => r.is_favorite && matchQ(r.name, r.description));
+
+            const cookbookCountries = Array.from(
+              new Set(cookbookAll.map((r) => r.country).filter((c): c is string => !!c)),
+            ).sort();
+            const cookbookOptions: { value: string; label: string }[] = [
+              { value: "__library__", label: "Free library" },
+              ...cookbookCountries.map((c) => ({ value: c, label: c })),
+              { value: "__mine__", label: "My creations" },
+            ];
+
+            let cookbookList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [];
+            if (pickerCookbook === "__mine__") {
+              cookbookList = recipes
+                .filter((r) => matchQ(r.name, r.description))
+                .map((r) => ({ kind: "recipe" as const, r }));
+            } else if (pickerCookbook === "__library__") {
+              cookbookList = cookbookAll
+                .filter((r) => !r.country && matchQ(r.name, r.description))
+                .map((r) => ({ kind: "cookbook" as const, r }));
+            } else {
+              cookbookList = cookbookAll
+                .filter((r) => r.country === pickerCookbook && matchQ(r.name, r.description))
+                .map((r) => ({ kind: "cookbook" as const, r }));
+            }
+
+            const allList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [
+              ...recipes.filter((r) => matchQ(r.name, r.description)).map((r) => ({ kind: "recipe" as const, r })),
+              ...cookbookAll.filter((r) => matchQ(r.name, r.description)).map((r) => ({ kind: "cookbook" as const, r })),
+            ];
+
+            const renderRecipeBtn = (r: RecipeRow) => (
+              <button
+                key={`r-${r.id}`}
+                onClick={() => addRecipeToSlot(r)}
+                disabled={adding}
+                className="w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{r.name}</span>
+                  {r.is_favorite && <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
+                  <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">My recipe</span>
+                </div>
+                {r.description && (
+                  <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
+                )}
+              </button>
+            );
+            const renderCookbookBtn = (r: CookbookRecipe) => (
+              <button
+                key={`c-${r.id}`}
+                onClick={() => addCookbookToSlot(r)}
+                disabled={adding}
+                className="w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{r.name}</span>
+                  {r.is_favorite && <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
+                  <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {r.country ?? "Library"}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
+                </div>
+              </button>
+            );
+
+            return (
+              <Tabs value={pickerTab} onValueChange={(v) => setPickerTab(v as typeof pickerTab)}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="favorites">Favourites</TabsTrigger>
+                  <TabsTrigger value="cookbooks">Cookbooks</TabsTrigger>
+                  <TabsTrigger value="all">Show all</TabsTrigger>
+                </TabsList>
+
+                <div className="relative mt-3">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={pickerQuery}
+                    onChange={(e) => setPickerQuery(e.target.value)}
+                    placeholder="Search recipes…"
+                    className="pl-9"
+                  />
+                </div>
+
+                <TabsContent value="favorites" className="max-h-[55vh] space-y-2 overflow-y-auto">
+                  {favRecipes.length === 0 && favCookbook.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      No favourites yet. Star a recipe to see it here.
+                    </p>
+                  ) : (
+                    <>
+                      {favRecipes.map(renderRecipeBtn)}
+                      {favCookbook.map(renderCookbookBtn)}
+                    </>
                   )}
-                </button>
-              ));
-            })()}
-          </div>
+                </TabsContent>
+
+                <TabsContent value="cookbooks" className="space-y-2">
+                  <Select value={pickerCookbook} onValueChange={setPickerCookbook}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cookbookOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="max-h-[48vh] space-y-2 overflow-y-auto">
+                    {cookbookList.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-muted-foreground">No recipes here yet.</p>
+                    ) : (
+                      cookbookList.map((it) =>
+                        it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
+                      )
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="all" className="max-h-[55vh] space-y-2 overflow-y-auto">
+                  {allList.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      No recipes match "{pickerQuery}".
+                    </p>
+                  ) : (
+                    allList.map((it) =>
+                      it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
+                    )
+                  )}
+                </TabsContent>
+              </Tabs>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
