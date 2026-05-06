@@ -239,6 +239,92 @@ export default function Index() {
     toast.success(`${recipe.name} added to ${pickerSlot}`);
   }
 
+  async function addCookbookToSlot(item: CookbookRecipe) {
+    if (!pickerSlot) return;
+    const perGram: PerGram = {
+      kcal: item.kcal / 100,
+      protein_g: item.protein_g / 100,
+      carbs_g: item.carbs_g / 100,
+      fat_g: item.fat_g / 100,
+    };
+    let grams = 100;
+    let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
+    if (target) {
+      const scalableLogs = logs.filter((l) => !l.is_fixed);
+      const fixedLogs = logs.filter((l) => l.is_fixed);
+      const fixedConsumed = {
+        kcal: fixedLogs.reduce((s, l) => s + Number(l.kcal), 0),
+        protein_g: fixedLogs.reduce((s, l) => s + Number(l.protein_g), 0),
+        carbs_g: fixedLogs.reduce((s, l) => s + Number(l.carbs_g), 0),
+        fat_g: fixedLogs.reduce((s, l) => s + Number(l.fat_g), 0),
+      };
+      const denom = Math.max(1, scalableLogs.length + 1);
+      share = {
+        kcal: Math.max(0, target.kcal - fixedConsumed.kcal) / denom,
+        protein_g: Math.max(0, target.protein_g - fixedConsumed.protein_g) / denom,
+        carbs_g: Math.max(0, target.carbs_g - fixedConsumed.carbs_g) / denom,
+        fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / denom,
+      };
+      const raw = balancedGramsForShare(perGram, share);
+      grams = clampGrams(raw || 100, 30, 5000);
+    }
+
+    setAdding(true);
+    if (target) {
+      const scalableLogs = logs.filter((l) => !l.is_fixed);
+      for (const l of scalableLogs) {
+        const oldGrams = Number(l.total_grams);
+        const oldKcal = Number(l.kcal);
+        if (!oldGrams || !oldKcal) continue;
+        const lPerGram: PerGram = {
+          kcal: oldKcal / oldGrams,
+          protein_g: Number(l.protein_g) / oldGrams,
+          carbs_g: Number(l.carbs_g) / oldGrams,
+          fat_g: Number(l.fat_g) / oldGrams,
+        };
+        const newGramsRaw = balancedGramsForShare(lPerGram, share);
+        const newGrams = clampGrams(newGramsRaw || oldGrams, 30, 5000);
+        const f = newGrams / oldGrams;
+        const { error: upErr } = await supabase
+          .from("meal_logs")
+          .update({
+            total_grams: Math.round(newGrams),
+            kcal: Math.round(oldKcal * f),
+            protein_g: Math.round(Number(l.protein_g) * f * 10) / 10,
+            carbs_g: Math.round(Number(l.carbs_g) * f * 10) / 10,
+            fat_g: Math.round(Number(l.fat_g) * f * 10) / 10,
+          })
+          .eq("id", l.id);
+        if (upErr) {
+          setAdding(false);
+          toast.error("Couldn't rescale meals", { description: upErr.message });
+          return;
+        }
+      }
+    }
+
+    const { error } = await supabase.from("meal_logs").insert({
+      recipe_id: null,
+      recipe_name: item.name,
+      total_grams: Math.round(grams),
+      kcal: Math.round(perGram.kcal * grams),
+      protein_g: Math.round(perGram.protein_g * grams * 10) / 10,
+      carbs_g: Math.round(perGram.carbs_g * grams * 10) / 10,
+      fat_g: Math.round(perGram.fat_g * grams * 10) / 10,
+      slot: pickerSlot === ("__extra__" as Slot) ? null : pickerSlot,
+      instructions: item.instructions?.length ? item.instructions.map((s, i) => `${i + 1}. ${s}`).join("\n") : null,
+      ingredients_json: item.ingredients.map((name) => ({ name, grams: 0 })),
+    });
+    setAdding(false);
+    if (error) {
+      toast.error("Couldn't add", { description: error.message });
+      return;
+    }
+    setPickerSlot(null);
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
+    toast.success(`${item.name} added to ${pickerSlot}`);
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
