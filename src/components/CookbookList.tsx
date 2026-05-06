@@ -44,14 +44,33 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [favTogglingId, setFavTogglingId] = useState<string | null>(null);
+  const [hideNonMatching, setHideNonMatching] = useState(true);
+
+  const prefs: ProfilePrefs = {
+    nutrition_preference: (profile as { nutrition_preference?: string } | undefined)?.nutrition_preference ?? null,
+    dietary_restrictions: (profile as { dietary_restrictions?: string[] } | undefined)?.dietary_restrictions ?? [],
+  };
+  const prefsActive = hasAnyPrefs(prefs);
+
+  const matchMap = useMemo(() => {
+    const m = new Map<string, boolean>();
+    recipes.forEach((r) => m.set(r.id, matchesByKeywords(r.ingredients, prefs)));
+    return m;
+  }, [recipes, prefs]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return recipes;
-    return recipes.filter(
-      (r) => r.name.toLowerCase().includes(q) || (r.description ?? "").toLowerCase().includes(q),
-    );
-  }, [query, recipes]);
+    let list = recipes;
+    if (q) {
+      list = list.filter(
+        (r) => r.name.toLowerCase().includes(q) || (r.description ?? "").toLowerCase().includes(q),
+      );
+    }
+    if (prefsActive && hideNonMatching) {
+      list = list.filter((r) => matchMap.get(r.id));
+    }
+    return list;
+  }, [query, recipes, prefsActive, hideNonMatching, matchMap]);
 
   const target = profile?.target_calories
     ? {
