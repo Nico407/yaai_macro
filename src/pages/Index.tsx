@@ -61,6 +61,7 @@ export default function Index() {
   const [pickerCookbook, setPickerCookbook] = useState<string>("__library__");
   const [filterCuisine, setFilterCuisine] = useState<string[]>([]);
   const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
+  const [filterApplied, setFilterApplied] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
