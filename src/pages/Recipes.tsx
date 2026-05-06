@@ -36,16 +36,38 @@ export default function Recipes() {
   const [picking, setPicking] = useState<RecipeRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
+  const [hideNonMatching, setHideNonMatching] = useState(true);
+
+  const prefs: ProfilePrefs = {
+    nutrition_preference: (profile as { nutrition_preference?: string } | undefined)?.nutrition_preference ?? null,
+    dietary_restrictions: (profile as { dietary_restrictions?: string[] } | undefined)?.dietary_restrictions ?? [],
+  };
+  const prefsActive = hasAnyPrefs(prefs);
+
+  const recipeMatches = useMemo(() => {
+    const m = new Map<string, boolean>();
+    recipes.forEach((r) => {
+      const tagSets = r.recipe_ingredients.map((ri) => ri.ingredient.dietary_tags ?? []);
+      m.set(r.id, matchesByTags(tagSets, prefs));
+    });
+    return m;
+  }, [recipes, prefs]);
 
   const filteredRecipes = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return recipes;
-    return recipes.filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        (r.description ?? "").toLowerCase().includes(q),
-    );
-  }, [recipes, query]);
+    let list = recipes;
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          (r.description ?? "").toLowerCase().includes(q),
+      );
+    }
+    if (prefsActive && hideNonMatching) {
+      list = list.filter((r) => recipeMatches.get(r.id));
+    }
+    return list;
+  }, [recipes, query, prefsActive, hideNonMatching, recipeMatches]);
 
   const consumed = useMemo(
     () =>
