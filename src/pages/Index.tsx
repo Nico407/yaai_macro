@@ -598,7 +598,7 @@ export default function Index() {
           }
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="flex max-h-[90vh] max-w-lg flex-col">
           <DialogHeader>
             <DialogTitle>{pickerSlot === ("__extra__" as Slot) ? "Add extra" : `Add to ${pickerSlot}`}</DialogTitle>
             <DialogDescription>
@@ -698,7 +698,7 @@ export default function Index() {
                   />
                 </div>
 
-                <TabsContent value="favorites" className="h-[55vh] space-y-2 overflow-y-auto">
+                <TabsContent value="favorites" className="h-[50vh] space-y-2 overflow-y-auto">
                   {favRecipes.length === 0 && favCookbook.length === 0 ? (
                     <p className="py-6 text-center text-sm text-muted-foreground">
                       No favourites yet. Star a recipe to see it here.
@@ -711,7 +711,7 @@ export default function Index() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="cookbooks" className="flex h-[55vh] flex-col space-y-3">
+                <TabsContent value="cookbooks" className="flex h-[50vh] flex-col space-y-3">
                   <div className="grid gap-2 sm:grid-cols-3">
                     <button
                       type="button"
@@ -760,7 +760,7 @@ export default function Index() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="all" className="h-[55vh] space-y-2 overflow-y-auto">
+                <TabsContent value="all" className="h-[50vh] space-y-2 overflow-y-auto">
                   {allList.length === 0 ? (
                     <p className="py-6 text-center text-sm text-muted-foreground">
                       No recipes match "{pickerQuery}".
