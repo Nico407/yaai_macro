@@ -773,8 +773,8 @@ export default function Index() {
                   <div className="grid gap-2 sm:grid-cols-3">
                     <button
                       type="button"
-                      onClick={() => setPickerCookbook("__library__")}
-                      className={`rounded-xl border p-3 text-left transition-colors ${pickerCookbook === "__library__" ? "border-primary bg-accent/40" : "border-border hover:bg-accent/20"}`}
+                      onClick={() => setCategoryOpen("__library__")}
+                      className="rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20"
                     >
                       <div className="mb-1 flex items-center gap-2 text-primary">
                         <BookOpen className="h-4 w-4" />
@@ -784,8 +784,8 @@ export default function Index() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPickerCookbook("__mine__")}
-                      className={`rounded-xl border p-3 text-left transition-colors ${pickerCookbook === "__mine__" ? "border-primary bg-accent/40" : "border-border hover:bg-accent/20"}`}
+                      onClick={() => setCategoryOpen("__mine__")}
+                      className="rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20"
                     >
                       <div className="mb-1 flex items-center gap-2 text-primary">
                         <ChefHat className="h-4 w-4" />
@@ -806,17 +806,6 @@ export default function Index() {
                       <p className="text-xs text-muted-foreground">Recipe packs from around the world.</p>
                       <span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-[9px] uppercase tracking-wider">Coming soon</span>
                     </button>
-                  </div>
-                  <div className="max-h-[40vh] space-y-2 overflow-y-auto">
-                    {cookbookList.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        No recipes here yet.
-                      </p>
-                    ) : (
-                      cookbookList.map((it) =>
-                        it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
-                      )
-                    )}
                   </div>
                 </TabsContent>
 
