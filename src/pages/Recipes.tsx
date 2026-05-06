@@ -294,6 +294,11 @@ export default function Recipes() {
                             Fixed
                           </span>
                         )}
+                        {prefsActive && recipeMatches.get(r.id) && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            <Check className="h-3 w-3" /> matches your prefs
+                          </span>
+                        )}
                       </div>
                       {r.description && <div className="mt-0.5 text-xs text-muted-foreground">{r.description}</div>}
                       <div className="mt-2 text-xs text-muted-foreground">
