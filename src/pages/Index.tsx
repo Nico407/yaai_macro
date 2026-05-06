@@ -889,7 +889,11 @@ export default function Index() {
                         >
                           Clear filters
                         </button>
-                        {!filterApplied && (
+                        {filterApplied ? (
+                          <Button size="sm" variant="outline" onClick={() => setFilterApplied(false)}>
+                            Edit
+                          </Button>
+                        ) : (
                           <Button size="sm" onClick={() => setFilterApplied(true)}>
                             Done
                           </Button>
