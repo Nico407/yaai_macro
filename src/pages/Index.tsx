@@ -698,7 +698,7 @@ export default function Index() {
                   />
                 </div>
 
-                <TabsContent value="favorites" className="max-h-[55vh] space-y-2 overflow-y-auto">
+                <TabsContent value="favorites" className="h-[55vh] space-y-2 overflow-y-auto">
                   {favRecipes.length === 0 && favCookbook.length === 0 ? (
                     <p className="py-6 text-center text-sm text-muted-foreground">
                       No favourites yet. Star a recipe to see it here.
@@ -711,7 +711,7 @@ export default function Index() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="cookbooks" className="space-y-3">
+                <TabsContent value="cookbooks" className="flex h-[55vh] flex-col space-y-3">
                   <div className="grid gap-2 sm:grid-cols-3">
                     <button
                       type="button"
@@ -749,7 +749,7 @@ export default function Index() {
                       <span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-[9px] uppercase tracking-wider">Coming soon</span>
                     </button>
                   </div>
-                  <div className="max-h-[40vh] space-y-2 overflow-y-auto">
+                  <div className="flex-1 space-y-2 overflow-y-auto">
                     {cookbookList.length === 0 ? (
                       <p className="py-6 text-center text-sm text-muted-foreground">No recipes here yet.</p>
                     ) : (
@@ -760,7 +760,7 @@ export default function Index() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="all" className="max-h-[55vh] space-y-2 overflow-y-auto">
+                <TabsContent value="all" className="h-[55vh] space-y-2 overflow-y-auto">
                   {allList.length === 0 ? (
                     <p className="py-6 text-center text-sm text-muted-foreground">
                       No recipes match "{pickerQuery}".
