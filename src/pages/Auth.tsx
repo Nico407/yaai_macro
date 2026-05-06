@@ -8,7 +8,14 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
+
+const PW_RULES = [
+  { label: "At least one number", test: (p: string) => /\d/.test(p) },
+  { label: "At least one uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "At least one special character", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+];
 
 export default function Auth() {
   const { user, loading } = useAuth();
