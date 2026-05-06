@@ -63,6 +63,7 @@ export default function Index() {
   const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
   const [filterApplied, setFilterApplied] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
+  const [categoryOpen, setCategoryOpen] = useState<null | "__library__" | "__mine__">(null);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
