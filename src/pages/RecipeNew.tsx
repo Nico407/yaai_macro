@@ -65,6 +65,7 @@ export default function RecipeNew() {
     setDescription(existing.description ?? "");
     setInstructions(existing.instructions ?? "");
     setIsFixed(!!existing.is_fixed);
+    setCuisineTags(existing.cuisine_tags ?? []);
     const total = Number(existing.default_serving_g) || 0;
     setRows(
       existing.recipe_ingredients.map((ri) => ({
