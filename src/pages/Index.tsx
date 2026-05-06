@@ -55,8 +55,10 @@ export default function Index() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
-  const [pickerTab, setPickerTab] = useState<"favorites" | "cookbooks" | "all">("favorites");
+  const [pickerTab, setPickerTab] = useState<"favorites" | "cookbooks" | "filter">("favorites");
   const [pickerCookbook, setPickerCookbook] = useState<string>("__library__");
+  const [filterCuisine, setFilterCuisine] = useState<string[]>([]);
+  const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
