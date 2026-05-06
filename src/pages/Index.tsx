@@ -62,6 +62,7 @@ export default function Index() {
   const [filterCuisine, setFilterCuisine] = useState<string[]>([]);
   const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
   const [filterApplied, setFilterApplied] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
@@ -854,13 +855,22 @@ export default function Index() {
                     )}
                     {!filterApplied && (
                       <>
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            value={tagSearch}
+                            onChange={(e) => setTagSearch(e.target.value)}
+                            placeholder="Search tags…"
+                            className="pl-9"
+                          />
+                        </div>
                         <div>
                           <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuisine tags</p>
                           <div className="flex flex-wrap gap-1.5">
                             {cuisineOptions.length === 0 && (
                               <span className="text-xs text-muted-foreground">No cuisine tags yet.</span>
                             )}
-                            {cuisineOptions.filter((t) => !filterCuisine.includes(t)).map((tag) => (
+                            {cuisineOptions.filter((t) => !filterCuisine.includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())).map((tag) => (
                               <button
                                 key={tag}
                                 type="button"
@@ -881,7 +891,7 @@ export default function Index() {
                             {ingredientOptions.length === 0 && (
                               <span className="text-xs text-muted-foreground">No ingredients yet.</span>
                             )}
-                            {ingredientOptions.filter((t) => !filterIngredient.includes(t)).map((tag) => (
+                            {ingredientOptions.filter((t) => !filterIngredient.includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())).map((tag) => (
                               <button
                                 key={tag}
                                 type="button"
