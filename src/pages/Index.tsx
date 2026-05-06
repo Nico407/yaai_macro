@@ -749,7 +749,7 @@ export default function Index() {
                       <span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-[9px] uppercase tracking-wider">Coming soon</span>
                     </button>
                   </div>
-                  <div className="max-h-[40vh] space-y-2 overflow-y-auto">
+                  <div className="flex-1 space-y-2 overflow-y-auto">
                     {cookbookList.length === 0 ? (
                       <p className="py-6 text-center text-sm text-muted-foreground">No recipes here yet.</p>
                     ) : (
