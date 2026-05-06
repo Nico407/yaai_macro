@@ -331,7 +331,7 @@ export default function RecipeNew() {
                     return (
                       <div key={idx} className="flex items-start gap-2">
                         <div className="flex-1">
-                          <Popover>
+                          <Popover open={openIngIdx === idx} onOpenChange={(o) => setOpenIngIdx(o ? idx : null)}>
                             <PopoverTrigger asChild>
                               <Button
                                 type="button"
@@ -356,7 +356,10 @@ export default function RecipeNew() {
                                       <CommandItem
                                         key={i.id}
                                         value={i.name}
-                                        onSelect={() => updateRow(idx, { ingredient_id: i.id })}
+                                        onSelect={() => {
+                                          updateRow(idx, { ingredient_id: i.id });
+                                          setOpenIngIdx(null);
+                                        }}
                                       >
                                         <Check
                                           className={cn(
