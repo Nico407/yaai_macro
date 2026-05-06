@@ -720,15 +720,17 @@ export default function Index() {
                   <TabsTrigger value="filter">Filter</TabsTrigger>
                 </TabsList>
 
-                <div className="relative mt-3">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={pickerQuery}
-                    onChange={(e) => setPickerQuery(e.target.value)}
-                    placeholder="Search recipes…"
-                    className="pl-9"
-                  />
-                </div>
+                {pickerTab !== "cookbooks" && (
+                  <div className="relative mt-3">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={pickerQuery}
+                      onChange={(e) => setPickerQuery(e.target.value)}
+                      placeholder="Search recipes…"
+                      className="pl-9"
+                    />
+                  </div>
+                )}
 
                 <TabsContent value="favorites" className="h-[50vh] space-y-2 overflow-y-auto">
                   {favRecipes.length === 0 && favCookbook.length === 0 ? (
@@ -780,15 +782,6 @@ export default function Index() {
                       <p className="text-xs text-muted-foreground">Recipe packs from around the world.</p>
                       <span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-[9px] uppercase tracking-wider">Coming soon</span>
                     </button>
-                  </div>
-                  <div className="flex-1 space-y-2 overflow-y-auto">
-                    {cookbookList.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">No recipes here yet.</p>
-                    ) : (
-                      cookbookList.map((it) =>
-                        it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
-                      )
-                    )}
                   </div>
                 </TabsContent>
 
