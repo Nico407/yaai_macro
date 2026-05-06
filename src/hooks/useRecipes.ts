@@ -45,6 +45,7 @@ export type RecipeRow = {
   max_total_g: number;
   is_fixed: boolean;
   is_favorite: boolean;
+  cuisine_tags: string[];
   recipe_ingredients: RecipeIngredientRow[];
 };
 
