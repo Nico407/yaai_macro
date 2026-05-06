@@ -17,9 +17,12 @@ import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram } from "@/lib/scaling";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Pencil, Plus, Search, Utensils } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Pencil, Plus, Search, Utensils } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { matchesByTags, hasAnyPrefs, type ProfilePrefs } from "@/lib/dietary";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 type Slot = (typeof SLOTS)[number];
@@ -33,16 +36,38 @@ export default function Recipes() {
   const [picking, setPicking] = useState<RecipeRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
+  const [hideNonMatching, setHideNonMatching] = useState(true);
+
+  const prefs: ProfilePrefs = {
+    nutrition_preference: (profile as { nutrition_preference?: string } | undefined)?.nutrition_preference ?? null,
+    dietary_restrictions: (profile as { dietary_restrictions?: string[] } | undefined)?.dietary_restrictions ?? [],
+  };
+  const prefsActive = hasAnyPrefs(prefs);
+
+  const recipeMatches = useMemo(() => {
+    const m = new Map<string, boolean>();
+    recipes.forEach((r) => {
+      const tagSets = r.recipe_ingredients.map((ri) => ri.ingredient.dietary_tags ?? []);
+      m.set(r.id, matchesByTags(tagSets, prefs));
+    });
+    return m;
+  }, [recipes, prefs]);
 
   const filteredRecipes = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return recipes;
-    return recipes.filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        (r.description ?? "").toLowerCase().includes(q),
-    );
-  }, [recipes, query]);
+    let list = recipes;
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          (r.description ?? "").toLowerCase().includes(q),
+      );
+    }
+    if (prefsActive && hideNonMatching) {
+      list = list.filter((r) => recipeMatches.get(r.id));
+    }
+    return list;
+  }, [recipes, query, prefsActive, hideNonMatching, recipeMatches]);
 
   const consumed = useMemo(
     () =>
@@ -227,6 +252,14 @@ export default function Recipes() {
                 className="pl-9"
               />
             </div>
+            {prefsActive && (
+              <div className="mb-4 flex items-center justify-between rounded-xl border bg-secondary/40 px-4 py-2.5">
+                <Label htmlFor="r-hide" className="text-sm">
+                  Hide recipes that don't match my prefs
+                </Label>
+                <Switch id="r-hide" checked={hideNonMatching} onCheckedChange={setHideNonMatching} />
+              </div>
+            )}
             {filteredRecipes.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
                 No recipes match "{query}".
@@ -259,6 +292,11 @@ export default function Recipes() {
                         {r.is_fixed && (
                           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                             Fixed
+                          </span>
+                        )}
+                        {prefsActive && recipeMatches.get(r.id) && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            <Check className="h-3 w-3" /> matches your prefs
                           </span>
                         )}
                       </div>

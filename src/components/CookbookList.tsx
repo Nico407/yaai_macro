@@ -10,11 +10,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { BookOpen, Plus, Search, Clock, ChevronDown, Star } from "lucide-react";
+import { BookOpen, Plus, Search, Clock, ChevronDown, Star, Check } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { useProfile } from "@/hooks/useProfile";
 import { balancedGramsForShare, clampGrams, type PerGram } from "@/lib/scaling";
+import { matchesByKeywords, hasAnyPrefs, type ProfilePrefs } from "@/lib/dietary";
 import { toast } from "sonner";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import chickenRiceImg from "@/assets/cookbook/chicken-rice.jpg";
@@ -41,14 +44,33 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [favTogglingId, setFavTogglingId] = useState<string | null>(null);
+  const [hideNonMatching, setHideNonMatching] = useState(true);
+
+  const prefs: ProfilePrefs = {
+    nutrition_preference: (profile as { nutrition_preference?: string } | undefined)?.nutrition_preference ?? null,
+    dietary_restrictions: (profile as { dietary_restrictions?: string[] } | undefined)?.dietary_restrictions ?? [],
+  };
+  const prefsActive = hasAnyPrefs(prefs);
+
+  const matchMap = useMemo(() => {
+    const m = new Map<string, boolean>();
+    recipes.forEach((r) => m.set(r.id, matchesByKeywords(r.ingredients, prefs)));
+    return m;
+  }, [recipes, prefs]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return recipes;
-    return recipes.filter(
-      (r) => r.name.toLowerCase().includes(q) || (r.description ?? "").toLowerCase().includes(q),
-    );
-  }, [query, recipes]);
+    let list = recipes;
+    if (q) {
+      list = list.filter(
+        (r) => r.name.toLowerCase().includes(q) || (r.description ?? "").toLowerCase().includes(q),
+      );
+    }
+    if (prefsActive && hideNonMatching) {
+      list = list.filter((r) => matchMap.get(r.id));
+    }
+    return list;
+  }, [query, recipes, prefsActive, hideNonMatching, matchMap]);
 
   const target = profile?.target_calories
     ? {
@@ -173,6 +195,14 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
         />
       </div>
 
+      {prefsActive && (
+        <div className="mb-4 flex items-center justify-between rounded-xl border bg-secondary/40 px-4 py-2.5">
+          <Label htmlFor="cb-hide" className="text-sm">
+            Hide meals that don't match my prefs
+          </Label>
+          <Switch id="cb-hide" checked={hideNonMatching} onCheckedChange={setHideNonMatching} />
+        </div>
+      )}
       <div className="space-y-3">
         {filtered.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
@@ -198,11 +228,16 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
                 >
                   <BookOpen className="mt-1 h-4 w-4 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <div className="font-display text-lg font-bold">{r.name}</div>
                       <ChevronDown
                         className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`}
                       />
+                      {prefsActive && matchMap.get(r.id) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          <Check className="h-3 w-3" /> matches your prefs
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
