@@ -10,11 +10,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { BookOpen, Plus, Search, Clock, ChevronDown, Star } from "lucide-react";
+import { BookOpen, Plus, Search, Clock, ChevronDown, Star, Check } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { useProfile } from "@/hooks/useProfile";
 import { balancedGramsForShare, clampGrams, type PerGram } from "@/lib/scaling";
+import { matchesByKeywords, hasAnyPrefs, type ProfilePrefs } from "@/lib/dietary";
 import { toast } from "sonner";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import chickenRiceImg from "@/assets/cookbook/chicken-rice.jpg";
