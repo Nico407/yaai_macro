@@ -330,7 +330,7 @@ export default function RecipeNew() {
                         : 0;
                     return (
                       <div key={idx} className="flex items-start gap-2">
-                        <div className="flex-1">
+                        <div className="min-w-0 flex-1">
                           <Popover open={openIngIdx === idx} onOpenChange={(o) => setOpenIngIdx(o ? idx : null)}>
                             <PopoverTrigger asChild>
                               <Button
@@ -342,7 +342,7 @@ export default function RecipeNew() {
                                   !ing && "text-muted-foreground",
                                 )}
                               >
-                                {ing ? ing.name : "Pick an ingredient…"}
+                                <span className="truncate">{ing ? ing.name : "Pick an ingredient…"}</span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </PopoverTrigger>
@@ -383,7 +383,7 @@ export default function RecipeNew() {
                             </p>
                           )}
                         </div>
-                        <div className="w-24">
+                        <div className="w-20 shrink-0">
                           <Input
                             type="number"
                             inputMode="decimal"
