@@ -792,16 +792,82 @@ export default function Index() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="all" className="h-[50vh] space-y-2 overflow-y-auto">
-                  {allList.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                      No recipes match "{pickerQuery}".
-                    </p>
-                  ) : (
-                    allList.map((it) =>
-                      it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
-                    )
-                  )}
+                <TabsContent value="filter" className="flex h-[50vh] flex-col gap-3">
+                  <div className="space-y-2">
+                    <div>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuisine tags</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cuisineOptions.length === 0 && (
+                          <span className="text-xs text-muted-foreground">No cuisine tags yet.</span>
+                        )}
+                        {cuisineOptions.map((tag) => {
+                          const active = filterCuisine.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() =>
+                                setFilterCuisine((prev) =>
+                                  active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                                )
+                              }
+                              className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:bg-secondary"}`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ingredients</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ingredientOptions.length === 0 && (
+                          <span className="text-xs text-muted-foreground">No ingredients yet.</span>
+                        )}
+                        {ingredientOptions.map((tag) => {
+                          const active = filterIngredient.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() =>
+                                setFilterIngredient((prev) =>
+                                  active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                                )
+                              }
+                              className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:bg-secondary"}`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterCuisine([]);
+                          setFilterIngredient([]);
+                        }}
+                        className="text-xs text-muted-foreground underline"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2 overflow-y-auto border-t pt-2">
+                    {filterList.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-muted-foreground">
+                        No recipes match your filters.
+                      </p>
+                    ) : (
+                      filterList.map((it) =>
+                        it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
+                      )
+                    )}
+                  </div>
                 </TabsContent>
               </Tabs>
             );
