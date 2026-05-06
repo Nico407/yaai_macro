@@ -330,7 +330,7 @@ export default function RecipeNew() {
                         : 0;
                     return (
                       <div key={idx} className="flex items-start gap-2">
-                        <div className="flex-1">
+                        <div className="min-w-0 flex-1">
                           <Popover open={openIngIdx === idx} onOpenChange={(o) => setOpenIngIdx(o ? idx : null)}>
                             <PopoverTrigger asChild>
                               <Button
