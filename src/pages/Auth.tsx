@@ -8,7 +8,14 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
+
+const PW_RULES = [
+  { label: "At least one number", test: (p: string) => /\d/.test(p) },
+  { label: "At least one uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "At least one special character", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+];
 
 export default function Auth() {
   const { user, loading } = useAuth();
@@ -33,6 +40,10 @@ export default function Auth() {
 
   async function onEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (mode === "signup" && !PW_RULES.every((r) => r.test(password))) {
+      toast({ title: "Password too weak", description: "Please meet all password requirements.", variant: "destructive" });
+      return;
+    }
     setBusy(true);
     if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
@@ -90,7 +101,20 @@ export default function Auth() {
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5" />
+              <Input id="password" type="password" required minLength={mode === "signup" ? 8 : 6} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5" />
+              {mode === "signup" && (
+                <ul className="mt-2 space-y-1 text-xs">
+                  {PW_RULES.map((rule) => {
+                    const ok = rule.test(password);
+                    return (
+                      <li key={rule.label} className={`flex items-center gap-1.5 ${ok ? "text-green-600" : "text-destructive"}`}>
+                        {ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                        <span>{rule.label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
             <Button type="submit" size="lg" className="w-full" disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "signin" ? "Sign in" : "Create account"}
