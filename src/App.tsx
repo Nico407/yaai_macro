@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import Ingredients from "./pages/Ingredients.tsx";
@@ -15,9 +16,12 @@ import RecipeNew from "./pages/RecipeNew.tsx";
 import RecipeScale from "./pages/RecipeScale.tsx";
 import QuickLog from "./pages/QuickLog.tsx";
 import History from "./pages/History.tsx";
+import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
+
+const P = ({ children }: { children: React.ReactNode }) => <ProtectedRoute>{children}</ProtectedRoute>;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -27,21 +31,21 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/main" replace />} />
-          <Route path="/main" element={<Index />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/ingredients" element={<Ingredients />} />
-          <Route path="/recipes" element={<Recipes />} />
-          <Route path="/recipes/new" element={<RecipeNew />} />
-          <Route path="/recipes/:id/edit" element={<RecipeNew />} />
-          <Route path="/recipes/:id/scale" element={<RecipeScale />} />
-          <Route path="/plan" element={<RecipesHub />} />
-          <Route path="/plan/cookbook" element={<Cookbook />} />
-          <Route path="/plan/countries" element={<Countries />} />
-          <Route path="/plan/countries/:country" element={<CountryCookbook />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/main" element={<P><Index /></P>} />
+          <Route path="/onboarding" element={<P><Onboarding /></P>} />
+          <Route path="/ingredients" element={<P><Ingredients /></P>} />
+          <Route path="/recipes" element={<P><Recipes /></P>} />
+          <Route path="/recipes/new" element={<P><RecipeNew /></P>} />
+          <Route path="/recipes/:id/edit" element={<P><RecipeNew /></P>} />
+          <Route path="/recipes/:id/scale" element={<P><RecipeScale /></P>} />
+          <Route path="/plan" element={<P><RecipesHub /></P>} />
+          <Route path="/plan/cookbook" element={<P><Cookbook /></P>} />
+          <Route path="/plan/countries" element={<P><Countries /></P>} />
+          <Route path="/plan/countries/:country" element={<P><CountryCookbook /></P>} />
           <Route path="/plan/mine" element={<Navigate to="/recipes" replace />} />
-          <Route path="/quick-log" element={<QuickLog />} />
-          <Route path="/history" element={<History />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/quick-log" element={<P><QuickLog /></P>} />
+          <Route path="/history" element={<P><History /></P>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
