@@ -798,6 +798,17 @@ export default function Index() {
 
                 <TabsContent value="filter" className="flex max-h-[50vh] flex-col gap-3 overflow-hidden">
                   <div className="space-y-2 overflow-y-auto pr-1">
+                    {!filterApplied && (
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={tagSearch}
+                          onChange={(e) => setTagSearch(e.target.value)}
+                          placeholder="Search tags…"
+                          className="pl-9"
+                        />
+                      </div>
+                    )}
                     {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
                       <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
                         <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Selected tags</p>
@@ -855,15 +866,6 @@ export default function Index() {
                     )}
                     {!filterApplied && (
                       <>
-                        <div className="relative">
-                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            value={tagSearch}
-                            onChange={(e) => setTagSearch(e.target.value)}
-                            placeholder="Search tags…"
-                            className="pl-9"
-                          />
-                        </div>
                         <div>
                           <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuisine tags</p>
                           <div className="flex flex-wrap gap-1.5">
