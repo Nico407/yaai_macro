@@ -63,6 +63,7 @@ export default function Index() {
   const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
   const [filterApplied, setFilterApplied] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
+  const [categoryOpen, setCategoryOpen] = useState<null | "__library__" | "__mine__">(null);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
@@ -691,16 +692,18 @@ export default function Index() {
                 key={`r-${r.id}`}
                 onClick={() => addRecipeToSlot(r)}
                 disabled={adding}
-                className="w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{r.name}</span>
-                  {r.is_favorite && <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
-                  <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">My recipe</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-semibold">{r.name}</span>
+                    {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">My recipe</span>
+                  </div>
+                  {r.description && (
+                    <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
+                  )}
                 </div>
-                {r.description && (
-                  <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
-                )}
               </button>
             );
             const renderCookbookBtn = (r: CookbookRecipe) => (
@@ -708,18 +711,28 @@ export default function Index() {
                 key={`c-${r.id}`}
                 onClick={() => addCookbookToSlot(r)}
                 disabled={adding}
-                className="w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{r.name}</span>
-                  {r.is_favorite && <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
-                  <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {r.country ?? "Library"}
-                  </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-semibold">{r.name}</span>
+                    {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {r.country ?? "Library"}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
+                  </div>
                 </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">
-                  {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
-                </div>
+                {r.image_url && (
+                  <img
+                    src={r.image_url}
+                    alt={r.name}
+                    className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                    loading="lazy"
+                  />
+                )}
               </button>
             );
 
@@ -760,8 +773,8 @@ export default function Index() {
                   <div className="grid gap-2 sm:grid-cols-3">
                     <button
                       type="button"
-                      onClick={() => setPickerCookbook("__library__")}
-                      className={`rounded-xl border p-3 text-left transition-colors ${pickerCookbook === "__library__" ? "border-primary bg-accent/40" : "border-border hover:bg-accent/20"}`}
+                      onClick={() => setCategoryOpen("__library__")}
+                      className="rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20"
                     >
                       <div className="mb-1 flex items-center gap-2 text-primary">
                         <BookOpen className="h-4 w-4" />
@@ -771,8 +784,8 @@ export default function Index() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPickerCookbook("__mine__")}
-                      className={`rounded-xl border p-3 text-left transition-colors ${pickerCookbook === "__mine__" ? "border-primary bg-accent/40" : "border-border hover:bg-accent/20"}`}
+                      onClick={() => setCategoryOpen("__mine__")}
+                      className="rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20"
                     >
                       <div className="mb-1 flex items-center gap-2 text-primary">
                         <ChefHat className="h-4 w-4" />
@@ -793,17 +806,6 @@ export default function Index() {
                       <p className="text-xs text-muted-foreground">Recipe packs from around the world.</p>
                       <span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-[9px] uppercase tracking-wider">Coming soon</span>
                     </button>
-                  </div>
-                  <div className="max-h-[40vh] space-y-2 overflow-y-auto">
-                    {cookbookList.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        No recipes here yet.
-                      </p>
-                    ) : (
-                      cookbookList.map((it) =>
-                        it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
-                      )
-                    )}
                   </div>
                 </TabsContent>
 
@@ -939,6 +941,93 @@ export default function Index() {
               </Tabs>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Category recipes dialog */}
+      <Dialog open={categoryOpen !== null} onOpenChange={(o) => !o && setCategoryOpen(null)}>
+        <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {categoryOpen === "__mine__" ? "My creations" : "Cook Book"}
+            </DialogTitle>
+            <DialogDescription>
+              {categoryOpen === "__mine__"
+                ? "Recipes you've built yourself."
+                : "Free starter library of macro-friendly recipes."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 overflow-y-auto">
+            {(() => {
+              if (categoryOpen === "__mine__") {
+                if (recipes.length === 0) {
+                  return (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      You haven't created any recipes yet.
+                    </p>
+                  );
+                }
+                return recipes.map((r) => (
+                  <button
+                    key={`cr-${r.id}`}
+                    onClick={async () => {
+                      await addRecipeToSlot(r);
+                      setCategoryOpen(null);
+                    }}
+                    disabled={adding}
+                    className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-semibold">{r.name}</span>
+                        {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                      </div>
+                      {r.description && (
+                        <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
+                      )}
+                    </div>
+                  </button>
+                ));
+              }
+              const list = cookbookAll.filter((r) => !r.country);
+              if (list.length === 0) {
+                return (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    No recipes here yet.
+                  </p>
+                );
+              }
+              return list.map((r) => (
+                <button
+                  key={`cc-${r.id}`}
+                  onClick={async () => {
+                    await addCookbookToSlot(r);
+                    setCategoryOpen(null);
+                  }}
+                  disabled={adding}
+                  className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-semibold">{r.name}</span>
+                      {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
+                    </div>
+                  </div>
+                  {r.image_url && (
+                    <img
+                      src={r.image_url}
+                      alt={r.name}
+                      className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                </button>
+              ));
+            })()}
+          </div>
         </DialogContent>
       </Dialog>
 
