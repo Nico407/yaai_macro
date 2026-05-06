@@ -836,19 +836,16 @@ export default function Index() {
                         {cuisineOptions.length === 0 && (
                           <span className="text-xs text-muted-foreground">No cuisine tags yet.</span>
                         )}
-                        {cuisineOptions.map((tag) => {
-                          const active = filterCuisine.includes(tag);
+                        {cuisineOptions.filter((t) => !filterCuisine.includes(t)).map((tag) => {
                           return (
                             <button
                               key={tag}
                               type="button"
                               onClick={() => {
                                 setFilterApplied(false);
-                                setFilterCuisine((prev) =>
-                                  active ? prev.filter((t) => t !== tag) : [...prev, tag],
-                                );
+                                setFilterCuisine((prev) => [...prev, tag]);
                               }}
-                              className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:bg-secondary"}`}
+                              className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary"
                             >
                               {tag}
                             </button>
