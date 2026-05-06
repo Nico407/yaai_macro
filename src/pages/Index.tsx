@@ -760,7 +760,7 @@ export default function Index() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="all" className="h-[55vh] space-y-2 overflow-y-auto">
+                <TabsContent value="all" className="h-[50vh] space-y-2 overflow-y-auto">
                   {allList.length === 0 ? (
                     <p className="py-6 text-center text-sm text-muted-foreground">
                       No recipes match "{pickerQuery}".
