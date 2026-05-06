@@ -745,7 +745,7 @@ export default function Index() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="cookbooks" className="flex h-[50vh] flex-col space-y-3">
+                <TabsContent value="cookbooks" className="space-y-3">
                   <div className="grid gap-2 sm:grid-cols-3">
                     <button
                       type="button"
