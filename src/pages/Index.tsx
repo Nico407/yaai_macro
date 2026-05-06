@@ -347,11 +347,11 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-        <header className="mb-8 flex items-end justify-between">
+      <div className="mx-auto max-w-3xl px-4 py-5 md:py-12">
+        <header className="mb-5 flex items-end justify-between md:mb-8">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Today</p>
-            <h1 className="font-display text-4xl font-bold md:text-5xl">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground md:text-sm">Today</p>
+            <h1 className="font-display text-2xl font-bold md:text-5xl">
               {profile.display_name ? `Hi, ${profile.display_name}` : "Your day"}
             </h1>
           </div>
@@ -402,8 +402,8 @@ export default function Index() {
           </div>
         </header>
 
-        <Card className="rounded-2xl p-6 shadow-soft md:p-8">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <Card className="rounded-2xl p-4 shadow-soft md:p-8">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
             <MacroRing consumed={consumed.kcal} target={target.kcal} label="Calories" unit="kcal" colorVar="--macro-calories" />
             <MacroRing consumed={consumed.protein_g} target={target.protein_g} label="Protein" unit="g" colorVar="--macro-protein" />
             <MacroRing consumed={consumed.carbs_g} target={target.carbs_g} label="Carbs" unit="g" colorVar="--macro-carbs" />
@@ -411,7 +411,7 @@ export default function Index() {
           </div>
         </Card>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 md:mt-8 md:gap-4">
           <Link to="/plan">
             <ActionCard icon={<Sparkles className="h-5 w-5" />} title="Plan my meals" desc="Browse cookbook & your creations." />
           </Link>
@@ -427,11 +427,11 @@ export default function Index() {
         </div>
 
         {/* Today's plan */}
-        <section className="mt-8">
-          <div className="mb-3 flex items-end justify-between">
-            <h2 className="font-display text-xl font-bold">Today's plan</h2>
+        <section className="mt-5 md:mt-8">
+          <div className="mb-2 flex items-end justify-between md:mb-3">
+            <h2 className="font-display text-lg font-bold md:text-xl">Today's plan</h2>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 md:gap-3">
             {SLOTS.map((slot) => {
               const log = slotLogs[slot];
               if (log) {
@@ -443,11 +443,11 @@ export default function Index() {
                     onClick={() => {
                       setEditing(log);
                     }}
-                    className="cursor-pointer rounded-2xl p-4 transition-colors hover:bg-accent/40"
+                    className="cursor-pointer rounded-2xl p-3 transition-colors hover:bg-accent/40 md:p-4"
                   >
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{slot}</div>
-                    <div className="mt-1 font-semibold">{log.recipe_name}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
+                    <div className="mt-0.5 font-semibold">{log.recipe_name}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
                       {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
                       {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
                       {Math.round(Number(log.fat_g))}
@@ -461,11 +461,11 @@ export default function Index() {
                   role="button"
                   tabIndex={0}
                   onClick={() => setPickerSlot(slot)}
-                  className="flex cursor-pointer items-center justify-between rounded-2xl border-dashed p-4 text-muted-foreground transition-colors hover:bg-accent/40"
+                  className="flex cursor-pointer items-center justify-between rounded-2xl border-dashed p-3 text-muted-foreground transition-colors hover:bg-accent/40 md:p-4"
                 >
                   <div>
                     <div className="text-[10px] uppercase tracking-wider">{slot}</div>
-                    <div className="mt-1 text-sm">Add a meal</div>
+                    <div className="mt-0.5 text-sm">Add a meal</div>
                   </div>
                   <Plus className="h-5 w-5" />
                 </Card>
@@ -869,12 +869,12 @@ function ActionCard({
   disabled?: boolean;
 }) {
   return (
-    <Card className={`rounded-2xl p-5 ${disabled ? "opacity-60" : ""}`}>
-      <div className="mb-2 flex items-center gap-2 text-primary">
+    <Card className={`rounded-2xl p-3 md:p-5 ${disabled ? "opacity-60" : ""}`}>
+      <div className="mb-1 flex items-center gap-2 text-primary md:mb-2">
         {icon}
-        <h3 className="font-display text-lg font-bold">{title}</h3>
+        <h3 className="font-display text-base font-bold md:text-lg">{title}</h3>
       </div>
-      <p className="text-sm text-muted-foreground">{desc}</p>
+      <p className="text-xs text-muted-foreground md:text-sm">{desc}</p>
       {tag && (
         <span className="mt-3 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wider">
           {tag}
