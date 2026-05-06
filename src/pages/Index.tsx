@@ -717,7 +717,7 @@ export default function Index() {
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="favorites">Favourites</TabsTrigger>
                   <TabsTrigger value="cookbooks">Categories</TabsTrigger>
-                  <TabsTrigger value="all">Show all</TabsTrigger>
+                  <TabsTrigger value="filter">Filter</TabsTrigger>
                 </TabsList>
 
                 <div className="relative mt-3">
