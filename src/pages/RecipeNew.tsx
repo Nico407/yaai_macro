@@ -342,7 +342,7 @@ export default function RecipeNew() {
                                   !ing && "text-muted-foreground",
                                 )}
                               >
-                                {ing ? ing.name : "Pick an ingredient…"}
+                                <span className="truncate">{ing ? ing.name : "Pick an ingredient…"}</span>
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </PopoverTrigger>
