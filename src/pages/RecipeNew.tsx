@@ -31,7 +31,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
-import { useRecipes } from "@/hooks/useRecipes";
+import { useRecipes, CUISINE_TAGS } from "@/hooks/useRecipes";
 import { ArrowLeft, Check, ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 type Row = { ingredient_id: string; grams: string };
