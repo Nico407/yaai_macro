@@ -32,6 +32,7 @@ export type RecipeIngredientRow = {
     protein_per_100g: number;
     carbs_per_100g: number;
     fat_per_100g: number;
+    dietary_tags?: string[];
   };
 };
 
