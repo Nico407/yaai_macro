@@ -219,7 +219,7 @@ export default function Onboarding() {
                     className="flex min-w-0 cursor-pointer flex-col items-center gap-0.5 rounded-lg border border-input bg-background px-1 py-3 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                   >
                     <RadioGroupItem value={o.value} className="sr-only" />
-                    <span className="text-xs font-medium leading-tight">{o.label}</span>
+                    <span className="text-[11px] font-medium leading-tight break-words">{o.label}</span>
                   </label>
                 ))}
               </RadioGroup>
