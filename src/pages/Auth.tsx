@@ -101,7 +101,20 @@ export default function Auth() {
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5" />
+              <Input id="password" type="password" required minLength={mode === "signup" ? 8 : 6} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5" />
+              {mode === "signup" && (
+                <ul className="mt-2 space-y-1 text-xs">
+                  {PW_RULES.map((rule) => {
+                    const ok = rule.test(password);
+                    return (
+                      <li key={rule.label} className={`flex items-center gap-1.5 ${ok ? "text-green-600" : "text-destructive"}`}>
+                        {ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                        <span>{rule.label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
             <Button type="submit" size="lg" className="w-full" disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "signin" ? "Sign in" : "Create account"}
