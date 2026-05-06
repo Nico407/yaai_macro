@@ -62,7 +62,7 @@ export default function Onboarding() {
     "Soy-free",
     "Egg-free",
     "Shellfish-free",
-    "Low-FODMAP",
+    
     "Halal",
     "Kosher",
   ];
