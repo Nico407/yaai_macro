@@ -684,7 +684,7 @@ export default function Index() {
               <Tabs value={pickerTab} onValueChange={(v) => setPickerTab(v as typeof pickerTab)}>
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="favorites">Favourites</TabsTrigger>
-                  <TabsTrigger value="cookbooks">Cookbooks</TabsTrigger>
+                  <TabsTrigger value="cookbooks">Categories</TabsTrigger>
                   <TabsTrigger value="all">Show all</TabsTrigger>
                 </TabsList>
 
@@ -711,20 +711,45 @@ export default function Index() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="cookbooks" className="space-y-2">
-                  <Select value={pickerCookbook} onValueChange={setPickerCookbook}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cookbookOptions.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>
-                          {o.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="max-h-[48vh] space-y-2 overflow-y-auto">
+                <TabsContent value="cookbooks" className="space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={() => setPickerCookbook("__library__")}
+                      className={`rounded-xl border p-3 text-left transition-colors ${pickerCookbook === "__library__" ? "border-primary bg-accent/40" : "border-border hover:bg-accent/20"}`}
+                    >
+                      <div className="mb-1 flex items-center gap-2 text-primary">
+                        <BookOpen className="h-4 w-4" />
+                        <span className="font-display text-sm font-bold">Cook Book</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Free starter library of macro-friendly recipes.</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPickerCookbook("__mine__")}
+                      className={`rounded-xl border p-3 text-left transition-colors ${pickerCookbook === "__mine__" ? "border-primary bg-accent/40" : "border-border hover:bg-accent/20"}`}
+                    >
+                      <div className="mb-1 flex items-center gap-2 text-primary">
+                        <ChefHat className="h-4 w-4" />
+                        <span className="font-display text-sm font-bold">My creations</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Recipes you've built yourself.</p>
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      className="cursor-not-allowed rounded-xl border border-border p-3 text-left opacity-60"
+                    >
+                      <div className="mb-1 flex items-center gap-2 text-primary">
+                        <Globe className="h-4 w-4" />
+                        <span className="font-display text-sm font-bold">Add countries</span>
+                        <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Recipe packs from around the world.</p>
+                      <span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-[9px] uppercase tracking-wider">Coming soon</span>
+                    </button>
+                  </div>
+                  <div className="max-h-[40vh] space-y-2 overflow-y-auto">
                     {cookbookList.length === 0 ? (
                       <p className="py-6 text-center text-sm text-muted-foreground">No recipes here yet.</p>
                     ) : (
