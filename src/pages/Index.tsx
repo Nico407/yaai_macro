@@ -650,15 +650,22 @@ export default function Index() {
 
             const ingredientSet = new Set<string>();
             recipes.forEach((r) =>
-              r.recipe_ingredients?.forEach((ri) => ri.ingredient?.name && ingredientSet.add(ri.ingredient.name.toLowerCase())),
+              r.recipe_ingredients?.forEach((ri) => ri.ingredient?.name && ingredientSet.add(ri.ingredient.name)),
             );
-            cookbookAll.forEach((r) => r.ingredients?.forEach((n) => n && ingredientSet.add(n.toLowerCase())));
+            // For cookbook recipes, match canonical ingredient names that appear in their raw ingredient lines
+            const canonicalNames = allIngredients.map((i) => i.name);
+            cookbookAll.forEach((r) => {
+              const blob = (r.ingredients ?? []).join(" ").toLowerCase();
+              canonicalNames.forEach((n) => {
+                if (blob.includes(n.toLowerCase())) ingredientSet.add(n);
+              });
+            });
             const ingredientOptions = Array.from(ingredientSet).sort();
 
             const recipeMatchesFilters = (r: RecipeRow) => {
               if (filterCuisine.length && !filterCuisine.some((t) => (r.cuisine_tags ?? []).includes(t))) return false;
               if (filterIngredient.length) {
-                const names = (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.name?.toLowerCase() ?? "");
+                const names = (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.name ?? "");
                 if (!filterIngredient.every((t) => names.includes(t))) return false;
               }
               return true;
@@ -666,8 +673,8 @@ export default function Index() {
             const cookbookMatchesFilters = (r: CookbookRecipe) => {
               if (filterCuisine.length && !filterCuisine.some((t) => r.country === t)) return false;
               if (filterIngredient.length) {
-                const names = (r.ingredients ?? []).map((n) => n.toLowerCase());
-                if (!filterIngredient.every((t) => names.includes(t))) return false;
+                const blob = (r.ingredients ?? []).join(" ").toLowerCase();
+                if (!filterIngredient.every((t) => blob.includes(t.toLowerCase()))) return false;
               }
               return true;
             };
