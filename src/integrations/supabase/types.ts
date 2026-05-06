@@ -120,6 +120,7 @@ export type Database = {
           recipe_name: string
           slot: string | null
           total_grams: number
+          user_id: string
         }
         Insert: {
           carbs_g: number
@@ -136,6 +137,7 @@ export type Database = {
           recipe_name: string
           slot?: string | null
           total_grams: number
+          user_id: string
         }
         Update: {
           carbs_g?: number
@@ -152,6 +154,7 @@ export type Database = {
           recipe_name?: string
           slot?: string | null
           total_grams?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -180,6 +183,7 @@ export type Database = {
           target_fat_g: number | null
           target_protein_g: number | null
           updated_at: string
+          user_id: string
           weight_kg: number | null
         }
         Insert: {
@@ -198,6 +202,7 @@ export type Database = {
           target_fat_g?: number | null
           target_protein_g?: number | null
           updated_at?: string
+          user_id: string
           weight_kg?: number | null
         }
         Update: {
@@ -216,6 +221,7 @@ export type Database = {
           target_fat_g?: number | null
           target_protein_g?: number | null
           updated_at?: string
+          user_id?: string
           weight_kg?: number | null
         }
         Relationships: []
@@ -269,6 +275,7 @@ export type Database = {
           max_total_g: number
           min_total_g: number
           name: string
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -282,6 +289,7 @@ export type Database = {
           max_total_g?: number
           min_total_g?: number
           name: string
+          user_id: string
         }
         Update: {
           created_at?: string
@@ -295,6 +303,7 @@ export type Database = {
           max_total_g?: number
           min_total_g?: number
           name?: string
+          user_id?: string
         }
         Relationships: []
       }
