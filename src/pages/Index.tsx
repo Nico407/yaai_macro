@@ -384,6 +384,11 @@ export default function Index() {
                     <UserCog className="mr-2 h-4 w-4" /> Edit profile
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">
+                    <Settings className="mr-2 h-4 w-4" /> Settings
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async () => {
                     await supabase.auth.signOut();
