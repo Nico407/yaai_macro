@@ -61,6 +61,7 @@ export default function Index() {
   const [pickerCookbook, setPickerCookbook] = useState<string>("__library__");
   const [filterCuisine, setFilterCuisine] = useState<string[]>([]);
   const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
+  const [filterApplied, setFilterApplied] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
@@ -729,7 +730,7 @@ export default function Index() {
                   <TabsTrigger value="filter">Filter</TabsTrigger>
                 </TabsList>
 
-                {pickerTab !== "cookbooks" && (
+                {pickerTab === "favorites" && (
                   <div className="relative mt-3">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -808,11 +809,12 @@ export default function Index() {
                             <button
                               key={tag}
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
+                                setFilterApplied(false);
                                 setFilterCuisine((prev) =>
                                   active ? prev.filter((t) => t !== tag) : [...prev, tag],
-                                )
-                              }
+                                );
+                              }}
                               className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:bg-secondary"}`}
                             >
                               {tag}
@@ -833,11 +835,12 @@ export default function Index() {
                             <button
                               key={tag}
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
+                                setFilterApplied(false);
                                 setFilterIngredient((prev) =>
                                   active ? prev.filter((t) => t !== tag) : [...prev, tag],
-                                )
-                              }
+                                );
+                              }}
                               className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:bg-secondary"}`}
                             >
                               {tag}
@@ -847,23 +850,31 @@ export default function Index() {
                       </div>
                     </div>
                     {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilterCuisine([]);
-                          setFilterIngredient([]);
-                        }}
-                        className="text-xs text-muted-foreground underline"
-                      >
-                        Clear filters
-                      </button>
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilterCuisine([]);
+                            setFilterIngredient([]);
+                            setFilterApplied(false);
+                          }}
+                          className="text-xs text-muted-foreground underline"
+                        >
+                          Clear filters
+                        </button>
+                        {!filterApplied && (
+                          <Button size="sm" onClick={() => setFilterApplied(true)}>
+                            Done
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {(filterCuisine.length > 0 || filterIngredient.length > 0 || pickerQuery.trim().length > 0) && (
+                  {filterApplied && (filterCuisine.length > 0 || filterIngredient.length > 0) && (
                     <div className="flex-1 space-y-2 overflow-y-auto border-t pt-2">
                       {filterList.length === 0 ? (
                         <p className="py-6 text-center text-sm text-muted-foreground">
-                          No recipes match your search.
+                          No recipes match your filters.
                         </p>
                       ) : (
                         filterList.map((it) =>
