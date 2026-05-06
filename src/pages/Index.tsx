@@ -830,52 +830,52 @@ export default function Index() {
                         </div>
                       </div>
                     )}
-                    <div>
-                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuisine tags</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {cuisineOptions.length === 0 && (
-                          <span className="text-xs text-muted-foreground">No cuisine tags yet.</span>
-                        )}
-                        {cuisineOptions.filter((t) => !filterCuisine.includes(t)).map((tag) => {
-                          return (
-                            <button
-                              key={tag}
-                              type="button"
-                              onClick={() => {
-                                setFilterApplied(false);
-                                setFilterCuisine((prev) => [...prev, tag]);
-                              }}
-                              className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary"
-                            >
-                              {tag}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ingredients</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {ingredientOptions.length === 0 && (
-                          <span className="text-xs text-muted-foreground">No ingredients yet.</span>
-                        )}
-                        {ingredientOptions.filter((t) => !filterIngredient.includes(t)).map((tag) => {
-                          return (
-                            <button
-                              key={tag}
-                              type="button"
-                              onClick={() => {
-                                setFilterApplied(false);
-                                setFilterIngredient((prev) => [...prev, tag]);
-                              }}
-                              className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary"
-                            >
-                              {tag}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    {!filterApplied && (
+                      <>
+                        <div>
+                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuisine tags</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {cuisineOptions.length === 0 && (
+                              <span className="text-xs text-muted-foreground">No cuisine tags yet.</span>
+                            )}
+                            {cuisineOptions.filter((t) => !filterCuisine.includes(t)).map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                  setFilterApplied(false);
+                                  setFilterCuisine((prev) => [...prev, tag]);
+                                }}
+                                className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary"
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ingredients</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {ingredientOptions.length === 0 && (
+                              <span className="text-xs text-muted-foreground">No ingredients yet.</span>
+                            )}
+                            {ingredientOptions.filter((t) => !filterIngredient.includes(t)).map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                  setFilterApplied(false);
+                                  setFilterIngredient((prev) => [...prev, tag]);
+                                }}
+                                className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary"
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                     {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
                       <div className="flex items-center justify-between gap-2">
                         <button
@@ -889,7 +889,11 @@ export default function Index() {
                         >
                           Clear filters
                         </button>
-                        {!filterApplied && (
+                        {filterApplied ? (
+                          <Button size="sm" variant="outline" onClick={() => setFilterApplied(false)}>
+                            Edit
+                          </Button>
+                        ) : (
                           <Button size="sm" onClick={() => setFilterApplied(true)}>
                             Done
                           </Button>
