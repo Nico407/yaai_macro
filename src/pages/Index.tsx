@@ -944,6 +944,93 @@ export default function Index() {
         </DialogContent>
       </Dialog>
 
+      {/* Category recipes dialog */}
+      <Dialog open={categoryOpen !== null} onOpenChange={(o) => !o && setCategoryOpen(null)}>
+        <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {categoryOpen === "__mine__" ? "My creations" : "Cook Book"}
+            </DialogTitle>
+            <DialogDescription>
+              {categoryOpen === "__mine__"
+                ? "Recipes you've built yourself."
+                : "Free starter library of macro-friendly recipes."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 overflow-y-auto">
+            {(() => {
+              if (categoryOpen === "__mine__") {
+                if (recipes.length === 0) {
+                  return (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      You haven't created any recipes yet.
+                    </p>
+                  );
+                }
+                return recipes.map((r) => (
+                  <button
+                    key={`cr-${r.id}`}
+                    onClick={async () => {
+                      await addRecipeToSlot(r);
+                      setCategoryOpen(null);
+                    }}
+                    disabled={adding}
+                    className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-semibold">{r.name}</span>
+                        {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                      </div>
+                      {r.description && (
+                        <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
+                      )}
+                    </div>
+                  </button>
+                ));
+              }
+              const list = cookbookAll.filter((r) => !r.country);
+              if (list.length === 0) {
+                return (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    No recipes here yet.
+                  </p>
+                );
+              }
+              return list.map((r) => (
+                <button
+                  key={`cc-${r.id}`}
+                  onClick={async () => {
+                    await addCookbookToSlot(r);
+                    setCategoryOpen(null);
+                  }}
+                  disabled={adding}
+                  className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-semibold">{r.name}</span>
+                      {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
+                    </div>
+                  </div>
+                  {r.image_url && (
+                    <img
+                      src={r.image_url}
+                      alt={r.name}
+                      className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                </button>
+              ));
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Favorites dialog */}
       <Dialog
         open={favoritesOpen}
