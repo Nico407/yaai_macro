@@ -859,11 +859,11 @@ export default function Index() {
                       </button>
                     )}
                   </div>
-                  {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
+                  {(filterCuisine.length > 0 || filterIngredient.length > 0 || pickerQuery.trim().length > 0) && (
                     <div className="flex-1 space-y-2 overflow-y-auto border-t pt-2">
                       {filterList.length === 0 ? (
                         <p className="py-6 text-center text-sm text-muted-foreground">
-                          No recipes match your filters.
+                          No recipes match your search.
                         </p>
                       ) : (
                         filterList.map((it) =>
