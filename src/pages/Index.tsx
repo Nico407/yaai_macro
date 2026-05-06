@@ -891,7 +891,7 @@ export default function Index() {
                             {ingredientOptions.length === 0 && (
                               <span className="text-xs text-muted-foreground">No ingredients yet.</span>
                             )}
-                            {ingredientOptions.filter((t) => !filterIngredient.includes(t)).map((tag) => (
+                            {ingredientOptions.filter((t) => !filterIngredient.includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())).map((tag) => (
                               <button
                                 key={tag}
                                 type="button"
