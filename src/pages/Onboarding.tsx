@@ -216,7 +216,7 @@ export default function Onboarding() {
                 {ACTIVITY_OPTIONS.map((o) => (
                   <label
                     key={o.value}
-                    className="flex cursor-pointer flex-col items-center gap-0.5 rounded-lg border border-input bg-background px-2 py-3 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    className="flex min-w-0 cursor-pointer flex-col items-center gap-0.5 rounded-lg border border-input bg-background px-1 py-3 text-center has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                   >
                     <RadioGroupItem value={o.value} className="sr-only" />
                     <span className="text-xs font-medium leading-tight">{o.label}</span>
