@@ -720,15 +720,17 @@ export default function Index() {
                   <TabsTrigger value="filter">Filter</TabsTrigger>
                 </TabsList>
 
-                <div className="relative mt-3">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={pickerQuery}
-                    onChange={(e) => setPickerQuery(e.target.value)}
-                    placeholder="Search recipes…"
-                    className="pl-9"
-                  />
-                </div>
+                {pickerTab !== "cookbooks" && (
+                  <div className="relative mt-3">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={pickerQuery}
+                      onChange={(e) => setPickerQuery(e.target.value)}
+                      placeholder="Search recipes…"
+                      className="pl-9"
+                    />
+                  </div>
+                )}
 
                 <TabsContent value="favorites" className="h-[50vh] space-y-2 overflow-y-auto">
                   {favRecipes.length === 0 && favCookbook.length === 0 ? (
