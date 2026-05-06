@@ -15,6 +15,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
 import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
+import { useIngredients } from "@/hooks/useIngredients";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
