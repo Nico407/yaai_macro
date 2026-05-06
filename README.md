@@ -17,3 +17,5 @@ TODO: Document your project here
 # add option to add an image for own recipes
 
 # maybe deployment on thefword.ch
+
+# create meal suggestions option to perfectly fit macro thershold
