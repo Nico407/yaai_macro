@@ -1,6 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export const CUISINE_TAGS = [
+  "italian",
+  "mexican",
+  "asian",
+  "indian",
+  "mediterranean",
+  "american",
+  "french",
+  "japanese",
+  "thai",
+  "chinese",
+  "middle-eastern",
+  "high-protein",
+  "low-carb",
+  "quick",
+  "comfort",
+  "breakfast",
+] as const;
+export type CuisineTag = (typeof CUISINE_TAGS)[number];
+
 export type RecipeIngredientRow = {
   id: string;
   ingredient_id: string;
@@ -25,6 +45,7 @@ export type RecipeRow = {
   max_total_g: number;
   is_fixed: boolean;
   is_favorite: boolean;
+  cuisine_tags: string[];
   recipe_ingredients: RecipeIngredientRow[];
 };
 
@@ -35,7 +56,7 @@ export function useRecipes() {
       const { data, error } = await supabase
         .from("recipes")
         .select(
-          "id, name, description, instructions, default_serving_g, min_total_g, max_total_g, is_fixed, is_favorite, recipe_ingredients(id, ingredient_id, ratio, ingredient:ingredients(id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))",
+          "id, name, description, instructions, default_serving_g, min_total_g, max_total_g, is_fixed, is_favorite, cuisine_tags, recipe_ingredients(id, ingredient_id, ratio, ingredient:ingredients(id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))",
         )
         .order("name", { ascending: true });
       if (error) throw error;

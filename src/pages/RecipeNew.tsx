@@ -31,7 +31,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
-import { useRecipes } from "@/hooks/useRecipes";
+import { useRecipes, CUISINE_TAGS } from "@/hooks/useRecipes";
 import { ArrowLeft, Check, ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 type Row = { ingredient_id: string; grams: string };
@@ -52,6 +52,7 @@ export default function RecipeNew() {
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
   const [isFixed, setIsFixed] = useState(false);
+  const [cuisineTags, setCuisineTags] = useState<string[]>([]);
   const [rows, setRows] = useState<Row[]>([
     { ingredient_id: "", grams: "" },
     { ingredient_id: "", grams: "" },
@@ -64,6 +65,7 @@ export default function RecipeNew() {
     setDescription(existing.description ?? "");
     setInstructions(existing.instructions ?? "");
     setIsFixed(!!existing.is_fixed);
+    setCuisineTags(existing.cuisine_tags ?? []);
     const total = Number(existing.default_serving_g) || 0;
     setRows(
       existing.recipe_ingredients.map((ri) => ({
@@ -132,6 +134,7 @@ export default function RecipeNew() {
       min_total_g: Math.max(50, Math.round(total * 0.5)),
       max_total_g: Math.round(total * 3),
       is_fixed: isFixed,
+      cuisine_tags: cuisineTags,
     };
 
     let recipeId = id;
@@ -280,6 +283,37 @@ export default function RecipeNew() {
                 </p>
               </div>
               <Switch id="r-fixed" checked={isFixed} onCheckedChange={setIsFixed} />
+            </div>
+
+            <div>
+              <Label>Cuisine tags</Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Help filter and recommend this recipe.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {CUISINE_TAGS.map((tag) => {
+                  const active = cuisineTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() =>
+                        setCuisineTags((prev) =>
+                          active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                        )
+                      }
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-xs transition-colors",
+                        active
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-muted-foreground hover:bg-secondary",
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>
