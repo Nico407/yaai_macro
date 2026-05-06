@@ -121,12 +121,21 @@ export default function RecipeNew() {
     if (!valid) return;
     setSaving(true);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSaving(false);
+      toast({ title: "Sign in required", variant: "destructive" });
+      navigate("/auth");
+      return;
+    }
+
     const valid_rows = rows.filter(
       (r) => r.ingredient_id && parseFloat(r.grams) > 0,
     );
     const total = valid_rows.reduce((s, r) => s + parseFloat(r.grams), 0);
 
     const recipePayload = {
+      user_id: user.id,
       name: name.trim(),
       description: description.trim() || null,
       instructions: instructions.trim() || null,
