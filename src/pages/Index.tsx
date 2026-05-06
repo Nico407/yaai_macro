@@ -347,11 +347,11 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-        <header className="mb-8 flex items-end justify-between">
+      <div className="mx-auto max-w-3xl px-4 py-5 md:py-12">
+        <header className="mb-5 flex items-end justify-between md:mb-8">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Today</p>
-            <h1 className="font-display text-4xl font-bold md:text-5xl">
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground md:text-sm">Today</p>
+            <h1 className="font-display text-2xl font-bold md:text-5xl">
               {profile.display_name ? `Hi, ${profile.display_name}` : "Your day"}
             </h1>
           </div>
