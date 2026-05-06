@@ -59,6 +59,8 @@ export default function RecipeNew() {
     { ingredient_id: "", grams: "" },
   ]);
   const [hydrated, setHydrated] = useState(false);
+  const [openIngIdx, setOpenIngIdx] = useState<number | null>(null);
+  const [tagsOpen, setTagsOpen] = useState(false);
 
   useEffect(() => {
     if (!isEdit || hydrated || !existing) return;
