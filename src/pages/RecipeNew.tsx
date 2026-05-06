@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Command,
   CommandEmpty,
@@ -58,6 +59,8 @@ export default function RecipeNew() {
     { ingredient_id: "", grams: "" },
   ]);
   const [hydrated, setHydrated] = useState(false);
+  const [openIngIdx, setOpenIngIdx] = useState<number | null>(null);
+  const [tagsOpen, setTagsOpen] = useState(false);
 
   useEffect(() => {
     if (!isEdit || hydrated || !existing) return;
@@ -230,33 +233,35 @@ export default function RecipeNew() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-        <header className="mb-8">
+      <div className="mx-auto max-w-3xl px-4 py-6 md:py-12">
+        <header className="mb-5 md:mb-8">
           <Link to="/recipes" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back to recipes
           </Link>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground md:text-sm">
             {isEdit ? "Edit recipe" : "New recipe"}
           </p>
-          <h1 className="font-display text-4xl font-bold md:text-5xl">
+          <h1 className="font-display text-3xl font-bold md:text-5xl">
             {isEdit ? name || "Edit meal" : "Build a meal."}
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-2 text-sm text-muted-foreground md:text-base">
             Add ingredients with their grams for one batch. Ratios are calculated automatically.
           </p>
         </header>
 
-        <Card className="rounded-2xl p-6 shadow-soft md:p-8">
-          <form onSubmit={onSave} className="space-y-6">
+        <Card className="rounded-2xl p-4 shadow-soft md:p-8">
+          <form onSubmit={onSave} className="space-y-4 md:space-y-6">
             <div>
               <Label htmlFor="r-name">Name</Label>
               <Input
                 id="r-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.slice(0, 32))}
                 placeholder="Spaghetti with tomato sauce"
+                maxLength={32}
                 className="mt-1.5"
               />
+              <p className="mt-1 text-right text-[10px] text-muted-foreground">{name.length}/32</p>
             </div>
 
             <div>
@@ -294,36 +299,7 @@ export default function RecipeNew() {
               <Switch id="r-fixed" checked={isFixed} onCheckedChange={setIsFixed} />
             </div>
 
-            <div>
-              <Label>Cuisine tags</Label>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Help filter and recommend this recipe.
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {CUISINE_TAGS.map((tag) => {
-                  const active = cuisineTags.includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() =>
-                        setCuisineTags((prev) =>
-                          active ? prev.filter((t) => t !== tag) : [...prev, tag],
-                        )
-                      }
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-xs transition-colors",
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-muted-foreground hover:bg-secondary",
-                      )}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* cuisine tags moved below */}
 
             <div>
               <div className="mb-2 flex items-center justify-between">
@@ -355,7 +331,7 @@ export default function RecipeNew() {
                     return (
                       <div key={idx} className="flex items-start gap-2">
                         <div className="flex-1">
-                          <Popover>
+                          <Popover open={openIngIdx === idx} onOpenChange={(o) => setOpenIngIdx(o ? idx : null)}>
                             <PopoverTrigger asChild>
                               <Button
                                 type="button"
@@ -380,7 +356,10 @@ export default function RecipeNew() {
                                       <CommandItem
                                         key={i.id}
                                         value={i.name}
-                                        onSelect={() => updateRow(idx, { ingredient_id: i.id })}
+                                        onSelect={() => {
+                                          updateRow(idx, { ingredient_id: i.id });
+                                          setOpenIngIdx(null);
+                                        }}
                                       >
                                         <Check
                                           className={cn(
@@ -455,6 +434,46 @@ export default function RecipeNew() {
                 </div>
               </div>
             )}
+
+            <Collapsible open={tagsOpen} onOpenChange={setTagsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button type="button" variant="outline" className="w-full justify-between">
+                  <span>
+                    Add tags
+                    {cuisineTags.length > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground">({cuisineTags.length})</span>
+                    )}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3">
+                <div className="flex flex-wrap gap-2">
+                  {CUISINE_TAGS.map((tag) => {
+                    const active = cuisineTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() =>
+                          setCuisineTags((prev) =>
+                            active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                          )
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs transition-colors",
+                          active
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground hover:bg-secondary",
+                        )}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             <Button type="submit" size="lg" disabled={saving || !valid} className="w-full">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
