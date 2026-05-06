@@ -828,6 +828,28 @@ export default function Index() {
                             </button>
                           ))}
                         </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilterCuisine([]);
+                              setFilterIngredient([]);
+                              setFilterApplied(false);
+                            }}
+                            className="text-xs text-muted-foreground underline"
+                          >
+                            Clear filters
+                          </button>
+                          {filterApplied ? (
+                            <Button size="sm" variant="outline" onClick={() => setFilterApplied(false)}>
+                              Edit
+                            </Button>
+                          ) : (
+                            <Button size="sm" onClick={() => setFilterApplied(true)}>
+                              Done
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     )}
                     {!filterApplied && (
@@ -875,30 +897,6 @@ export default function Index() {
                           </div>
                         </div>
                       </>
-                    )}
-                    {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
-                      <div className="flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFilterCuisine([]);
-                            setFilterIngredient([]);
-                            setFilterApplied(false);
-                          }}
-                          className="text-xs text-muted-foreground underline"
-                        >
-                          Clear filters
-                        </button>
-                        {filterApplied ? (
-                          <Button size="sm" variant="outline" onClick={() => setFilterApplied(false)}>
-                            Edit
-                          </Button>
-                        ) : (
-                          <Button size="sm" onClick={() => setFilterApplied(true)}>
-                            Done
-                          </Button>
-                        )}
-                      </div>
                     )}
                   </div>
                   {filterApplied && (filterCuisine.length > 0 || filterIngredient.length > 0) && (
