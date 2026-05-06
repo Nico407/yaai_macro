@@ -17,9 +17,12 @@ import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram } from "@/lib/scaling";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Pencil, Plus, Search, Utensils } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Pencil, Plus, Search, Utensils } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { matchesByTags, hasAnyPrefs, type ProfilePrefs } from "@/lib/dietary";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 type Slot = (typeof SLOTS)[number];
