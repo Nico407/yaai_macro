@@ -850,17 +850,19 @@ export default function Index() {
                       </button>
                     )}
                   </div>
-                  <div className="flex-1 space-y-2 overflow-y-auto border-t pt-2">
-                    {filterList.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        No recipes match your filters.
-                      </p>
-                    ) : (
-                      filterList.map((it) =>
-                        it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
-                      )
-                    )}
-                  </div>
+                  {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
+                    <div className="flex-1 space-y-2 overflow-y-auto border-t pt-2">
+                      {filterList.length === 0 ? (
+                        <p className="py-6 text-center text-sm text-muted-foreground">
+                          No recipes match your filters.
+                        </p>
+                      ) : (
+                        filterList.map((it) =>
+                          it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
+                        )
+                      )}
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             );
