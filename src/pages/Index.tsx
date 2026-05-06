@@ -692,16 +692,18 @@ export default function Index() {
                 key={`r-${r.id}`}
                 onClick={() => addRecipeToSlot(r)}
                 disabled={adding}
-                className="w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{r.name}</span>
-                  {r.is_favorite && <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
-                  <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">My recipe</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-semibold">{r.name}</span>
+                    {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">My recipe</span>
+                  </div>
+                  {r.description && (
+                    <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
+                  )}
                 </div>
-                {r.description && (
-                  <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
-                )}
               </button>
             );
             const renderCookbookBtn = (r: CookbookRecipe) => (
@@ -709,18 +711,28 @@ export default function Index() {
                 key={`c-${r.id}`}
                 onClick={() => addCookbookToSlot(r)}
                 disabled={adding}
-                className="w-full rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{r.name}</span>
-                  {r.is_favorite && <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
-                  <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {r.country ?? "Library"}
-                  </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-semibold">{r.name}</span>
+                    {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {r.country ?? "Library"}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
+                  </div>
                 </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">
-                  {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
-                </div>
+                {r.image_url && (
+                  <img
+                    src={r.image_url}
+                    alt={r.name}
+                    className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                    loading="lazy"
+                  />
+                )}
               </button>
             );
 
