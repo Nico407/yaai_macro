@@ -55,8 +55,10 @@ export default function Index() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
-  const [pickerTab, setPickerTab] = useState<"favorites" | "cookbooks" | "all">("favorites");
+  const [pickerTab, setPickerTab] = useState<"favorites" | "cookbooks" | "filter">("favorites");
   const [pickerCookbook, setPickerCookbook] = useState<string>("__library__");
+  const [filterCuisine, setFilterCuisine] = useState<string[]>([]);
+  const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
@@ -638,9 +640,39 @@ export default function Index() {
                 .map((r) => ({ kind: "cookbook" as const, r }));
             }
 
-            const allList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [
-              ...recipes.filter((r) => matchQ(r.name, r.description)).map((r) => ({ kind: "recipe" as const, r })),
-              ...cookbookAll.filter((r) => matchQ(r.name, r.description)).map((r) => ({ kind: "cookbook" as const, r })),
+            // Build tag pools
+            const cuisineSet = new Set<string>();
+            recipes.forEach((r) => (r.cuisine_tags ?? []).forEach((t) => cuisineSet.add(t)));
+            cookbookAll.forEach((r) => r.country && cuisineSet.add(r.country));
+            const cuisineOptions = Array.from(cuisineSet).sort();
+
+            const ingredientSet = new Set<string>();
+            recipes.forEach((r) =>
+              r.recipe_ingredients?.forEach((ri) => ri.ingredient?.name && ingredientSet.add(ri.ingredient.name.toLowerCase())),
+            );
+            cookbookAll.forEach((r) => r.ingredients?.forEach((n) => n && ingredientSet.add(n.toLowerCase())));
+            const ingredientOptions = Array.from(ingredientSet).sort();
+
+            const recipeMatchesFilters = (r: RecipeRow) => {
+              if (filterCuisine.length && !filterCuisine.some((t) => (r.cuisine_tags ?? []).includes(t))) return false;
+              if (filterIngredient.length) {
+                const names = (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.name?.toLowerCase() ?? "");
+                if (!filterIngredient.every((t) => names.includes(t))) return false;
+              }
+              return true;
+            };
+            const cookbookMatchesFilters = (r: CookbookRecipe) => {
+              if (filterCuisine.length && !filterCuisine.some((t) => r.country === t)) return false;
+              if (filterIngredient.length) {
+                const names = (r.ingredients ?? []).map((n) => n.toLowerCase());
+                if (!filterIngredient.every((t) => names.includes(t))) return false;
+              }
+              return true;
+            };
+
+            const filterList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [
+              ...recipes.filter((r) => matchQ(r.name, r.description) && recipeMatchesFilters(r)).map((r) => ({ kind: "recipe" as const, r })),
+              ...cookbookAll.filter((r) => matchQ(r.name, r.description) && cookbookMatchesFilters(r)).map((r) => ({ kind: "cookbook" as const, r })),
             ];
 
             const renderRecipeBtn = (r: RecipeRow) => (
@@ -685,7 +717,7 @@ export default function Index() {
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="favorites">Favourites</TabsTrigger>
                   <TabsTrigger value="cookbooks">Categories</TabsTrigger>
-                  <TabsTrigger value="all">Show all</TabsTrigger>
+                  <TabsTrigger value="filter">Filter</TabsTrigger>
                 </TabsList>
 
                 <div className="relative mt-3">
@@ -760,16 +792,82 @@ export default function Index() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="all" className="h-[50vh] space-y-2 overflow-y-auto">
-                  {allList.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                      No recipes match "{pickerQuery}".
-                    </p>
-                  ) : (
-                    allList.map((it) =>
-                      it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
-                    )
-                  )}
+                <TabsContent value="filter" className="flex h-[50vh] flex-col gap-3">
+                  <div className="space-y-2">
+                    <div>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuisine tags</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cuisineOptions.length === 0 && (
+                          <span className="text-xs text-muted-foreground">No cuisine tags yet.</span>
+                        )}
+                        {cuisineOptions.map((tag) => {
+                          const active = filterCuisine.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() =>
+                                setFilterCuisine((prev) =>
+                                  active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                                )
+                              }
+                              className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:bg-secondary"}`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ingredients</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ingredientOptions.length === 0 && (
+                          <span className="text-xs text-muted-foreground">No ingredients yet.</span>
+                        )}
+                        {ingredientOptions.map((tag) => {
+                          const active = filterIngredient.includes(tag);
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() =>
+                                setFilterIngredient((prev) =>
+                                  active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                                )
+                              }
+                              className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground hover:bg-secondary"}`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterCuisine([]);
+                          setFilterIngredient([]);
+                        }}
+                        className="text-xs text-muted-foreground underline"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2 overflow-y-auto border-t pt-2">
+                    {filterList.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-muted-foreground">
+                        No recipes match your filters.
+                      </p>
+                    ) : (
+                      filterList.map((it) =>
+                        it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
+                      )
+                    )}
+                  </div>
                 </TabsContent>
               </Tabs>
             );
