@@ -435,6 +435,46 @@ export default function RecipeNew() {
               </div>
             )}
 
+            <Collapsible open={tagsOpen} onOpenChange={setTagsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button type="button" variant="outline" className="w-full justify-between">
+                  <span>
+                    Add tags
+                    {cuisineTags.length > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground">({cuisineTags.length})</span>
+                    )}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3">
+                <div className="flex flex-wrap gap-2">
+                  {CUISINE_TAGS.map((tag) => {
+                    const active = cuisineTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() =>
+                          setCuisineTags((prev) =>
+                            active ? prev.filter((t) => t !== tag) : [...prev, tag],
+                          )
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs transition-colors",
+                          active
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground hover:bg-secondary",
+                        )}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
             <Button type="submit" size="lg" disabled={saving || !valid} className="w-full">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isEdit ? "Save changes" : "Save recipe"}
