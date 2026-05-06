@@ -152,8 +152,8 @@ export default function Onboarding() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-5 gap-4">
+              <div className="col-span-2">
                 <Label htmlFor="age">Age</Label>
                 <Input
                   id="age"
@@ -167,9 +167,9 @@ export default function Onboarding() {
                 />
                 {ageError && <p className="mt-1 text-xs text-destructive">{ageError}</p>}
               </div>
-              <div>
+              <div className="col-span-3">
                 <Label>Sex</Label>
-                <RadioGroup value={sex} onValueChange={(v) => setSex(v as Sex)} className="mt-2 flex gap-3">
+                <RadioGroup value={sex} onValueChange={(v) => setSex(v as Sex)} className="mt-2 flex gap-2">
                   <label className="flex flex-1 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-input bg-background px-2 py-2 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                     <RadioGroupItem value="male" /> <span className="text-sm">Male</span>
                   </label>
