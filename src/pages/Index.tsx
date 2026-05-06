@@ -402,8 +402,8 @@ export default function Index() {
           </div>
         </header>
 
-        <Card className="rounded-2xl p-6 shadow-soft md:p-8">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <Card className="rounded-2xl p-4 shadow-soft md:p-8">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
             <MacroRing consumed={consumed.kcal} target={target.kcal} label="Calories" unit="kcal" colorVar="--macro-calories" />
             <MacroRing consumed={consumed.protein_g} target={target.protein_g} label="Protein" unit="g" colorVar="--macro-protein" />
             <MacroRing consumed={consumed.carbs_g} target={target.carbs_g} label="Carbs" unit="g" colorVar="--macro-carbs" />
@@ -411,7 +411,7 @@ export default function Index() {
           </div>
         </Card>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 md:mt-8 md:gap-4">
           <Link to="/plan">
             <ActionCard icon={<Sparkles className="h-5 w-5" />} title="Plan my meals" desc="Browse cookbook & your creations." />
           </Link>
@@ -427,11 +427,11 @@ export default function Index() {
         </div>
 
         {/* Today's plan */}
-        <section className="mt-8">
-          <div className="mb-3 flex items-end justify-between">
-            <h2 className="font-display text-xl font-bold">Today's plan</h2>
+        <section className="mt-5 md:mt-8">
+          <div className="mb-2 flex items-end justify-between md:mb-3">
+            <h2 className="font-display text-lg font-bold md:text-xl">Today's plan</h2>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 md:gap-3">
             {SLOTS.map((slot) => {
               const log = slotLogs[slot];
               if (log) {
