@@ -52,6 +52,7 @@ export default function RecipeNew() {
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
   const [isFixed, setIsFixed] = useState(false);
+  const [cuisineTags, setCuisineTags] = useState<string[]>([]);
   const [rows, setRows] = useState<Row[]>([
     { ingredient_id: "", grams: "" },
     { ingredient_id: "", grams: "" },
