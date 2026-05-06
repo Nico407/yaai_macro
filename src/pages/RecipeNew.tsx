@@ -250,7 +250,7 @@ export default function RecipeNew() {
         </header>
 
         <Card className="rounded-2xl p-4 shadow-soft md:p-8">
-          <form onSubmit={onSave} className="space-y-4 md:space-y-6">
+          <form onSubmit={onSave} className="space-y-3 md:space-y-5">
             <div>
               <Label htmlFor="r-name">Name</Label>
               <Input
