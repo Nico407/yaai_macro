@@ -384,6 +384,14 @@ export default function Index() {
                     <UserCog className="mr-2 h-4 w-4" /> Edit profile
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    window.location.href = "/auth";
+                  }}
+                >
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
