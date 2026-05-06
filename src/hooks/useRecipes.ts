@@ -1,6 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export const CUISINE_TAGS = [
+  "italian",
+  "mexican",
+  "asian",
+  "indian",
+  "mediterranean",
+  "american",
+  "french",
+  "japanese",
+  "thai",
+  "chinese",
+  "middle-eastern",
+  "high-protein",
+  "low-carb",
+  "quick",
+  "comfort",
+  "breakfast",
+] as const;
+export type CuisineTag = (typeof CUISINE_TAGS)[number];
+
 export type RecipeIngredientRow = {
   id: string;
   ingredient_id: string;
