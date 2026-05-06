@@ -252,6 +252,14 @@ export default function Recipes() {
                 className="pl-9"
               />
             </div>
+            {prefsActive && (
+              <div className="mb-4 flex items-center justify-between rounded-xl border bg-secondary/40 px-4 py-2.5">
+                <Label htmlFor="r-hide" className="text-sm">
+                  Hide recipes that don't match my prefs
+                </Label>
+                <Switch id="r-hide" checked={hideNonMatching} onCheckedChange={setHideNonMatching} />
+              </div>
+            )}
             {filteredRecipes.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
                 No recipes match "{query}".
