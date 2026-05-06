@@ -306,7 +306,10 @@ export default function Index() {
       }
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAdding(false); toast.error("Sign in required"); return; }
     const { error } = await supabase.from("meal_logs").insert({
+      user_id: user.id,
       recipe_id: null,
       recipe_name: item.name,
       total_grams: Math.round(grams),
