@@ -383,7 +383,7 @@ export default function RecipeNew() {
                             </p>
                           )}
                         </div>
-                        <div className="w-24">
+                        <div className="w-20 shrink-0">
                           <Input
                             type="number"
                             inputMode="decimal"
