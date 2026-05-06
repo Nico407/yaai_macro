@@ -47,6 +47,7 @@ export default function Index() {
   const { data: profile, isLoading } = useProfile();
   const { data: logs = [] } = useTodayLogs();
   const { data: recipes = [] } = useRecipes();
+  const { data: cookbookAll = [] } = useAllCookbookRecipes();
 
   const [editing, setEditing] = useState<MealLog | null>(null);
 
