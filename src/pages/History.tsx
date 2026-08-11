@@ -510,10 +510,12 @@ function DayBar({
   day,
   targetKcal,
   scale,
+  highlightEnd,
 }: {
   day: DaySummary;
   targetKcal: number | null;
   scale: number;
+  highlightEnd?: string;
 }) {
   const heightPct = Math.min(100, (day.kcal / scale) * 100);
   const targetPct = targetKcal ? Math.min(100, (targetKcal / scale) * 100) : null;
@@ -522,7 +524,7 @@ function DayBar({
       ? Math.abs(day.kcal - targetKcal) / targetKcal <= 0.1
       : false;
   const date = new Date(day.date + "T00:00:00");
-  const isToday = day.date === format(new Date(), "yyyy-MM-dd");
+  const isHighlighted = highlightEnd ? day.date === highlightEnd : day.date === format(new Date(), "yyyy-MM-dd");
   const dayLabel = date.toLocaleDateString(undefined, { weekday: "short" });
 
   return (
