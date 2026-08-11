@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { MealLog } from "./useTodayLogs";
+import { format } from "date-fns";
 
 export type HistoryConfig =
   | { type: "days"; value: number }
@@ -20,7 +21,7 @@ export function useHistory(config: HistoryConfig | number = 7) {
       if (resolved.type === "days") {
         const since = new Date();
         since.setDate(since.getDate() - (resolved.value - 1));
-        const sinceISO = since.toISOString().slice(0, 10);
+        const sinceISO = format(since, "yyyy-MM-dd");
         q = q.gte("log_date", sinceISO);
       } else if (resolved.type === "year") {
         q = q
@@ -55,7 +56,7 @@ export function summarizeByDay(logs: MealLog[], days: number): DaySummary[] {
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = format(d, "yyyy-MM-dd");
     map.set(key, { date: key, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, meals: 0, ingredients: 0 });
   }
   logs.forEach((l) => {
@@ -76,7 +77,7 @@ export function summarizeByRange(logs: MealLog[], start: string, end: string): D
   const startDate = new Date(start + "T00:00:00");
   const endDate = new Date(end + "T00:00:00");
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const key = d.toISOString().slice(0, 10);
+    const key = format(d, "yyyy-MM-dd");
     map.set(key, { date: key, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, meals: 0, ingredients: 0 });
   }
   logs.forEach((l) => {
