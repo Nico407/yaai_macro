@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/popover";
 import {
   useHistory,
-  summarizeByDay,
   summarizeByRange,
   type DaySummary,
 } from "@/hooks/useHistory";
@@ -34,6 +33,8 @@ import {
   TrendingUp,
   Download,
   CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
