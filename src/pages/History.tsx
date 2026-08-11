@@ -422,7 +422,7 @@ export default function History() {
                 sub={streak === 1 ? "day" : "days"}
               />
               <StatCard
-                icon={<TrendingUp className="h-4 w-4" />}
+                icon={<Flame className="h-4 w-4" />}
                 label="Avg kcal"
                 value={avgKcal}
                 sub={target ? `of ${target.kcal}` : undefined}
