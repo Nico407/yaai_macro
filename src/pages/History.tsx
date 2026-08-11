@@ -467,7 +467,6 @@ export default function History() {
                     day={d}
                     targetKcal={target?.kcal ?? null}
                     scale={maxKcalScale}
-                    highlightEnd={displayEndStr}
                   />
                 ))}
               </div>
@@ -514,12 +513,10 @@ function DayBar({
   day,
   targetKcal,
   scale,
-  highlightEnd,
 }: {
   day: DaySummary;
   targetKcal: number | null;
   scale: number;
-  highlightEnd?: string;
 }) {
   const heightPct = Math.min(100, (day.kcal / scale) * 100);
   const targetPct = targetKcal ? Math.min(100, (targetKcal / scale) * 100) : null;
