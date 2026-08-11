@@ -1,18 +1,47 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { format, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, endOfYear, isAfter, isBefore } from "date-fns";
 import * as XLSX from "xlsx";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useHistory, summarizeByDay, type DaySummary } from "@/hooks/useHistory";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useHistory, summarizeByDay, type DaySummary, type DateRange } from "@/hooks/useHistory";
 import { useProfile } from "@/hooks/useProfile";
-import { ArrowLeft, Loader2, Flame, TrendingUp, Download } from "lucide-react";
+import { ArrowLeft, Loader2, Flame, TrendingUp, Download, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DAYS = 7;
+function toISO(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+const PRESETS = {
+  week: "Current week",
+  month: "Current month",
+  year: "Whole year",
+} as const;
+
+type Preset = keyof typeof PRESETS;
+
+function getPresetRange(preset: Preset): DateRange {
+  const now = new Date();
+  if (preset === "week") {
+    return { start: toISO(startOfWeek(now, { weekStartsOn: 1 })), end: toISO(endOfWeek(now, { weekStartsOn: 1 })) };
+  }
+  if (preset === "month") {
+    return { start: toISO(startOfMonth(now)), end: toISO(endOfMonth(now)) };
+  }
+  return { start: toISO(startOfYear(now)), end: toISO(endOfYear(now)) };
+}
 
 export default function History() {
+  const [preset, setPreset] = useState<Preset>("week");
+  const [range, setRange] = useState<DateRange>(getPresetRange("week"));
+  const [startOpen, setStartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
+
   const { data: profile } = useProfile();
-  const { data: logs = [], isLoading } = useHistory(DAYS);
+  const { data: logs = [], isLoading } = useHistory(range);
 
   const target = profile?.target_calories
     ? {
@@ -23,7 +52,7 @@ export default function History() {
       }
     : null;
 
-  const days = useMemo(() => summarizeByDay(logs, DAYS), [logs]);
+  const days = useMemo(() => summarizeByDay(logs, range), [logs, range]);
 
   const loggedDays = days.filter((d) => d.meals > 0);
   const avgKcal =
@@ -35,7 +64,7 @@ export default function History() {
       ? Math.round(loggedDays.reduce((a, d) => a + d.protein_g, 0) / loggedDays.length)
       : 0;
 
-  // Streak: consecutive days from today going back with meals > 0
+  // Streak: consecutive days from the end of the range going back with meals > 0
   let streak = 0;
   for (let i = days.length - 1; i >= 0; i--) {
     if (days[i].meals > 0) streak++;
@@ -47,6 +76,27 @@ export default function History() {
     ...days.map((d) => d.kcal),
     1,
   );
+
+  const applyPreset = (p: Preset) => {
+    setPreset(p);
+    setRange(getPresetRange(p));
+  };
+
+  const setDate = (key: keyof DateRange, value: string) => {
+    setPreset((prev) => {
+      const presetRange = getPresetRange(prev);
+      if (presetRange.start === value && presetRange.end === range.end) return prev;
+      if (presetRange.end === value && presetRange.start === range.start) return prev;
+      return "week"; // arbitrary non-matching preset
+    });
+    setRange((r) => {
+      const next = { ...r, [key]: value };
+      if (isAfter(new Date(next.start), new Date(next.end))) {
+        return { start: next.end, end: next.start };
+      }
+      return next;
+    });
+  };
 
   const handleExport = () => {
     const formatDate = (iso: string) => {
@@ -99,7 +149,7 @@ export default function History() {
     ws2["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 10 }];
     XLSX.utils.book_append_sheet(wb, ws2, "Meals");
 
-    XLSX.writeFile(wb, `macro-history-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `macro-history-${range.start}-to-${range.end}.xlsx`);
   };
 
   return (
@@ -111,10 +161,10 @@ export default function History() {
           </Link>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your week</p>
+              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your history</p>
               <h1 className="font-display text-4xl font-bold md:text-5xl">History</h1>
               <p className="mt-2 text-muted-foreground">
-                Last {DAYS} days of meals and macro adherence.
+                {format(range.start, "dd MMM yyyy")} — {format(range.end, "dd MMM yyyy")}
               </p>
             </div>
             <Button variant="outline" onClick={handleExport} disabled={isLoading}>
@@ -122,6 +172,81 @@ export default function History() {
             </Button>
           </div>
         </header>
+
+        <Card className="mb-6 rounded-2xl p-4">
+          <div className="mb-3 flex flex-wrap gap-2">
+            {(Object.keys(PRESETS) as Preset[]).map((p) => (
+              <Button
+                key={p}
+                variant={preset === p ? "default" : "outline"}
+                size="sm"
+                onClick={() => applyPreset(p)}
+              >
+                {PRESETS[p]}
+              </Button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">From</span>
+              <Popover open={startOpen} onOpenChange={setStartOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("w-[140px] justify-start text-left font-normal", !range.start && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {range.start ? format(range.start, "dd-MM-yyyy") : "Pick date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={range.start ? new Date(range.start + "T00:00:00") : undefined}
+                    onSelect={(d) => {
+                      if (d) {
+                        setDate("start", toISO(d));
+                        setStartOpen(false);
+                      }
+                    }}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">To</span>
+              <Popover open={endOpen} onOpenChange={setEndOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("w-[140px] justify-start text-left font-normal", !range.end && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {range.end ? format(range.end, "dd-MM-yyyy") : "Pick date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={range.end ? new Date(range.end + "T00:00:00") : undefined}
+                    onSelect={(d) => {
+                      if (d) {
+                        setDate("end", toISO(d));
+                        setEndOpen(false);
+                      }
+                    }}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </Card>
 
         {isLoading ? (
           <div className="flex justify-center py-10">
