@@ -49,24 +49,35 @@ export default function History() {
   );
 
   const handleExport = () => {
+    const formatDate = (iso: string) => {
+      const [y, m, d] = iso.split("-");
+      return `${d}-${m}-${y.slice(2)}`;
+    };
+
+    const dayMeals = new Map<string, string[]>();
+    logs.forEach((l) => {
+      const list = dayMeals.get(l.log_date) ?? [];
+      list.push(l.recipe_name);
+      dayMeals.set(l.log_date, list);
+    });
+
     const rows = days.map((d) => ({
-      Date: d.date,
+      Date: formatDate(d.date),
       Calories: Math.round(d.kcal),
       "Protein (g)": Math.round(d.protein_g),
       "Carbs (g)": Math.round(d.carbs_g),
       "Fat (g)": Math.round(d.fat_g),
-      Meals: d.meals,
-      Ingredients: d.ingredients,
+      Meals: (dayMeals.get(d.date) ?? []).join(", "),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 7 }, { wch: 12 }];
+    ws["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Daily summary");
 
     const mealRows = [...logs]
       .sort((a, b) => a.logged_at.localeCompare(b.logged_at))
       .map((l) => ({
-        Date: l.log_date,
+        Date: formatDate(l.log_date),
         Meal: l.recipe_name,
         Slot: l.slot ?? "",
         Calories: Math.round(Number(l.kcal)),
@@ -74,10 +85,9 @@ export default function History() {
         "Carbs (g)": Math.round(Number(l.carbs_g)),
         "Fat (g)": Math.round(Number(l.fat_g)),
         "Total (g)": Math.round(Number(l.total_grams)),
-        Ingredients: Array.isArray(l.ingredients_json) ? l.ingredients_json.length : 0,
       }));
     const ws2 = XLSX.utils.json_to_sheet(mealRows);
-    ws2["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 10 }, { wch: 12 }];
+    ws2["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 10 }];
     XLSX.utils.book_append_sheet(wb, ws2, "Meals");
 
     XLSX.writeFile(wb, `macro-history-${new Date().toISOString().slice(0, 10)}.xlsx`);
