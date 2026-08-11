@@ -27,6 +27,7 @@ export type DaySummary = {
   carbs_g: number;
   fat_g: number;
   meals: number;
+  ingredients: number;
 };
 
 export function summarizeByDay(logs: MealLog[], days: number): DaySummary[] {
@@ -35,7 +36,7 @@ export function summarizeByDay(logs: MealLog[], days: number): DaySummary[] {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const key = d.toISOString().slice(0, 10);
-    map.set(key, { date: key, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, meals: 0 });
+    map.set(key, { date: key, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, meals: 0, ingredients: 0 });
   }
   logs.forEach((l) => {
     const s = map.get(l.log_date);
@@ -45,6 +46,7 @@ export function summarizeByDay(logs: MealLog[], days: number): DaySummary[] {
     s.carbs_g += Number(l.carbs_g);
     s.fat_g += Number(l.fat_g);
     s.meals += 1;
+    s.ingredients += Array.isArray(l.ingredients_json) ? l.ingredients_json.length : 0;
   });
   return Array.from(map.values());
 }
