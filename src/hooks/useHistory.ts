@@ -2,17 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { MealLog } from "./useTodayLogs";
 
-export function useHistory(days = 7) {
+export type DateRange = {
+  start: string; // YYYY-MM-DD
+  end: string;   // YYYY-MM-DD
+};
+
+export function useHistory(range: DateRange) {
   return useQuery({
-    queryKey: ["meal_logs", "history", days],
+    queryKey: ["meal_logs", "history", range.start, range.end],
     queryFn: async () => {
-      const since = new Date();
-      since.setDate(since.getDate() - (days - 1));
-      const sinceISO = since.toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("meal_logs")
         .select("*")
-        .gte("log_date", sinceISO)
+        .gte("log_date", range.start)
+        .lte("log_date", range.end)
         .order("logged_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as MealLog[];
@@ -30,14 +33,22 @@ export type DaySummary = {
   ingredients: number;
 };
 
-export function summarizeByDay(logs: MealLog[], days: number): DaySummary[] {
-  const map = new Map<string, DaySummary>();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    map.set(key, { date: key, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, meals: 0, ingredients: 0 });
+function dateRange(start: string, end: string): string[] {
+  const dates: string[] = [];
+  const cur = new Date(start + "T00:00:00");
+  const last = new Date(end + "T00:00:00");
+  while (cur <= last) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
   }
+  return dates;
+}
+
+export function summarizeByDay(logs: MealLog[], range: DateRange): DaySummary[] {
+  const map = new Map<string, DaySummary>();
+  dateRange(range.start, range.end).forEach((key) => {
+    map.set(key, { date: key, kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, meals: 0, ingredients: 0 });
+  });
   logs.forEach((l) => {
     const s = map.get(l.log_date);
     if (!s) return;
