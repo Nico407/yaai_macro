@@ -292,7 +292,7 @@ export default function Planner() {
           slot: p.slot,
           is_fixed: p.is_fixed,
           instructions: p.instructions,
-          ingredients_json: p.ingredients_json ?? [],
+          ingredients_json: (p.ingredients_json ?? []) as never,
         })),
       );
       if (error) throw error;
@@ -329,7 +329,7 @@ export default function Planner() {
           fat_g: p.fat_g,
           is_fixed: p.is_fixed,
           instructions: p.instructions,
-          ingredients_json: p.ingredients_json ?? [],
+          ingredients_json: (p.ingredients_json ?? []) as never,
         })),
       );
       if (error) throw error;
