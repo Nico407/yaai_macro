@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import * as XLSX from "xlsx";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useHistory, summarizeByDay, type DaySummary } from "@/hooks/useHistory";
 import { useProfile } from "@/hooks/useProfile";
-import { ArrowLeft, Loader2, Flame, TrendingUp } from "lucide-react";
+import { ArrowLeft, Loader2, Flame, TrendingUp, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DAYS = 7;
