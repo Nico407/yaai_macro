@@ -166,6 +166,60 @@ export type Database = {
           },
         ]
       }
+      planned_meals: {
+        Row: {
+          carbs_g: number
+          created_at: string
+          fat_g: number
+          id: string
+          ingredients_json: Json
+          instructions: string | null
+          is_fixed: boolean
+          kcal: number
+          plan_date: string
+          protein_g: number
+          recipe_id: string | null
+          recipe_name: string
+          slot: string | null
+          total_grams: number
+          user_id: string
+        }
+        Insert: {
+          carbs_g?: number
+          created_at?: string
+          fat_g?: number
+          id?: string
+          ingredients_json?: Json
+          instructions?: string | null
+          is_fixed?: boolean
+          kcal?: number
+          plan_date: string
+          protein_g?: number
+          recipe_id?: string | null
+          recipe_name: string
+          slot?: string | null
+          total_grams?: number
+          user_id: string
+        }
+        Update: {
+          carbs_g?: number
+          created_at?: string
+          fat_g?: number
+          id?: string
+          ingredients_json?: Json
+          instructions?: string | null
+          is_fixed?: boolean
+          kcal?: number
+          plan_date?: string
+          protein_g?: number
+          recipe_id?: string | null
+          recipe_name?: string
+          slot?: string | null
+          total_grams?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profile: {
         Row: {
           activity_level: string | null

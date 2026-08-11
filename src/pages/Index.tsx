@@ -31,7 +31,7 @@ import {
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search, Settings, Calendar, UserCog, Star, BookOpen, ChefHat, Globe, Lock } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search, Settings, Calendar, UserCog, Star, ClipboardList, BookOpen, ChefHat, Globe, Lock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -371,6 +371,13 @@ export default function Index() {
             >
               <Star className="h-5 w-5" />
             </button>
+            <Link
+              to="/planner"
+              aria-label="Planner"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              <ClipboardList className="h-5 w-5" />
+            </Link>
             <Link
               to="/history"
               aria-label="History"
