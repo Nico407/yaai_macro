@@ -261,22 +261,131 @@ export default function History() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-        <header className="mb-8">
-          <Link
-            to="/"
-            className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Link>
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your week</p>
-              <h1 className="font-display text-4xl font-bold md:text-5xl">History</h1>
-              <p className="mt-2 text-muted-foreground">
-                Last {DAYS} days of meals and macro adherence.
-              </p>
-            </div>
+        <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <Link
+              to="/"
+              className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Link>
+            <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your week</p>
+            <h1 className="font-display text-4xl font-bold md:text-5xl">History</h1>
+            <p className="mt-2 text-muted-foreground">
+              Last {DAYS} days of meals and macro adherence.
+            </p>
           </div>
+
+          <Card className="rounded-2xl p-4 md:w-72">
+            <h2 className="mb-3 font-display text-base font-bold">Export data</h2>
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="export-range" className="text-xs">Time frame</Label>
+                <Select value={exportMode} onValueChange={(v) => setExportMode(v as ExportMode)}>
+                  <SelectTrigger id="export-range" className="mt-1 w-full text-xs">
+                    <SelectValue placeholder="Select range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Last 7 days</SelectItem>
+                    <SelectItem value="30">Last 30 days</SelectItem>
+                    <SelectItem value="year">Current year</SelectItem>
+                    <SelectItem value="all">All time</SelectItem>
+                    <SelectItem value="range">Custom range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="export-format" className="text-xs">Format</Label>
+                <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "excel" | "csv")}>
+                  <SelectTrigger id="export-format" className="mt-1 w-full text-xs">
+                    <SelectValue placeholder="Select format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                    <SelectItem value="csv">CSV (.csv)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {exportMode === "range" && (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div>
+                    <Label className="mb-1 block text-xs">From</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "w-full justify-start text-left font-normal text-xs",
+                            !rangeStart && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                          {rangeStart ? format(rangeStart, "PP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={rangeStart}
+                          onSelect={setRangeStart}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div>
+                    <Label className="mb-1 block text-xs">To</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "w-full justify-start text-left font-normal text-xs",
+                            !rangeEnd && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                          {rangeEnd ? format(rangeEnd, "PP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={rangeEnd}
+                          onSelect={setRangeEnd}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <p className="text-[11px] text-muted-foreground">
+                  Exporting: <span className="font-medium text-foreground">{rangeLabel(exportMode)}</span>
+                </p>
+                <Button
+                  size="sm"
+                  onClick={handleExport}
+                  disabled={isLoading || exporting || (exportMode === "range" && (!rangeStart || !rangeEnd))}
+                >
+                  {exporting ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Export
+                </Button>
+              </div>
+            </div>
+          </Card>
         </header>
 
         {isLoading ? (
@@ -328,114 +437,6 @@ export default function History() {
                 ))}
               </div>
             </section>
-
-            <Card className="mt-8 rounded-2xl p-5 md:p-6">
-              <h2 className="mb-4 font-display text-lg font-bold">Export data</h2>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="export-range">Time frame</Label>
-                  <Select value={exportMode} onValueChange={(v) => setExportMode(v as ExportMode)}>
-                    <SelectTrigger id="export-range" className="mt-1.5 w-full">
-                      <SelectValue placeholder="Select range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="7">Last 7 days</SelectItem>
-                      <SelectItem value="30">Last 30 days</SelectItem>
-                      <SelectItem value="year">Current year</SelectItem>
-                      <SelectItem value="all">All time</SelectItem>
-                      <SelectItem value="range">Custom range</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="export-format">Format</Label>
-                  <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "excel" | "csv")}>
-                    <SelectTrigger id="export-format" className="mt-1.5 w-full">
-                      <SelectValue placeholder="Select format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="excel">Excel (.xlsx)</SelectItem>
-                      <SelectItem value="csv">CSV (.csv)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {exportMode === "range" && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <Label className="mb-1.5 block">From</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !rangeStart && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {rangeStart ? format(rangeStart, "PPP") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={rangeStart}
-                            onSelect={setRangeStart}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block">To</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !rangeEnd && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {rangeEnd ? format(rangeEnd, "PPP") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={rangeEnd}
-                            onSelect={setRangeEnd}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Exporting: <span className="font-medium text-foreground">{rangeLabel(exportMode)}</span>
-                  </p>
-                  <Button
-                    onClick={handleExport}
-                    disabled={isLoading || exporting || (exportMode === "range" && (!rangeStart || !rangeEnd))}
-                  >
-                    {exporting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="mr-2 h-4 w-4" />
-                    )}
-                    Export
-                  </Button>
-                </div>
-              </div>
-            </Card>
           </>
         )}
       </div>
