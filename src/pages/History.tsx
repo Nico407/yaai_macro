@@ -69,7 +69,16 @@ export default function History() {
       "Fat (g)": Math.round(d.fat_g),
       Meals: (dayMeals.get(d.date) ?? []).join(", "),
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const avgRow = {
+      Date: "Average",
+      Calories: Math.round(rows.reduce((a, r) => a + r.Calories, 0) / rows.length) || 0,
+      "Protein (g)": Math.round(rows.reduce((a, r) => a + r["Protein (g)"], 0) / rows.length) || 0,
+      "Carbs (g)": Math.round(rows.reduce((a, r) => a + r["Carbs (g)"], 0) / rows.length) || 0,
+      "Fat (g)": Math.round(rows.reduce((a, r) => a + r["Fat (g)"], 0) / rows.length) || 0,
+      Meals: "",
+    };
+    const rowsWithAvg = [...rows, avgRow];
+    const ws = XLSX.utils.json_to_sheet(rowsWithAvg);
     ws["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Daily summary");
