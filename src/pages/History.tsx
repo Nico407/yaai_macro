@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/popover";
 import {
   useHistory,
-  summarizeByDay,
   summarizeByRange,
   type DaySummary,
 } from "@/hooks/useHistory";
@@ -34,6 +33,8 @@ import {
   TrendingUp,
   Download,
   CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,13 +44,25 @@ type ExportMode = "7" | "30" | "year" | "all" | "range";
 
 export default function History() {
   const { data: profile } = useProfile();
-  const { data: logs = [], isLoading } = useHistory(DAYS);
 
+  const [weekOffset, setWeekOffset] = useState(0);
   const [exportMode, setExportMode] = useState<ExportMode>("7");
   const [exportFormat, setExportFormat] = useState<"excel" | "csv">("excel");
   const [rangeStart, setRangeStart] = useState<Date | undefined>(undefined);
   const [rangeEnd, setRangeEnd] = useState<Date | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
+
+  const today = useMemo(() => new Date(), []);
+  const displayEnd = useMemo(() => addDays(today, -weekOffset * DAYS), [today, weekOffset]);
+  const displayStart = useMemo(() => addDays(displayEnd, -(DAYS - 1)), [displayEnd]);
+  const displayEndStr = format(displayEnd, "yyyy-MM-dd");
+  const displayStartStr = format(displayStart, "yyyy-MM-dd");
+
+  const { data: logs = [], isLoading } = useHistory({
+    type: "range",
+    start: displayStartStr,
+    end: displayEndStr,
+  });
 
   const target = profile?.target_calories
     ? {
@@ -60,7 +73,10 @@ export default function History() {
       }
     : null;
 
-  const days = useMemo(() => summarizeByDay(logs, DAYS), [logs]);
+  const days = useMemo(
+    () => summarizeByRange(logs, displayStartStr, displayEndStr),
+    [logs, displayStartStr, displayEndStr],
+  );
 
   const loggedDays = days.filter((d) => d.meals > 0);
   const avgKcal =
@@ -72,7 +88,7 @@ export default function History() {
       ? Math.round(loggedDays.reduce((a, d) => a + d.protein_g, 0) / loggedDays.length)
       : 0;
 
-  // Streak: consecutive days from today going back with meals > 0
+  // Streak: consecutive days from the displayed week's end going back with meals > 0
   let streak = 0;
   for (let i = days.length - 1; i >= 0; i--) {
     if (days[i].meals > 0) streak++;
@@ -272,7 +288,7 @@ export default function History() {
             <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your week</p>
             <h1 className="font-display text-4xl font-bold md:text-5xl">History</h1>
             <p className="mt-2 text-muted-foreground">
-              Last {DAYS} days of meals and macro adherence.
+              {format(displayStart, "dd MMM")} – {format(displayEnd, "dd MMM yyyy")}
             </p>
           </div>
 
@@ -416,7 +432,30 @@ export default function History() {
             </div>
 
             <Card className="rounded-2xl p-6 shadow-soft md:p-8">
-              <h2 className="mb-4 font-display text-lg font-bold">Calories per day</h2>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="font-display text-lg font-bold">Calories per day</h2>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setWeekOffset((o) => o + 1)}
+                    aria-label="Previous week"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setWeekOffset((o) => Math.max(0, o - 1))}
+                    disabled={weekOffset === 0}
+                    aria-label="Next week"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <div className="flex h-48 items-end justify-between gap-2">
                 {days.map((d) => (
                   <DayBar
@@ -424,6 +463,7 @@ export default function History() {
                     day={d}
                     targetKcal={target?.kcal ?? null}
                     scale={maxKcalScale}
+                    highlightEnd={displayEndStr}
                   />
                 ))}
               </div>
@@ -470,10 +510,12 @@ function DayBar({
   day,
   targetKcal,
   scale,
+  highlightEnd,
 }: {
   day: DaySummary;
   targetKcal: number | null;
   scale: number;
+  highlightEnd?: string;
 }) {
   const heightPct = Math.min(100, (day.kcal / scale) * 100);
   const targetPct = targetKcal ? Math.min(100, (targetKcal / scale) * 100) : null;
@@ -482,7 +524,7 @@ function DayBar({
       ? Math.abs(day.kcal - targetKcal) / targetKcal <= 0.1
       : false;
   const date = new Date(day.date + "T00:00:00");
-  const isToday = day.date === format(new Date(), "yyyy-MM-dd");
+  const isHighlighted = highlightEnd ? day.date === highlightEnd : day.date === format(new Date(), "yyyy-MM-dd");
   const dayLabel = date.toLocaleDateString(undefined, { weekday: "short" });
 
   return (
@@ -505,7 +547,7 @@ function DayBar({
           style={{ height: `${heightPct}%` }}
         />
       </div>
-      <div className={cn("text-[11px] font-medium", isToday && "text-primary")}>
+      <div className={cn("text-[11px] font-medium", isHighlighted && "text-primary")}>
         {dayLabel}
       </div>
     </div>
