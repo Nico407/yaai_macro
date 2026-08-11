@@ -86,16 +86,16 @@ export default function History() {
   );
 
   const getExportRange = (mode: ExportMode) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = format(new Date(), "yyyy-MM-dd");
     if (mode === "7") {
       const d = new Date();
       d.setDate(d.getDate() - 6);
-      return { start: d.toISOString().slice(0, 10), end: today };
+      return { start: format(d, "yyyy-MM-dd"), end: today };
     }
     if (mode === "30") {
       const d = new Date();
       d.setDate(d.getDate() - 29);
-      return { start: d.toISOString().slice(0, 10), end: today };
+      return { start: format(d, "yyyy-MM-dd"), end: today };
     }
     if (mode === "year") {
       const year = new Date().getFullYear();
