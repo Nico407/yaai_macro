@@ -175,7 +175,7 @@ export default function History() {
           "Total (g)": Math.round(Number(l.total_grams)),
         }));
 
-      const baseFilename = `macro-history-${new Date().toISOString().slice(0, 10)}`;
+      const baseFilename = `macro-history-${format(new Date(), "yyyy-MM-dd")}`;
 
       if (exportFormat === "csv") {
         const escapeCsv = (val: string | number) => {
@@ -482,7 +482,7 @@ function DayBar({
       ? Math.abs(day.kcal - targetKcal) / targetKcal <= 0.1
       : false;
   const date = new Date(day.date + "T00:00:00");
-  const isToday = day.date === new Date().toISOString().slice(0, 10);
+  const isToday = day.date === format(new Date(), "yyyy-MM-dd");
   const dayLabel = date.toLocaleDateString(undefined, { weekday: "short" });
 
   return (
@@ -520,7 +520,7 @@ function DayRow({
   target: { kcal: number; protein_g: number; carbs_g: number; fat_g: number } | null;
 }) {
   const date = new Date(day.date + "T00:00:00");
-  const isToday = day.date === new Date().toISOString().slice(0, 10);
+  const isToday = day.date === format(new Date(), "yyyy-MM-dd");
   const label = isToday
     ? "Today"
     : date.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
