@@ -346,6 +346,19 @@ export default function History() {
                   </Select>
                 </div>
 
+                <div>
+                  <Label htmlFor="export-format">Format</Label>
+                  <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "excel" | "csv")}>
+                    <SelectTrigger id="export-format" className="mt-1.5 w-full">
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                      <SelectItem value="csv">CSV (.csv)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {exportMode === "range" && (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
