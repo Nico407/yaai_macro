@@ -547,7 +547,7 @@ function DayBar({
           style={{ height: `${heightPct}%` }}
         />
       </div>
-      <div className={cn("text-[11px] font-medium", isToday && "text-primary")}>
+      <div className={cn("text-[11px] font-medium", isHighlighted && "text-primary")}>
         {dayLabel}
       </div>
     </div>
