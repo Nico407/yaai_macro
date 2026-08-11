@@ -288,7 +288,7 @@ export default function History() {
             <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your week</p>
             <h1 className="font-display text-4xl font-bold md:text-5xl">History</h1>
             <p className="mt-2 text-muted-foreground">
-              Last {DAYS} days of meals and macro adherence.
+              {format(displayStart, "dd MMM")} – {format(displayEnd, "dd MMM yyyy")}
             </p>
           </div>
 
