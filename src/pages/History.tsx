@@ -467,7 +467,6 @@ export default function History() {
                     day={d}
                     targetKcal={target?.kcal ?? null}
                     scale={maxKcalScale}
-                    highlightEnd={displayEndStr}
                   />
                 ))}
               </div>
@@ -514,12 +513,10 @@ function DayBar({
   day,
   targetKcal,
   scale,
-  highlightEnd,
 }: {
   day: DaySummary;
   targetKcal: number | null;
   scale: number;
-  highlightEnd?: string;
 }) {
   const heightPct = Math.min(100, (day.kcal / scale) * 100);
   const targetPct = targetKcal ? Math.min(100, (targetKcal / scale) * 100) : null;
@@ -528,11 +525,11 @@ function DayBar({
       ? Math.abs(day.kcal - targetKcal) / targetKcal <= 0.1
       : false;
   const date = new Date(day.date + "T00:00:00");
-  const isHighlighted = highlightEnd ? day.date === highlightEnd : day.date === format(new Date(), "yyyy-MM-dd");
+  const isHighlighted = day.date === format(new Date(), "yyyy-MM-dd");
   const dayLabel = date.toLocaleDateString(undefined, { weekday: "short" });
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-1.5">
+    <div className={cn("flex flex-1 flex-col items-center gap-1.5 rounded-lg px-1 py-1 transition-colors", isHighlighted && "bg-primary/10 ring-1 ring-primary/30")}>
       <div className="text-[10px] tabular-nums text-muted-foreground">
         {day.meals > 0 ? Math.round(day.kcal) : "–"}
       </div>
@@ -547,6 +544,7 @@ function DayBar({
           className={cn(
             "w-full transition-all",
             day.meals === 0 ? "bg-muted" : onTarget ? "bg-primary" : "bg-primary/60",
+            isHighlighted && day.meals > 0 && "bg-primary",
           )}
           style={{ height: `${heightPct}%` }}
         />
@@ -554,6 +552,9 @@ function DayBar({
       <div className={cn("text-[11px] font-medium", isHighlighted && "text-primary")}>
         {dayLabel}
       </div>
+      {isHighlighted && (
+        <div className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+      )}
     </div>
   );
 }
