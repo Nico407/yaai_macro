@@ -53,8 +53,12 @@ export default function History() {
   const [exporting, setExporting] = useState(false);
 
   const today = useMemo(() => new Date(), []);
-  const displayEnd = useMemo(() => addDays(today, -weekOffset * DAYS), [today, weekOffset]);
-  const displayStart = useMemo(() => addDays(displayEnd, -(DAYS - 1)), [displayEnd]);
+  const displayWeek = useMemo(
+    () => addWeeks(startOfWeek(today, { weekStartsOn: 1 }), -weekOffset),
+    [today, weekOffset],
+  );
+  const displayStart = startOfWeek(displayWeek, { weekStartsOn: 1 });
+  const displayEnd = endOfWeek(displayWeek, { weekStartsOn: 1 });
   const displayEndStr = format(displayEnd, "yyyy-MM-dd");
   const displayStartStr = format(displayStart, "yyyy-MM-dd");
 
