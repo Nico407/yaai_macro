@@ -44,13 +44,25 @@ type ExportMode = "7" | "30" | "year" | "all" | "range";
 
 export default function History() {
   const { data: profile } = useProfile();
-  const { data: logs = [], isLoading } = useHistory(DAYS);
 
+  const [weekOffset, setWeekOffset] = useState(0);
   const [exportMode, setExportMode] = useState<ExportMode>("7");
   const [exportFormat, setExportFormat] = useState<"excel" | "csv">("excel");
   const [rangeStart, setRangeStart] = useState<Date | undefined>(undefined);
   const [rangeEnd, setRangeEnd] = useState<Date | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
+
+  const today = useMemo(() => new Date(), []);
+  const displayEnd = useMemo(() => addDays(today, -weekOffset * DAYS), [today, weekOffset]);
+  const displayStart = useMemo(() => addDays(displayEnd, -(DAYS - 1)), [displayEnd]);
+  const displayEndStr = format(displayEnd, "yyyy-MM-dd");
+  const displayStartStr = format(displayStart, "yyyy-MM-dd");
+
+  const { data: logs = [], isLoading } = useHistory({
+    type: "range",
+    start: displayStartStr,
+    end: displayEndStr,
+  });
 
   const target = profile?.target_calories
     ? {
@@ -61,7 +73,10 @@ export default function History() {
       }
     : null;
 
-  const days = useMemo(() => summarizeByDay(logs, DAYS), [logs]);
+  const days = useMemo(
+    () => summarizeByRange(logs, displayStartStr, displayEndStr),
+    [logs, displayStartStr, displayEndStr],
+  );
 
   const loggedDays = days.filter((d) => d.meals > 0);
   const avgKcal =
@@ -73,7 +88,7 @@ export default function History() {
       ? Math.round(loggedDays.reduce((a, d) => a + d.protein_g, 0) / loggedDays.length)
       : 0;
 
-  // Streak: consecutive days from today going back with meals > 0
+  // Streak: consecutive days from the displayed week's end going back with meals > 0
   let streak = 0;
   for (let i = days.length - 1; i >= 0; i--) {
     if (days[i].meals > 0) streak++;
