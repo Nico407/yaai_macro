@@ -1,18 +1,54 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
+import { format } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useHistory, summarizeByDay, type DaySummary } from "@/hooks/useHistory";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  useHistory,
+  summarizeByDay,
+  summarizeByRange,
+  type DaySummary,
+} from "@/hooks/useHistory";
 import { useProfile } from "@/hooks/useProfile";
-import { ArrowLeft, Loader2, Flame, TrendingUp, Download } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { MealLog } from "@/hooks/useTodayLogs";
+import {
+  ArrowLeft,
+  Loader2,
+  Flame,
+  TrendingUp,
+  Download,
+  CalendarIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DAYS = 7;
 
+type ExportMode = "7" | "30" | "year" | "all" | "range";
+
 export default function History() {
   const { data: profile } = useProfile();
   const { data: logs = [], isLoading } = useHistory(DAYS);
+
+  const [exportMode, setExportMode] = useState<ExportMode>("7");
+  const [rangeStart, setRangeStart] = useState<Date | undefined>(undefined);
+  const [rangeEnd, setRangeEnd] = useState<Date | undefined>(undefined);
+  const [exporting, setExporting] = useState(false);
 
   const target = profile?.target_calories
     ? {
@@ -48,65 +84,146 @@ export default function History() {
     1,
   );
 
-  const handleExport = () => {
-    const formatDate = (iso: string) => {
-      const [y, m, d] = iso.split("-");
-      return `${d}-${m}-${y.slice(2)}`;
-    };
+  const getExportRange = (mode: ExportMode) => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (mode === "7") {
+      const d = new Date();
+      d.setDate(d.getDate() - 6);
+      return { start: d.toISOString().slice(0, 10), end: today };
+    }
+    if (mode === "30") {
+      const d = new Date();
+      d.setDate(d.getDate() - 29);
+      return { start: d.toISOString().slice(0, 10), end: today };
+    }
+    if (mode === "year") {
+      const year = new Date().getFullYear();
+      return { start: `${year}-01-01`, end: today };
+    }
+    if (mode === "all") {
+      return { start: "1970-01-01", end: today };
+    }
+    if (mode === "range" && rangeStart && rangeEnd) {
+      return {
+        start: format(rangeStart, "yyyy-MM-dd"),
+        end: format(rangeEnd, "yyyy-MM-dd"),
+      };
+    }
+    return { start: today, end: today };
+  };
 
-    const dayMeals = new Map<string, string[]>();
-    logs.forEach((l) => {
-      const list = dayMeals.get(l.log_date) ?? [];
-      list.push(l.recipe_name);
-      dayMeals.set(l.log_date, list);
-    });
+  const handleExport = async () => {
+    if (exportMode === "range" && (!rangeStart || !rangeEnd)) return;
 
-    const rows = days.map((d) => ({
-      Date: formatDate(d.date),
-      Calories: Math.round(d.kcal),
-      "Protein (g)": Math.round(d.protein_g),
-      "Carbs (g)": Math.round(d.carbs_g),
-      "Fat (g)": Math.round(d.fat_g),
-      Meals: (dayMeals.get(d.date) ?? []).join(", "),
-    }));
-    const avgRow = {
-      Date: "Average",
-      Calories: Math.round(rows.reduce((a, r) => a + r.Calories, 0) / rows.length) || 0,
-      "Protein (g)": Math.round(rows.reduce((a, r) => a + r["Protein (g)"], 0) / rows.length) || 0,
-      "Carbs (g)": Math.round(rows.reduce((a, r) => a + r["Carbs (g)"], 0) / rows.length) || 0,
-      "Fat (g)": Math.round(rows.reduce((a, r) => a + r["Fat (g)"], 0) / rows.length) || 0,
-      Meals: "",
-    };
-    const rowsWithAvg = [...rows, avgRow];
-    const ws = XLSX.utils.json_to_sheet(rowsWithAvg);
-    ws["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 40 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Daily summary");
+    setExporting(true);
+    try {
+      const formatDate = (iso: string) => {
+        const [y, m, d] = iso.split("-");
+        return `${d}-${m}-${y.slice(2)}`;
+      };
 
-    const mealRows = [...logs]
-      .sort((a, b) => a.logged_at.localeCompare(b.logged_at))
-      .map((l) => ({
-        Date: formatDate(l.log_date),
-        Meal: l.recipe_name,
-        Slot: l.slot ?? "",
-        Calories: Math.round(Number(l.kcal)),
-        "Protein (g)": Math.round(Number(l.protein_g)),
-        "Carbs (g)": Math.round(Number(l.carbs_g)),
-        "Fat (g)": Math.round(Number(l.fat_g)),
-        "Total (g)": Math.round(Number(l.total_grams)),
+      const { start, end } = getExportRange(exportMode);
+      const { data, error } = await supabase
+        .from("meal_logs")
+        .select("*")
+        .gte("log_date", start)
+        .lte("log_date", end)
+        .order("logged_at", { ascending: false });
+      if (error) throw error;
+      const exportLogs = (data ?? []) as MealLog[];
+
+      const summaryDays = summarizeByRange(exportLogs, start, end);
+
+      const dayMeals = new Map<string, string[]>();
+      exportLogs.forEach((l) => {
+        const list = dayMeals.get(l.log_date) ?? [];
+        list.push(l.recipe_name);
+        dayMeals.set(l.log_date, list);
+      });
+
+      const rows = summaryDays.map((d) => ({
+        Date: formatDate(d.date),
+        Calories: Math.round(d.kcal),
+        "Protein (g)": Math.round(d.protein_g),
+        "Carbs (g)": Math.round(d.carbs_g),
+        "Fat (g)": Math.round(d.fat_g),
+        Meals: (dayMeals.get(d.date) ?? []).join(", "),
       }));
-    const ws2 = XLSX.utils.json_to_sheet(mealRows);
-    ws2["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 10 }];
-    XLSX.utils.book_append_sheet(wb, ws2, "Meals");
+      const avgRow = {
+        Date: "Average",
+        Calories: Math.round(rows.reduce((a, r) => a + r.Calories, 0) / rows.length) || 0,
+        "Protein (g)": Math.round(rows.reduce((a, r) => a + r["Protein (g)"], 0) / rows.length) || 0,
+        "Carbs (g)": Math.round(rows.reduce((a, r) => a + r["Carbs (g)"], 0) / rows.length) || 0,
+        "Fat (g)": Math.round(rows.reduce((a, r) => a + r["Fat (g)"], 0) / rows.length) || 0,
+        Meals: "",
+      };
+      const rowsWithAvg = [...rows, avgRow];
+      const ws = XLSX.utils.json_to_sheet(rowsWithAvg);
+      ws["!cols"] = [
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 11 },
+        { wch: 10 },
+        { wch: 9 },
+        { wch: 40 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Daily summary");
 
-    XLSX.writeFile(wb, `macro-history-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      const mealRows = [...exportLogs]
+        .sort((a, b) => a.logged_at.localeCompare(b.logged_at))
+        .map((l) => ({
+          Date: formatDate(l.log_date),
+          Meal: l.recipe_name,
+          Slot: l.slot ?? "",
+          Calories: Math.round(Number(l.kcal)),
+          "Protein (g)": Math.round(Number(l.protein_g)),
+          "Carbs (g)": Math.round(Number(l.carbs_g)),
+          "Fat (g)": Math.round(Number(l.fat_g)),
+          "Total (g)": Math.round(Number(l.total_grams)),
+        }));
+      const ws2 = XLSX.utils.json_to_sheet(mealRows);
+      ws2["!cols"] = [
+        { wch: 12 },
+        { wch: 26 },
+        { wch: 10 },
+        { wch: 10 },
+        { wch: 11 },
+        { wch: 10 },
+        { wch: 9 },
+        { wch: 10 },
+      ];
+      XLSX.utils.book_append_sheet(wb, ws2, "Meals");
+
+      XLSX.writeFile(wb, `macro-history-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const rangeLabel = (mode: ExportMode) => {
+    switch (mode) {
+      case "7":
+        return "Last 7 days";
+      case "30":
+        return "Last 30 days";
+      case "year":
+        return "Current year";
+      case "all":
+        return "All";
+      case "range":
+        return "Custom range";
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
         <header className="mb-8">
-          <Link to="/" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
+          <Link
+            to="/"
+            className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
+          >
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -117,9 +234,6 @@ export default function History() {
                 Last {DAYS} days of meals and macro adherence.
               </p>
             </div>
-            <Button variant="outline" onClick={handleExport} disabled={isLoading}>
-              <Download className="mr-2 h-4 w-4" /> Export data
-            </Button>
           </div>
         </header>
 
@@ -172,6 +286,101 @@ export default function History() {
                 ))}
               </div>
             </section>
+
+            <Card className="mt-8 rounded-2xl p-5 md:p-6">
+              <h2 className="mb-4 font-display text-lg font-bold">Export data</h2>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="export-range">Time frame</Label>
+                  <Select value={exportMode} onValueChange={(v) => setExportMode(v as ExportMode)}>
+                    <SelectTrigger id="export-range" className="mt-1.5 w-full">
+                      <SelectValue placeholder="Select range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">Last 7 days</SelectItem>
+                      <SelectItem value="30">Last 30 days</SelectItem>
+                      <SelectItem value="year">Current year</SelectItem>
+                      <SelectItem value="all">All time</SelectItem>
+                      <SelectItem value="range">Custom range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {exportMode === "range" && (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label className="mb-1.5 block">From</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !rangeStart && "text-muted-foreground",
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {rangeStart ? format(rangeStart, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={rangeStart}
+                            onSelect={setRangeStart}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">To</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !rangeEnd && "text-muted-foreground",
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {rangeEnd ? format(rangeEnd, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={rangeEnd}
+                            onSelect={setRangeEnd}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Exporting: <span className="font-medium text-foreground">{rangeLabel(exportMode)}</span>
+                  </p>
+                  <Button
+                    onClick={handleExport}
+                    disabled={isLoading || exporting || (exportMode === "range" && (!rangeStart || !rangeEnd))}
+                  >
+                    {exporting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Export
+                  </Button>
+                </div>
+              </div>
+            </Card>
           </>
         )}
       </div>
@@ -235,11 +444,7 @@ function DayBar({
         <div
           className={cn(
             "w-full transition-all",
-            day.meals === 0
-              ? "bg-muted"
-              : onTarget
-                ? "bg-primary"
-                : "bg-primary/60",
+            day.meals === 0 ? "bg-muted" : onTarget ? "bg-primary" : "bg-primary/60",
           )}
           style={{ height: `${heightPct}%` }}
         />
