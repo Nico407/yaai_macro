@@ -48,6 +48,41 @@ export default function History() {
     1,
   );
 
+  const handleExport = () => {
+    const rows = days.map((d) => ({
+      Date: d.date,
+      Calories: Math.round(d.kcal),
+      "Protein (g)": Math.round(d.protein_g),
+      "Carbs (g)": Math.round(d.carbs_g),
+      "Fat (g)": Math.round(d.fat_g),
+      Meals: d.meals,
+      Ingredients: d.ingredients,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{ wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 7 }, { wch: 12 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Daily summary");
+
+    const mealRows = [...logs]
+      .sort((a, b) => a.logged_at.localeCompare(b.logged_at))
+      .map((l) => ({
+        Date: l.log_date,
+        Meal: l.recipe_name,
+        Slot: l.slot ?? "",
+        Calories: Math.round(Number(l.kcal)),
+        "Protein (g)": Math.round(Number(l.protein_g)),
+        "Carbs (g)": Math.round(Number(l.carbs_g)),
+        "Fat (g)": Math.round(Number(l.fat_g)),
+        "Total (g)": Math.round(Number(l.total_grams)),
+        Ingredients: Array.isArray(l.ingredients_json) ? l.ingredients_json.length : 0,
+      }));
+    const ws2 = XLSX.utils.json_to_sheet(mealRows);
+    ws2["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 10 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 9 }, { wch: 10 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws2, "Meals");
+
+    XLSX.writeFile(wb, `macro-history-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 md:py-12">
@@ -55,11 +90,18 @@ export default function History() {
           <Link to="/" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your week</p>
-          <h1 className="font-display text-4xl font-bold md:text-5xl">History</h1>
-          <p className="mt-2 text-muted-foreground">
-            Last {DAYS} days of meals and macro adherence.
-          </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your week</p>
+              <h1 className="font-display text-4xl font-bold md:text-5xl">History</h1>
+              <p className="mt-2 text-muted-foreground">
+                Last {DAYS} days of meals and macro adherence.
+              </p>
+            </div>
+            <Button variant="outline" onClick={handleExport} disabled={isLoading}>
+              <Download className="mr-2 h-4 w-4" /> Export data
+            </Button>
+          </div>
         </header>
 
         {isLoading ? (
