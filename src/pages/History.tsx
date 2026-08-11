@@ -46,6 +46,7 @@ export default function History() {
   const { data: logs = [], isLoading } = useHistory(DAYS);
 
   const [exportMode, setExportMode] = useState<ExportMode>("7");
+  const [exportFormat, setExportFormat] = useState<"excel" | "csv">("excel");
   const [rangeStart, setRangeStart] = useState<Date | undefined>(undefined);
   const [rangeEnd, setRangeEnd] = useState<Date | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
