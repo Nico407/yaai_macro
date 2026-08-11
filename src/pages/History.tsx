@@ -150,12 +150,14 @@ export default function History() {
         "Fat (g)": Math.round(d.fat_g),
         Meals: (dayMeals.get(d.date) ?? []).join(", "),
       }));
+      const loggedRows = rows.filter((r) => r.Meals !== "");
+      const avgCount = loggedRows.length || 1;
       const avgRow = {
         Date: "Average",
-        Calories: Math.round(rows.reduce((a, r) => a + r.Calories, 0) / rows.length) || 0,
-        "Protein (g)": Math.round(rows.reduce((a, r) => a + r["Protein (g)"], 0) / rows.length) || 0,
-        "Carbs (g)": Math.round(rows.reduce((a, r) => a + r["Carbs (g)"], 0) / rows.length) || 0,
-        "Fat (g)": Math.round(rows.reduce((a, r) => a + r["Fat (g)"], 0) / rows.length) || 0,
+        Calories: Math.round(loggedRows.reduce((a, r) => a + r.Calories, 0) / avgCount) || 0,
+        "Protein (g)": Math.round(loggedRows.reduce((a, r) => a + r["Protein (g)"], 0) / avgCount) || 0,
+        "Carbs (g)": Math.round(loggedRows.reduce((a, r) => a + r["Carbs (g)"], 0) / avgCount) || 0,
+        "Fat (g)": Math.round(loggedRows.reduce((a, r) => a + r["Fat (g)"], 0) / avgCount) || 0,
         Meals: "",
       };
       const rowsWithAvg = [...rows, avgRow];
