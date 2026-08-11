@@ -532,7 +532,7 @@ function DayBar({
   const dayLabel = date.toLocaleDateString(undefined, { weekday: "short" });
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-1.5">
+    <div className={cn("flex flex-1 flex-col items-center gap-1.5 rounded-lg px-1 py-1 transition-colors", isHighlighted && "bg-primary/10 ring-1 ring-primary/30")}>
       <div className="text-[10px] tabular-nums text-muted-foreground">
         {day.meals > 0 ? Math.round(day.kcal) : "–"}
       </div>
@@ -547,6 +547,7 @@ function DayBar({
           className={cn(
             "w-full transition-all",
             day.meals === 0 ? "bg-muted" : onTarget ? "bg-primary" : "bg-primary/60",
+            isHighlighted && day.meals > 0 && "bg-primary",
           )}
           style={{ height: `${heightPct}%` }}
         />
@@ -554,6 +555,9 @@ function DayBar({
       <div className={cn("text-[11px] font-medium", isHighlighted && "text-primary")}>
         {dayLabel}
       </div>
+      {isHighlighted && (
+        <div className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+      )}
     </div>
   );
 }
