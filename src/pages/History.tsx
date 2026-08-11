@@ -528,7 +528,7 @@ function DayBar({
       ? Math.abs(day.kcal - targetKcal) / targetKcal <= 0.1
       : false;
   const date = new Date(day.date + "T00:00:00");
-  const isHighlighted = highlightEnd ? day.date === highlightEnd : day.date === format(new Date(), "yyyy-MM-dd");
+  const isHighlighted = day.date === format(new Date(), "yyyy-MM-dd");
   const dayLabel = date.toLocaleDateString(undefined, { weekday: "short" });
 
   return (
