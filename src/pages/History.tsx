@@ -46,6 +46,7 @@ export default function History() {
   const { data: logs = [], isLoading } = useHistory(DAYS);
 
   const [exportMode, setExportMode] = useState<ExportMode>("7");
+  const [exportFormat, setExportFormat] = useState<"excel" | "csv">("excel");
   const [rangeStart, setRangeStart] = useState<Date | undefined>(undefined);
   const [rangeEnd, setRangeEnd] = useState<Date | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
@@ -158,17 +159,6 @@ export default function History() {
         Meals: "",
       };
       const rowsWithAvg = [...rows, avgRow];
-      const ws = XLSX.utils.json_to_sheet(rowsWithAvg);
-      ws["!cols"] = [
-        { wch: 12 },
-        { wch: 10 },
-        { wch: 11 },
-        { wch: 10 },
-        { wch: 9 },
-        { wch: 40 },
-      ];
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Daily summary");
 
       const mealRows = [...exportLogs]
         .sort((a, b) => a.logged_at.localeCompare(b.logged_at))
@@ -182,20 +172,70 @@ export default function History() {
           "Fat (g)": Math.round(Number(l.fat_g)),
           "Total (g)": Math.round(Number(l.total_grams)),
         }));
-      const ws2 = XLSX.utils.json_to_sheet(mealRows);
-      ws2["!cols"] = [
-        { wch: 12 },
-        { wch: 26 },
-        { wch: 10 },
-        { wch: 10 },
-        { wch: 11 },
-        { wch: 10 },
-        { wch: 9 },
-        { wch: 10 },
-      ];
-      XLSX.utils.book_append_sheet(wb, ws2, "Meals");
 
-      XLSX.writeFile(wb, `macro-history-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      const baseFilename = `macro-history-${new Date().toISOString().slice(0, 10)}`;
+
+      if (exportFormat === "csv") {
+        const escapeCsv = (val: string | number) => {
+          const s = String(val);
+          if (/[\",\n]/.test(s)) return `"${s.replace(/"/g, "\"\"")}"`;
+          return s;
+        };
+        const toCsv = (
+          data: Record<string, string | number>[],
+          headers: string[],
+        ) => {
+          const lines = [headers.map(escapeCsv).join(",")];
+          data.forEach((r) => lines.push(headers.map((h) => escapeCsv(r[h])).join(",")));
+          return lines.join("\n");
+        };
+
+        const summaryHeaders = ["Date", "Calories", "Protein (g)", "Carbs (g)", "Fat (g)", "Meals"];
+        const mealHeaders = ["Date", "Meal", "Slot", "Calories", "Protein (g)", "Carbs (g)", "Fat (g)", "Total (g)"];
+        const csv = [
+          toCsv(rowsWithAvg, summaryHeaders),
+          "",
+          "Meals",
+          toCsv(mealRows, mealHeaders),
+        ].join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${baseFilename}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        const ws = XLSX.utils.json_to_sheet(rowsWithAvg);
+        ws["!cols"] = [
+          { wch: 12 },
+          { wch: 10 },
+          { wch: 11 },
+          { wch: 10 },
+          { wch: 9 },
+          { wch: 40 },
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Daily summary");
+
+        const ws2 = XLSX.utils.json_to_sheet(mealRows);
+        ws2["!cols"] = [
+          { wch: 12 },
+          { wch: 26 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 11 },
+          { wch: 10 },
+          { wch: 9 },
+          { wch: 10 },
+        ];
+        XLSX.utils.book_append_sheet(wb, ws2, "Meals");
+
+        XLSX.writeFile(wb, `${baseFilename}.xlsx`);
+      }
     } finally {
       setExporting(false);
     }
@@ -302,6 +342,19 @@ export default function History() {
                       <SelectItem value="year">Current year</SelectItem>
                       <SelectItem value="all">All time</SelectItem>
                       <SelectItem value="range">Custom range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="export-format">Format</Label>
+                  <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as "excel" | "csv")}>
+                    <SelectTrigger id="export-format" className="mt-1.5 w-full">
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                      <SelectItem value="csv">CSV (.csv)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
