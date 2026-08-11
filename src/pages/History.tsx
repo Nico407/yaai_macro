@@ -432,7 +432,30 @@ export default function History() {
             </div>
 
             <Card className="rounded-2xl p-6 shadow-soft md:p-8">
-              <h2 className="mb-4 font-display text-lg font-bold">Calories per day</h2>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="font-display text-lg font-bold">Calories per day</h2>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setWeekOffset((o) => o + 1)}
+                    aria-label="Previous week"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setWeekOffset((o) => Math.max(0, o - 1))}
+                    disabled={weekOffset === 0}
+                    aria-label="Next week"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <div className="flex h-48 items-end justify-between gap-2">
                 {days.map((d) => (
                   <DayBar
@@ -440,6 +463,7 @@ export default function History() {
                     day={d}
                     targetKcal={target?.kcal ?? null}
                     scale={maxKcalScale}
+                    highlightEnd={displayEndStr}
                   />
                 ))}
               </div>
