@@ -123,23 +123,18 @@ export default function Index() {
     [profile],
   );
 
-  // Group logs by slot (first match wins; extras remain unslotted)
+  // Group logs by slot, oldest first. Meals without a slot ("Add more") join the Snack card, so every meal of the
+  // day sits in one of the four cards (no separate "Other meals" list).
   const slotLogs = useMemo(() => {
-    const map: Record<string, MealLog | undefined> = {};
-    logs.forEach((l) => {
-      if (l.slot && SLOTS.includes(l.slot as Slot) && !map[l.slot]) {
-        map[l.slot] = l;
-      }
+    const map: Record<string, MealLog[]> = {};
+    [...logs].reverse().forEach((l) => {
+      const slot = l.slot && SLOTS.includes(l.slot as Slot) ? l.slot : "Snack";
+      (map[slot] ??= []).push(l);
     });
     return map;
   }, [logs]);
 
-  const unslottedLogs = useMemo(
-    () => logs.filter((l) => !l.slot || !SLOTS.includes(l.slot as Slot)),
-    [logs],
-  );
-
-  const emptySlots = SLOTS.filter((s) => !slotLogs[s]).length;
+  const emptySlots = SLOTS.filter((s) => !slotLogs[s]?.length).length;
 
   async function addRecipeToSlot(recipe: RecipeRow) {
     if (!pickerSlot || !target) return;
@@ -449,24 +444,27 @@ export default function Index() {
           </div>
           <div className="grid gap-2 sm:grid-cols-2 md:gap-3">
             {SLOTS.map((slot) => {
-              const log = slotLogs[slot];
-              if (log) {
+              const list = slotLogs[slot] ?? [];
+              if (list.length) {
                 return (
-                  <Card
-                    key={slot}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      setEditing(log);
-                    }}
-                    className="cursor-pointer rounded-2xl p-3 transition-colors hover:bg-accent/40 md:p-4"
-                  >
+                  <Card key={slot} className="rounded-2xl p-3 md:p-4">
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{slot}</div>
-                    <div className="mt-0.5 font-semibold">{log.recipe_name}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
-                      {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
-                      {Math.round(Number(log.fat_g))}
+                    <div className="mt-0.5 divide-y divide-border/60">
+                      {list.map((log) => (
+                        <button
+                          key={log.id}
+                          type="button"
+                          onClick={() => setEditing(log)}
+                          className="-mx-2 block w-[calc(100%+1rem)] rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent/20 first:pt-0.5"
+                        >
+                          <div className="font-semibold">{log.recipe_name}</div>
+                          <div className="mt-0.5 text-xs text-muted-foreground">
+                            {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
+                            {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
+                            {Math.round(Number(log.fat_g))}
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </Card>
                 );
@@ -496,35 +494,6 @@ export default function Index() {
             <Plus className="mr-1 h-4 w-4" /> Add more
           </Button>
         </section>
-
-        {unslottedLogs.length > 0 && (
-          <section className="mt-8">
-            <h2 className="mb-3 font-display text-xl font-bold">Other meals today</h2>
-            <div className="space-y-2">
-              {unslottedLogs.map((l) => (
-                <Card
-                  key={l.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setEditing(l);
-                  }}
-                  className="flex cursor-pointer items-center justify-between rounded-xl p-4 transition-colors hover:bg-accent/40"
-                >
-                  <div>
-                    <div className="font-semibold">{l.recipe_name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {Math.round(Number(l.total_grams))}g · {Math.round(Number(l.kcal))} kcal
-                    </div>
-                  </div>
-                  <div className="text-right text-xs text-muted-foreground">
-                    P {Math.round(Number(l.protein_g))} · C {Math.round(Number(l.carbs_g))} · F {Math.round(Number(l.fat_g))}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
 
       {/* Meal details dialog (read-only) */}
