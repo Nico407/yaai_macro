@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { useProfile } from "@/hooks/useProfile";
-import { balancedGramsForShare, clampGrams, type PerGram, rescaledLog } from "@/lib/scaling";
+import { balancedGramsForShare, clampGrams, type PerGram, rescaledLog, cookbookPerGram, cookbookServing } from "@/lib/scaling";
 import { matchesByKeywords, hasAnyPrefs, type ProfilePrefs } from "@/lib/dietary";
 import { toast } from "sonner";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
@@ -101,13 +101,9 @@ export function CookbookList({ recipes, bare = false }: { recipes: CookbookRecip
   }
 
   async function addToSlot(item: CookbookRecipe, slot: Slot | "__extra__") {
-    const perGram: PerGram = {
-      kcal: item.kcal / 100,
-      protein_g: item.protein_g / 100,
-      carbs_g: item.carbs_g / 100,
-      fat_g: item.fat_g / 100,
-    };
-    let grams = 100;
+    // the cook book's macros are per serving: per gram is macros / serving weight (not / 100)
+    const perGram: PerGram = cookbookPerGram(item);
+    let grams = cookbookServing(item);
     let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
     let scalableCount = 0;
     if (target) {
@@ -128,7 +124,7 @@ export function CookbookList({ recipes, bare = false }: { recipes: CookbookRecip
         fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / denom,
       };
       const raw = balancedGramsForShare(perGram, share);
-      grams = clampGrams(raw || 100, 30, 5000);
+      grams = clampGrams(raw || cookbookServing(item), 30, 5000);
     }
 
     setBusy(true);

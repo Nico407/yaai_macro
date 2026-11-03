@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       cookbook_recipes: {
         Row: {
+          serving_g: number | null
           base_tags: string[]
           protein_tags: string[]
           lifestyle: string | null
@@ -37,6 +38,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          serving_g?: number | null
           base_tags?: string[]
           protein_tags?: string[]
           lifestyle?: string | null
@@ -58,6 +60,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          serving_g?: number | null
           base_tags?: string[]
           protein_tags?: string[]
           lifestyle?: string | null

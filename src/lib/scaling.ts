@@ -165,6 +165,23 @@ export function rescaledLog(l: LogLike, share: Share): Record<string, unknown> |
   return update;
 }
 
+/** Per gram of a cook book recipe. Its kcal / protein / carbs / fat are for ONE SERVING of serving_g grams (worked
+ *  out from its ingredient lines); without serving_g, an average meal of 160 kcal per 100 g is assumed. */
+export function cookbookPerGram(item: { kcal: number; protein_g: number; carbs_g: number; fat_g: number; serving_g?: number | null }): PerGram {
+  const serving = Number(item.serving_g) || Math.max(150, Number(item.kcal) / 1.6);
+  return {
+    kcal: Number(item.kcal) / serving,
+    protein_g: Number(item.protein_g) / serving,
+    carbs_g: Number(item.carbs_g) / serving,
+    fat_g: Number(item.fat_g) / serving,
+  };
+}
+
+/** Grams of one serving of a cook book recipe (see cookbookPerGram). */
+export function cookbookServing(item: { kcal: number; serving_g?: number | null }): number {
+  return Number(item.serving_g) || Math.max(150, Number(item.kcal) / 1.6);
+}
+
 export function clampGrams(
   grams: number,
   min: number,

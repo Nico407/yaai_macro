@@ -16,7 +16,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram, fitRecipe, rescaledLog } from "@/lib/scaling";
+import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram, fitRecipe, rescaledLog, cookbookPerGram, cookbookServing } from "@/lib/scaling";
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
@@ -243,13 +243,9 @@ export default function Index() {
 
   async function addCookbookToSlot(item: CookbookRecipe) {
     if (!pickerSlot) return;
-    const perGram: PerGram = {
-      kcal: item.kcal / 100,
-      protein_g: item.protein_g / 100,
-      carbs_g: item.carbs_g / 100,
-      fat_g: item.fat_g / 100,
-    };
-    let grams = 100;
+    // the cook book's macros are per serving: per gram is macros / serving weight (not / 100)
+    const perGram: PerGram = cookbookPerGram(item);
+    let grams = cookbookServing(item);
     let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
     if (target) {
       const scalableLogs = logs.filter((l) => !l.is_fixed);
@@ -268,7 +264,7 @@ export default function Index() {
         fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / denom,
       };
       const raw = balancedGramsForShare(perGram, share);
-      grams = clampGrams(raw || 100, 30, 5000);
+      grams = clampGrams(raw || cookbookServing(item), 30, 5000);
     }
 
     setAdding(true);

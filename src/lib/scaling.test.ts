@@ -69,3 +69,17 @@ describe("rescaling a planned meal", () => {
     expect(Number(u.kcal)).toBe(Math.round(500 * f));
   });
 });
+
+import { cookbookPerGram, cookbookServing } from "./scaling";
+
+describe("cook book recipes", () => {
+  it("are per serving: per gram is macros / serving weight", () => {
+    const salmon = { kcal: 520, protein_g: 38, carbs_g: 45, fat_g: 20, serving_g: 415 };
+    expect(cookbookPerGram(salmon).kcal).toBeCloseTo(520 / 415, 5);
+    expect(cookbookServing(salmon)).toBe(415);
+  });
+  it("fall back to an average meal without a serving weight", () => {
+    expect(cookbookServing({ kcal: 640 })).toBe(400);
+    expect(cookbookPerGram({ kcal: 640, protein_g: 40, carbs_g: 60, fat_g: 20 }).kcal).toBeCloseTo(1.6, 5);
+  });
+});

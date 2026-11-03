@@ -5,6 +5,7 @@
 #   3. ingredients whose kcal don't match their protein / carbs / fat (4 / 4 / 9 kcal per gram, ±15 %)
 #   4. recipes whose ingredient shares don't add up to 100 %
 #   5. how the cook book's kcal look (per 100 g or per serving)
+#   6. the weight of one serving of each cook book recipe
 set -euo pipefail
 cd "$(dirname "$0")/.."
 val() { grep -E "^$1=" .env.local | head -n1 | cut -d= -f2- | sed -E "s/^\"(.*)\"\$/\1/; s/^'(.*)'\$/\1/"; }
@@ -33,5 +34,8 @@ select r.name, round(coalesce(sum(ri.ratio), 0) * 100, 1) as percent from public
 group by r.id, r.name having abs(coalesce(sum(ri.ratio), 0) - 1) > 0.01;
 \echo '== 5. Cook book kcal'
 select count(*) as recipes, min(kcal), round(avg(kcal)) as avg, max(kcal) from public.cookbook_recipes;
+\echo '== 6. Cook book: one serving (kcal are per serving; weight added up from the ingredient lines)'
+select name, serving_g as grams, kcal, round(kcal / nullif(serving_g, 0) * 100) as kcal_per_100g
+from public.cookbook_recipes order by name;
 SQL
 } | psql "$db" -X -q -v email="$email" -f -
