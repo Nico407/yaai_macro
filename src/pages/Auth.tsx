@@ -80,7 +80,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-gradient-hero">
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
-        <header className="mb-6 text-primary-foreground">
+        <header className="mb-6 text-foreground">
           <p className="mb-2 text-sm uppercase tracking-[0.2em] opacity-80">Welcome</p>
           <h1 className="font-display text-4xl font-bold md:text-5xl">
             {mode === "signin" ? "Sign in" : "Create your account"}
@@ -125,7 +125,7 @@ export default function Auth() {
                   {PW_RULES.map((rule) => {
                     const ok = rule.test(password);
                     return (
-                      <li key={rule.label} className={`flex items-center gap-1.5 ${ok ? "text-green-600" : "text-destructive"}`}>
+                      <li key={rule.label} className={`flex items-center gap-1.5 ${ok ? "text-accent" : "text-destructive"}`}>
                         {ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
                         <span>{rule.label}</span>
                       </li>
@@ -150,7 +150,7 @@ export default function Auth() {
             )}
           </p>
         </Card>
-        <p className="mt-4 text-center text-xs text-primary-foreground/70">
+        <p className="mt-4 text-center text-xs text-muted-foreground">
           By continuing you agree your data is handled per our privacy terms.
         </p>
       </div>

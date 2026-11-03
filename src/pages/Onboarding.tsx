@@ -133,7 +133,7 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-gradient-hero">
       <div className="mx-auto max-w-2xl px-4 py-10 md:py-16">
-        <header className="mb-8 text-primary-foreground">
+        <header className="mb-8 text-foreground">
           <p className="mb-2 text-sm uppercase tracking-[0.2em] opacity-80">Step 1</p>
           <h1 className="font-display text-4xl font-bold md:text-5xl">Let's calibrate.</h1>
           <p className="mt-2 opacity-80">A few numbers to compute your daily macro targets.</p>

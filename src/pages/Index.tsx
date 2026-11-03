@@ -1152,7 +1152,7 @@ function ActionCard({
 function Welcome() {
   return (
     <div className="min-h-screen bg-gradient-hero">
-      <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-4 py-16 text-primary-foreground">
+      <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-4 py-16 text-foreground">
         <p className="mb-3 text-sm uppercase tracking-[0.25em] opacity-80">Macro</p>
         <h1 className="font-display text-5xl font-bold leading-[1.05] md:text-6xl">
           Eat what you want.<br />

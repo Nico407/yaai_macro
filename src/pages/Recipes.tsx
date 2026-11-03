@@ -300,7 +300,7 @@ export default function Recipes() {
                           </span>
                         )}
                         {prefsActive && recipeMatches.get(r.id) && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent dark:text-emerald-400">
                             <Check className="h-3 w-3" /> matches your prefs
                           </span>
                         )}
@@ -323,7 +323,7 @@ export default function Recipes() {
                           e.stopPropagation();
                           setPicking(r);
                         }}
-                        className="shrink-0 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
+                        className="shrink-0 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90"
                       >
                         <Plus className="mr-1 h-4 w-4" /> Add to plan
                       </Button>
