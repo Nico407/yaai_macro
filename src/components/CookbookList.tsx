@@ -36,7 +36,9 @@ function imageFor(r: CookbookRecipe, idx: number): string {
   return FALLBACK_IMAGES[(hash + idx) % FALLBACK_IMAGES.length];
 }
 
-export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
+/** bare: the page around it does the searching and filtering (Plan my meals), so no own search box or prefs switch,
+ *  and nothing is printed when the list is empty. */
+export function CookbookList({ recipes, bare = false }: { recipes: CookbookRecipe[]; bare?: boolean }) {
   const qc = useQueryClient();
   const { data: profile } = useProfile();
   const { data: logs = [] } = useTodayLogs();
@@ -67,7 +69,7 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
         (r) => r.name.toLowerCase().includes(q) || (r.description ?? "").toLowerCase().includes(q),
       );
     }
-    if (prefsActive && hideNonMatching) {
+    if (prefsActive && hideNonMatching && !bare) {
       list = list.filter((r) => matchMap.get(r.id));
     }
     return list;
@@ -190,7 +192,7 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
 
   return (
     <>
-      <div className="relative mb-4">
+      {!bare && <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
@@ -198,9 +200,9 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
           placeholder="Search meals…"
           className="pl-9"
         />
-      </div>
+      </div>}
 
-      {prefsActive && (
+      {prefsActive && !bare && (
         <div className="mb-4 flex items-center justify-between rounded-xl border bg-secondary/40 px-4 py-2.5">
           <Label htmlFor="cb-hide" className="text-sm">
             Hide meals that don't match my prefs
@@ -209,7 +211,7 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
         </div>
       )}
       <div className="space-y-3">
-        {filtered.length === 0 ? (
+        {filtered.length === 0 && bare ? null : filtered.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
             No meals match "{query}".
           </p>
