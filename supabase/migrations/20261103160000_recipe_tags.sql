@@ -49,7 +49,9 @@ where f.id = r.id and r.lifestyle is null;
 
 update public.cookbook_recipes c set base_tags = f.base_tags, protein_tags = f.protein_tags, lifestyle = f.lifestyle
 from (
-  select c2.id, (pg_temp.recipe_tags(c2.name || ' | ' || array_to_string(c2.ingredients, ' | '))).*
+  select c2.id, (pg_temp.recipe_tags(c2.name || ' | ' || coalesce((
+    -- ingredients is text[] in some projects and jsonb in others: to_jsonb reads both
+    select string_agg(x, ' | ') from jsonb_array_elements_text(to_jsonb(c2.ingredients)) x), ''))).*
   from public.cookbook_recipes c2
 ) f
 where f.id = c.id and c.lifestyle is null;
