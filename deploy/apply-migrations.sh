@@ -44,3 +44,4 @@ for f in $(ls supabase/migrations/*.sql | sort); do
 done
 echo "Database up to date ($applied migration(s) applied)."
 bash deploy/seed-recipes.sh
+bash deploy/remove-old-recipes.sh || echo "    Old recipes not removed (see above), the update carries on."
