@@ -178,6 +178,12 @@ export type Database = {
           },
         ]
       }
+      recipe_photos: {
+        Row: { image: string; recipe_id: string; updated_at: string; user_id: string }
+        Insert: { image: string; recipe_id: string; updated_at?: string; user_id: string }
+        Update: { image?: string; recipe_id?: string; updated_at?: string; user_id?: string }
+        Relationships: []
+      }
       planned_meals: {
         Row: {
           carbs_g: number

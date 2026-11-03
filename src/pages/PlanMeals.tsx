@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ChefHat, Pencil, Plus, Star } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
@@ -9,6 +9,8 @@ import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { CookbookList } from "@/components/CookbookList";
 import { ALL, RecipeFilterBar, passes, useRecipeFacets, type RecipeFilter } from "@/components/RecipeFilters";
 import type { Facets } from "@/lib/recipeFacets";
+import { RecipePhoto } from "@/components/RecipePhoto";
+import { useRecipePhotos, useSaveRecipePhoto } from "@/hooks/useRecipePhotos";
 
 /** One page with every recipe (yours, the cook book, the country recipes), filtered by base, protein, country and
  *  lifestyle. The filters are kept in the address (?base=Rice&protein=Chicken…), so YAAI can open a filtered list. */
@@ -18,6 +20,8 @@ export default function PlanMeals() {
   const [query, setQuery] = useState("");
   const { data: own = [], isLoading: l1 } = useRecipes();
   const { data: cookbook = [], isLoading: l2 } = useAllCookbookRecipes();
+  const { data: photos } = useRecipePhotos();
+  const savePhoto = useSaveRecipePhoto();
 
   const filter: RecipeFilter = {
     base: params.get("base") ?? ALL,
@@ -67,7 +71,8 @@ export default function PlanMeals() {
 
         <div className="space-y-3">
           {ownShown.map((r) => (
-            <OwnRecipeCard key={r.id} r={r} f={ownFacets.get(r.id)!}
+            <OwnRecipeCard key={r.id} r={r} f={ownFacets.get(r.id)!} photo={photos?.get(r.id)}
+              onPhoto={(img) => savePhoto(r.id, img)}
               onPlan={() => navigate(`/recipes/${r.id}/scale`)} onEdit={() => navigate(`/recipes/${r.id}/edit`)} />
           ))}
         </div>
@@ -88,11 +93,14 @@ function FacetChips({ f }: { f: Facets }) {
   );
 }
 
-function OwnRecipeCard({ r, f, onPlan, onEdit }: { r: RecipeRow; f: Facets; onPlan: () => void; onEdit: () => void }) {
+function OwnRecipeCard({ r, f, photo, onPhoto, onPlan, onEdit }: {
+  r: RecipeRow; f: Facets; photo?: string; onPhoto: (image: string | null) => Promise<void>; onPlan: () => void; onEdit: () => void;
+}) {
   return (
     <Card className="rounded-2xl p-5">
       <div className="flex items-start gap-4">
-        <ChefHat className="mt-1 h-4 w-4 shrink-0 text-primary" />
+        {/* tap to take or choose a photo; the chef hat until there is one */}
+        <RecipePhoto src={photo} alt={r.name} className="h-20 w-20 md:h-24 md:w-24" onPick={onPhoto} onRemove={() => onPhoto(null)} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <div className="font-display text-lg font-bold">{r.name}</div>

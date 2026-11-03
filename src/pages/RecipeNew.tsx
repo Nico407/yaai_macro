@@ -33,6 +33,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
 import { useRecipes, CUISINE_TAGS } from "@/hooks/useRecipes";
+import { useRecipePhotos, useSaveRecipePhoto } from "@/hooks/useRecipePhotos";
+import { RecipePhoto } from "@/components/RecipePhoto";
 import { BASES, COUNTRIES, LIFESTYLES, PROTEINS, facetsOf, type Lifestyle } from "@/lib/recipeFacets";
 import { ArrowLeft, Check, ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 
@@ -46,6 +48,18 @@ export default function RecipeNew() {
   const { data: ingredients = [], isLoading } = useIngredients();
   const { data: recipes = [], isLoading: loadingRecipes } = useRecipes();
   const existing = isEdit ? recipes.find((r) => r.id === id) : undefined;
+
+  const { data: photos } = useRecipePhotos();
+  const savePhoto = useSaveRecipePhoto();
+  // a new recipe's photo waits here until the recipe is saved; an existing recipe's is saved right away
+  const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
+  const shownPhoto = isEdit ? photos?.get(id!) : pendingPhoto;
+  async function onPhoto(image: string | null) {
+    if (isEdit) {
+      await savePhoto(id!, image);
+      toast({ title: image ? "Photo saved" : "Photo removed" });
+    } else setPendingPhoto(image);
+  }
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -229,6 +243,10 @@ export default function RecipeNew() {
       return;
     }
 
+    if (!isEdit && pendingPhoto) {
+      await savePhoto(recipeId!, pendingPhoto).catch((e) =>
+        toast({ title: "Recipe saved, photo not", description: e instanceof Error ? e.message : String(e), variant: "destructive" }));
+    }
     await qc.invalidateQueries({ queryKey: ["recipes"] });
     toast({ title: isEdit ? "Recipe updated" : "Recipe saved" });
     navigate("/recipes");
@@ -287,6 +305,16 @@ export default function RecipeNew() {
 
         <Card className="rounded-2xl p-4 shadow-soft md:p-8">
           <form onSubmit={onSave} className="space-y-3 md:space-y-5">
+            <div className="flex items-center gap-4">
+              <RecipePhoto src={shownPhoto} alt={name || "Recipe photo"} className="h-24 w-24 md:h-28 md:w-28"
+                iconClassName="h-7 w-7" onPick={onPhoto} onRemove={() => onPhoto(null)} />
+              <div className="text-sm">
+                <div className="font-semibold">{shownPhoto ? "Photo" : "Add a photo"}</div>
+                <p className="text-xs text-muted-foreground">
+                  {shownPhoto ? "Tap it to change it." : "Tap the hat to take one when you cook it, or pick one from your phone."}
+                </p>
+              </div>
+            </div>
             <div>
               <Label htmlFor="r-name">Name</Label>
               <Input

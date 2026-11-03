@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { Loader2, Sparkles, Carrot, Plus, Minus, Check, ChevronDown, Trash2, Search, Star } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { RecipePhoto } from "@/components/RecipePhoto";
+import { useRecipePhotos } from "@/hooks/useRecipePhotos";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
 const slotName = (s: string | null) => (!s || s === "__extra__" ? "extras" : s);
@@ -42,6 +44,7 @@ export default function Index() {
   const [editing, setEditing] = useState<MealLog | null>(null);
 
   const [pickerSlot, setPickerSlot] = useState<Slot | null>(null);
+  const { data: photos } = useRecipePhotos();
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
@@ -360,7 +363,7 @@ export default function Index() {
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 md:mt-8 md:gap-4">
           <Link to="/plan">
-            <ActionCard icon={<Sparkles className="h-5 w-5" />} title="Plan my meals" desc="Cookbook, your recipes and countries." />
+            <ActionCard icon={<Sparkles className="h-5 w-5" />} title="Plan my meals" desc="Your recipes, by base, protein, country and lifestyle." />
           </Link>
           <Link to="/ingredients">
             <ActionCard icon={<Carrot className="h-5 w-5" />} title="Ingredients" desc="Manage your pantry." />
@@ -375,7 +378,7 @@ export default function Index() {
           <div className="grid gap-2 sm:grid-cols-2 md:gap-3">
             {SLOTS.map((slot) => {
               const log = (slotLogs[slot] ?? [])[0];
-              if (log) return <MealCard key={slot} label={slot} log={log} open={editing?.id === log.id}
+              if (log) return <MealCard photo={photos?.get(log.recipe_id ?? "")} key={slot} label={slot} log={log} open={editing?.id === log.id}
                 onToggle={() => setEditing(editing?.id === log.id ? null : log)} onDelete={() => deleteLog(log.id)}
                 onSave={(p) => updateLog(log, p)} busy={deleting} />;
               return (
@@ -396,7 +399,7 @@ export default function Index() {
             })}
             {/* more meals (a second lunch, snacks, extras): each its own card, same size as the others */}
             {extraLogs.map((log) => (
-              <MealCard key={log.id} label={log.slot && SLOTS.includes(log.slot as Slot) ? log.slot : "Extra"} log={log}
+              <MealCard photo={photos?.get(log.recipe_id ?? "")} key={log.id} label={log.slot && SLOTS.includes(log.slot as Slot) ? log.slot : "Extra"} log={log}
                 open={editing?.id === log.id} onToggle={() => setEditing(editing?.id === log.id ? null : log)}
                 onDelete={() => deleteLog(log.id)} onSave={(p) => updateLog(log, p)} busy={deleting} />
             ))}
@@ -448,6 +451,7 @@ export default function Index() {
                 {ownList.map((r) => (
                   <button key={`r-${r.id}`} onClick={() => { void pick(() => addRecipeToSlot(r)); }} disabled={adding}
                     className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20 disabled:opacity-50">
+                    <RecipePhoto src={photos?.get(r.id)} alt={r.name} className="h-12 w-12" iconClassName="h-4 w-4" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="truncate font-semibold">{r.name}</span>
@@ -610,8 +614,8 @@ function Welcome() {
 
 /** One meal of today's plan. Click to open it in place: ingredients, how to prep, and quick edits (amount, slot,
  *  remove). An open card takes the full row, so its neighbour keeps its size. */
-function MealCard({ label, log, open, onToggle, onDelete, onSave, busy }: {
-  label: string; log: MealLog; open: boolean; onToggle: () => void; onDelete: () => void;
+function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }: {
+  label: string; log: MealLog; photo?: string; open: boolean; onToggle: () => void; onDelete: () => void;
   onSave: (p: { grams?: number; slot?: string | null }) => Promise<void>; busy: boolean;
 }) {
   const [grams, setGrams] = useState(String(Math.round(Number(log.total_grams))));
@@ -630,6 +634,7 @@ function MealCard({ label, log, open, onToggle, onDelete, onSave, busy }: {
       <div role="button" tabIndex={0} aria-expanded={open} onClick={onToggle}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
         className="flex cursor-pointer items-start gap-2 p-3 md:p-4">
+        {photo && <img src={photo} alt="" className="h-11 w-11 shrink-0 rounded-lg object-cover" loading="lazy" />}
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
           <div className="mt-0.5 truncate font-semibold">{log.recipe_name}</div>
