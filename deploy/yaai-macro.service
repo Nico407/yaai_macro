@@ -1,0 +1,16 @@
+[Unit]
+Description=YAAI Macros (macro tracker, Tailscale only)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+User=yaai
+WorkingDirectory=/home/yaai/yaai_macro
+Environment=PORT=5007
+# Listen only on the Tailscale address, so the app is reachable from your own devices only
+ExecStart=/bin/sh -c 'HOST=$(tailscale ip -4 | head -n1) exec node deploy/serve.mjs'
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
