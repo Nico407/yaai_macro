@@ -83,3 +83,14 @@ describe("cook book recipes", () => {
     expect(cookbookPerGram({ kcal: 640, protein_g: 40, carbs_g: 60, fat_g: 20 }).kcal).toBeCloseTo(1.6, 5);
   });
 });
+
+import { isFixedMeal } from "./scaling";
+
+describe("fixed meals", () => {
+  it("are fixed if saved as fixed or if their recipe is fixed now", () => {
+    const fixedRecipes = new Set(["shake"]);
+    expect(isFixedMeal({ is_fixed: false, recipe_id: "shake" }, fixedRecipes)).toBe(true);
+    expect(isFixedMeal({ is_fixed: true, recipe_id: null }, fixedRecipes)).toBe(true);
+    expect(isFixedMeal({ is_fixed: false, recipe_id: "bowl" }, fixedRecipes)).toBe(false);
+  });
+});

@@ -17,7 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { useProfile } from "@/hooks/useProfile";
-import { balancedGramsForShare, clampGrams, type PerGram, rescaledLog, cookbookPerGram, cookbookServing } from "@/lib/scaling";
+import { useRecipes } from "@/hooks/useRecipes";
+import { balancedGramsForShare, clampGrams, type PerGram, rescaledLog, cookbookPerGram, cookbookServing, isFixedMeal } from "@/lib/scaling";
 import { matchesByKeywords, hasAnyPrefs, type ProfilePrefs } from "@/lib/dietary";
 import { toast } from "sonner";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
@@ -42,6 +43,8 @@ export function CookbookList({ recipes, bare = false }: { recipes: CookbookRecip
   const qc = useQueryClient();
   const { data: profile } = useProfile();
   const { data: logs = [] } = useTodayLogs();
+  const { data: ownRecipes = [] } = useRecipes();
+  const fixedRecipeIds = useMemo(() => new Set(ownRecipes.filter((r) => r.is_fixed).map((r) => r.id)), [ownRecipes]);
   const [picking, setPicking] = useState<CookbookRecipe | null>(null);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
@@ -107,8 +110,8 @@ export function CookbookList({ recipes, bare = false }: { recipes: CookbookRecip
     let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
     let scalableCount = 0;
     if (target) {
-      const scalableLogs = logs.filter((l) => !l.is_fixed);
-      const fixedLogs = logs.filter((l) => l.is_fixed);
+      const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
+      const fixedLogs = logs.filter((l) => isFixedMeal(l, fixedRecipeIds));
       const fixedConsumed = {
         kcal: fixedLogs.reduce((s, l) => s + Number(l.kcal), 0),
         protein_g: fixedLogs.reduce((s, l) => s + Number(l.protein_g), 0),
@@ -130,7 +133,7 @@ export function CookbookList({ recipes, bare = false }: { recipes: CookbookRecip
     setBusy(true);
 
     if (target && scalableCount > 0) {
-      const scalableLogs = logs.filter((l) => !l.is_fixed);
+      const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
       for (const l of scalableLogs) {
         // the whole portion moves to the new share, with its saved ingredient grams
         const update = rescaledLog(l, share);

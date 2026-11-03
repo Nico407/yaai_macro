@@ -16,7 +16,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram, fitRecipe, rescaledLog, cookbookPerGram, cookbookServing } from "@/lib/scaling";
+import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram, fitRecipe, rescaledLog, cookbookPerGram, cookbookServing, isFixedMeal } from "@/lib/scaling";
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
@@ -34,6 +34,7 @@ export default function Index() {
   const { data: profile, isLoading } = useProfile();
   const { data: logs = [] } = useTodayLogs();
   const { data: recipes = [] } = useRecipes();
+  const fixedRecipeIds = useMemo(() => new Set(recipes.filter((r) => r.is_fixed).map((r) => r.id)), [recipes]);
   const { data: cookbookAll = [] } = useAllCookbookRecipes();
   const pickFacets = useRecipeFacets(recipes, cookbookAll);
 
@@ -162,8 +163,8 @@ export default function Index() {
     const isFixed = !!recipe.is_fixed;
 
     // Fixed meals are not scaled — use the recipe's default batch size
-    const fixedLogs = logs.filter((l) => l.is_fixed);
-    const scalableLogs = logs.filter((l) => !l.is_fixed);
+    const fixedLogs = logs.filter((l) => isFixedMeal(l, fixedRecipeIds));
+    const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
 
     // Subtract fixed meals from the daily target, then split the rest evenly
     const fixedConsumed = {
@@ -248,8 +249,8 @@ export default function Index() {
     let grams = cookbookServing(item);
     let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
     if (target) {
-      const scalableLogs = logs.filter((l) => !l.is_fixed);
-      const fixedLogs = logs.filter((l) => l.is_fixed);
+      const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
+      const fixedLogs = logs.filter((l) => isFixedMeal(l, fixedRecipeIds));
       const fixedConsumed = {
         kcal: fixedLogs.reduce((s, l) => s + Number(l.kcal), 0),
         protein_g: fixedLogs.reduce((s, l) => s + Number(l.protein_g), 0),
@@ -269,7 +270,7 @@ export default function Index() {
 
     setAdding(true);
     if (target) {
-      const scalableLogs = logs.filter((l) => !l.is_fixed);
+      const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
       for (const l of scalableLogs) {
         // the whole portion moves to the new share, with its saved ingredient grams
         const update = rescaledLog(l, share);

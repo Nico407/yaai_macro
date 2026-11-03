@@ -182,6 +182,12 @@ export function cookbookServing(item: { kcal: number; serving_g?: number | null 
   return Number(item.serving_g) || Math.max(150, Number(item.kcal) / 1.6);
 }
 
+/** A planned / logged meal is fixed (never rescaled) if it was saved as fixed, or if its recipe is fixed now: a
+ *  recipe switched to "fixed" later still has meals that were saved as scalable. */
+export function isFixedMeal(m: { is_fixed?: boolean | null; recipe_id?: string | null }, fixedRecipeIds: Set<string>): boolean {
+  return !!m.is_fixed || (!!m.recipe_id && fixedRecipeIds.has(m.recipe_id));
+}
+
 export function clampGrams(
   grams: number,
   min: number,

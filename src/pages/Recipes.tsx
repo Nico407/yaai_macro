@@ -14,7 +14,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import { ingredientBreakdown, macrosFor, recipePerGram, fitRecipe, rescaledLog } from "@/lib/scaling";
+import { ingredientBreakdown, macrosFor, recipePerGram, fitRecipe, rescaledLog, isFixedMeal } from "@/lib/scaling";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ type Slot = (typeof SLOTS)[number];
 export default function Recipes() {
   const qc = useQueryClient();
   const { data: recipes = [], isLoading } = useRecipes();
+  const fixedRecipeIds = useMemo(() => new Set(recipes.filter((r) => r.is_fixed).map((r) => r.id)), [recipes]);
   const { data: profile } = useProfile();
   const { data: logs = [] } = useTodayLogs();
   const [editMode, setEditMode] = useState(false);
@@ -103,8 +104,8 @@ export default function Recipes() {
     }
     const isFixed = !!recipe.is_fixed;
 
-    const fixedLogs = logs.filter((l) => l.is_fixed);
-    const scalableLogs = logs.filter((l) => !l.is_fixed);
+    const fixedLogs = logs.filter((l) => isFixedMeal(l, fixedRecipeIds));
+    const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
 
     let grams = Number(recipe.default_serving_g);
     let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };

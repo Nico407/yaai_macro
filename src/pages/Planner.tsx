@@ -19,14 +19,7 @@ import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { usePlannedMeals, type PlannedMeal } from "@/hooks/usePlannedMeals";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  balancedGramsForShare,
-  clampGrams,
-  ingredientBreakdown,
-  macrosFor,
-  recipePerGram,
-  type PerGram,
-} from "@/lib/scaling";
+import { ingredientBreakdown, macrosFor, recipePerGram, type PerGram, isFixedMeal, rescaledLog } from "@/lib/scaling";
 import {
   ChevronLeft,
   ChevronRight,
@@ -109,8 +102,9 @@ export default function Planner() {
     if (!target) return;
     const existing = (byDay[date] ?? []).filter((p) => !skipIds.includes(p.id));
     const all = [...existing, ...extra];
-    const fixed = all.filter((p) => p.is_fixed);
-    const scalable = all.filter((p) => !p.is_fixed && !!p.id);
+    const fixedIds = new Set(recipes.filter((r) => r.is_fixed).map((r) => r.id));
+    const fixed = all.filter((p) => isFixedMeal(p, fixedIds));
+    const scalable = all.filter((p) => !isFixedMeal(p, fixedIds) && !!p.id);
     const fixedSum = fixed.reduce<Macros>(
       (a, p) => ({
         kcal: a.kcal + Number(p.kcal),
@@ -128,26 +122,12 @@ export default function Planner() {
       fat_g: Math.max(0, target.fat_g - fixedSum.fat_g) / denom,
     };
     for (const p of scalable) {
-      const oldGrams = Number(p.total_grams);
-      const oldKcal = Number(p.kcal);
-      if (!oldGrams || !oldKcal) continue;
-      const perGram: PerGram = {
-        kcal: oldKcal / oldGrams,
-        protein_g: Number(p.protein_g) / oldGrams,
-        carbs_g: Number(p.carbs_g) / oldGrams,
-        fat_g: Number(p.fat_g) / oldGrams,
-      };
-      const newGrams = clampGrams(balancedGramsForShare(perGram, share) || oldGrams, 30, 5000);
-      const f = newGrams / oldGrams;
+      // the whole portion moves to the new share, with its saved ingredient grams
+      const update = rescaledLog(p, share);
+      if (!update) continue;
       const { error } = await supabase
         .from("planned_meals")
-        .update({
-          total_grams: Math.round(newGrams),
-          kcal: Math.round(oldKcal * f),
-          protein_g: Math.round(Number(p.protein_g) * f * 10) / 10,
-          carbs_g: Math.round(Number(p.carbs_g) * f * 10) / 10,
-          fat_g: Math.round(Number(p.fat_g) * f * 10) / 10,
-        })
+        .update(update as never)
         .eq("id", p.id);
       if (error) throw error;
     }
