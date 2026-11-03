@@ -29,8 +29,8 @@ export default function RecipesHub() {
           <HubCard
             to="/recipes"
             icon={<ChefHat className="h-5 w-5" />}
-            title="My creations"
-            desc="Plan from recipes you've built yourself."
+            title="Recipes"
+            desc="Build recipes from your pantry and plan from them."
           />
           <HubCard
             to="/plan/countries"

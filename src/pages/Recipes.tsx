@@ -211,7 +211,7 @@ export default function Recipes() {
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Cookbook</p>
-              <h1 className="font-display text-4xl font-bold md:text-5xl">My creations</h1>
+              <h1 className="font-display text-4xl font-bold md:text-5xl">Recipes</h1>
             </div>
             <div className="flex flex-col gap-2">
               <Button asChild>
@@ -253,7 +253,7 @@ export default function Recipes() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search your creations…"
+                placeholder="Search recipes…"
                 className="pl-9"
               />
             </div>

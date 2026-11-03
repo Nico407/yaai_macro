@@ -32,7 +32,7 @@ import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search, Settings, Calendar, UserCog, Star, ClipboardList, BookOpen, ChefHat, Globe } from "lucide-react";
+import { Loader2, Sparkles, Carrot, Plus, Trash2, Search, Settings, Calendar, UserCog, Star, ClipboardList, BookOpen, ChefHat, Globe } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -424,13 +424,7 @@ export default function Index() {
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 md:mt-8 md:gap-4">
           <Link to="/plan">
-            <ActionCard icon={<Sparkles className="h-5 w-5" />} title="Plan my meals" desc="Browse cookbook & your creations." />
-          </Link>
-          <Link to="/quick-log">
-            <ActionCard icon={<Zap className="h-5 w-5" />} title="Quick log" desc="Log raw ingredient grams without a recipe." />
-          </Link>
-          <Link to="/recipes">
-            <ActionCard icon={<Utensils className="h-5 w-5" />} title="My creations" desc="Build meals from your pantry." />
+            <ActionCard icon={<Sparkles className="h-5 w-5" />} title="Plan my meals" desc="Cookbook, your recipes and countries." />
           </Link>
           <Link to="/ingredients">
             <ActionCard icon={<Carrot className="h-5 w-5" />} title="Ingredients" desc="Manage your pantry." />
@@ -605,7 +599,7 @@ export default function Index() {
             const cookbookOptions: { value: string; label: string }[] = [
               { value: "__library__", label: "Free library" },
               ...cookbookCountries.map((c) => ({ value: c, label: c })),
-              { value: "__mine__", label: "My creations" },
+              { value: "__mine__", label: "Recipes" },
             ];
 
             let cookbookList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [];
@@ -767,7 +761,7 @@ export default function Index() {
                     >
                       <div className="mb-1 flex items-center gap-2 text-primary">
                         <ChefHat className="h-4 w-4" />
-                        <span className="font-display text-sm font-bold">My creations</span>
+                        <span className="font-display text-sm font-bold">Recipes</span>
                       </div>
                       <p className="text-xs text-muted-foreground">Recipes you've built yourself.</p>
                     </button>
@@ -925,7 +919,7 @@ export default function Index() {
         <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
           <DialogHeader>
             <DialogTitle>
-              {categoryOpen === "__mine__" ? "My creations" : categoryOpen === "__countries__" ? "Countries" : "Cook Book"}
+              {categoryOpen === "__mine__" ? "Recipes" : categoryOpen === "__countries__" ? "Countries" : "Cook Book"}
             </DialogTitle>
             <DialogDescription>
               {categoryOpen === "__mine__"

@@ -547,7 +547,7 @@ export default function Planner() {
           <div className="space-y-3">
             {myMatches.length > 0 && (
               <div>
-                <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">My creations</p>
+                <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Recipes</p>
                 <div className="space-y-1">
                   {myMatches.map((r) => (
                     <button
