@@ -14,7 +14,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram } from "@/lib/scaling";
+import { ingredientBreakdown, macrosFor, recipePerGram, fitRecipe, rescaledLog } from "@/lib/scaling";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { toast } from "sonner";
@@ -128,39 +128,23 @@ export default function Recipes() {
         carbs_g: Math.max(0, target.carbs_g - fixedConsumed.carbs_g) / denom,
         fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / denom,
       };
-      if (!isFixed) {
-        const raw = balancedGramsForShare(perGram, share);
-        grams = clampGrams(raw || grams, 30, 5000);
-      }
     }
-    const totals = macrosFor(perGram, grams);
-    const breakdown = ingredientBreakdown(recipe, grams);
+    // fixed meals keep their batch size; others get each ingredient's amount fitted to this meal's share
+    const fitted = target && !isFixed ? fitRecipe(recipe, share) : null;
+    if (fitted) grams = fitted.grams;
+    const totals = fitted ? fitted.totals : macrosFor(perGram, grams);
+    const breakdown = fitted ? fitted.breakdown : ingredientBreakdown(recipe, grams);
 
     setBusy(true);
 
     if (target && scalableCount > 0) {
       for (const l of scalableLogs) {
-        const oldGrams = Number(l.total_grams);
-        const oldKcal = Number(l.kcal);
-        if (!oldGrams || !oldKcal) continue;
-        const lPerGram: PerGram = {
-          kcal: oldKcal / oldGrams,
-          protein_g: Number(l.protein_g) / oldGrams,
-          carbs_g: Number(l.carbs_g) / oldGrams,
-          fat_g: Number(l.fat_g) / oldGrams,
-        };
-        const newGramsRaw = balancedGramsForShare(lPerGram, share);
-        const newGrams = clampGrams(newGramsRaw || oldGrams, 30, 5000);
-        const factor = newGrams / oldGrams;
+        // the whole portion moves to the new share, with its saved ingredient grams
+        const update = rescaledLog(l, share);
+        if (!update) continue;
         const { error: upErr } = await supabase
           .from("meal_logs")
-          .update({
-            total_grams: Math.round(newGrams),
-            kcal: Math.round(oldKcal * factor),
-            protein_g: Math.round(Number(l.protein_g) * factor * 10) / 10,
-            carbs_g: Math.round(Number(l.carbs_g) * factor * 10) / 10,
-            fat_g: Math.round(Number(l.fat_g) * factor * 10) / 10,
-          })
+          .update(update as never)
           .eq("id", l.id);
         if (upErr) {
           setBusy(false);

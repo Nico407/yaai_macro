@@ -16,14 +16,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import {
-  balancedGramsForShare,
-  clampGrams,
-  ingredientBreakdown,
-  macrosFor,
-  recipePerGram,
-  type PerGram,
-} from "@/lib/scaling";
+import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram, fitRecipe, rescaledLog } from "@/lib/scaling";
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
@@ -191,43 +184,23 @@ export default function Index() {
       fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / Math.max(1, scalableCount),
     };
 
-    let grams: number;
-    if (isFixed) {
-      grams = Number(recipe.default_serving_g);
-    } else {
-      const raw = balancedGramsForShare(perGram, share);
-      grams = clampGrams(raw || Number(recipe.default_serving_g), 30, 5000);
-    }
-    const totals = macrosFor(perGram, grams);
-    const breakdown = ingredientBreakdown(recipe, grams);
+    // fixed meals keep their batch size; others get each ingredient's amount fitted to this meal's share
+    const fitted = isFixed ? null : fitRecipe(recipe, share);
+    const grams = fitted ? fitted.grams : Number(recipe.default_serving_g);
+    const totals = fitted ? fitted.totals : macrosFor(perGram, grams);
+    const breakdown = fitted ? fitted.breakdown : ingredientBreakdown(recipe, grams);
 
     setAdding(true);
 
     // Rescale only non-fixed existing meals to their balanced share
     if (scalableCount > 0) {
       for (const l of scalableLogs) {
-        const oldGrams = Number(l.total_grams);
-        const oldKcal = Number(l.kcal);
-        if (!oldGrams || !oldKcal) continue;
-        // Reconstruct per-gram from the existing log
-        const lPerGram: PerGram = {
-          kcal: oldKcal / oldGrams,
-          protein_g: Number(l.protein_g) / oldGrams,
-          carbs_g: Number(l.carbs_g) / oldGrams,
-          fat_g: Number(l.fat_g) / oldGrams,
-        };
-        const newGramsRaw = balancedGramsForShare(lPerGram, share);
-        const newGrams = clampGrams(newGramsRaw || oldGrams, 30, 5000);
-        const factor = newGrams / oldGrams;
+        // the whole portion moves to the new share, with its saved ingredient grams
+        const update = rescaledLog(l, share);
+        if (!update) continue;
         const { error: upErr } = await supabase
           .from("meal_logs")
-          .update({
-            total_grams: Math.round(newGrams),
-            kcal: Math.round(oldKcal * factor),
-            protein_g: Math.round(Number(l.protein_g) * factor * 10) / 10,
-            carbs_g: Math.round(Number(l.carbs_g) * factor * 10) / 10,
-            fat_g: Math.round(Number(l.fat_g) * factor * 10) / 10,
-          })
+          .update(update as never)
           .eq("id", l.id);
         if (upErr) {
           setAdding(false);
@@ -302,27 +275,12 @@ export default function Index() {
     if (target) {
       const scalableLogs = logs.filter((l) => !l.is_fixed);
       for (const l of scalableLogs) {
-        const oldGrams = Number(l.total_grams);
-        const oldKcal = Number(l.kcal);
-        if (!oldGrams || !oldKcal) continue;
-        const lPerGram: PerGram = {
-          kcal: oldKcal / oldGrams,
-          protein_g: Number(l.protein_g) / oldGrams,
-          carbs_g: Number(l.carbs_g) / oldGrams,
-          fat_g: Number(l.fat_g) / oldGrams,
-        };
-        const newGramsRaw = balancedGramsForShare(lPerGram, share);
-        const newGrams = clampGrams(newGramsRaw || oldGrams, 30, 5000);
-        const f = newGrams / oldGrams;
+        // the whole portion moves to the new share, with its saved ingredient grams
+        const update = rescaledLog(l, share);
+        if (!update) continue;
         const { error: upErr } = await supabase
           .from("meal_logs")
-          .update({
-            total_grams: Math.round(newGrams),
-            kcal: Math.round(oldKcal * f),
-            protein_g: Math.round(Number(l.protein_g) * f * 10) / 10,
-            carbs_g: Math.round(Number(l.carbs_g) * f * 10) / 10,
-            fat_g: Math.round(Number(l.fat_g) * f * 10) / 10,
-          })
+          .update(update as never)
           .eq("id", l.id);
         if (upErr) {
           setAdding(false);

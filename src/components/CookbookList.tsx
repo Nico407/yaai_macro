@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { useProfile } from "@/hooks/useProfile";
-import { balancedGramsForShare, clampGrams, type PerGram } from "@/lib/scaling";
+import { balancedGramsForShare, clampGrams, type PerGram, rescaledLog } from "@/lib/scaling";
 import { matchesByKeywords, hasAnyPrefs, type ProfilePrefs } from "@/lib/dietary";
 import { toast } from "sonner";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
@@ -136,27 +136,12 @@ export function CookbookList({ recipes, bare = false }: { recipes: CookbookRecip
     if (target && scalableCount > 0) {
       const scalableLogs = logs.filter((l) => !l.is_fixed);
       for (const l of scalableLogs) {
-        const oldGrams = Number(l.total_grams);
-        const oldKcal = Number(l.kcal);
-        if (!oldGrams || !oldKcal) continue;
-        const lPerGram: PerGram = {
-          kcal: oldKcal / oldGrams,
-          protein_g: Number(l.protein_g) / oldGrams,
-          carbs_g: Number(l.carbs_g) / oldGrams,
-          fat_g: Number(l.fat_g) / oldGrams,
-        };
-        const newGramsRaw = balancedGramsForShare(lPerGram, share);
-        const newGrams = clampGrams(newGramsRaw || oldGrams, 30, 5000);
-        const f = newGrams / oldGrams;
+        // the whole portion moves to the new share, with its saved ingredient grams
+        const update = rescaledLog(l, share);
+        if (!update) continue;
         const { error: upErr } = await supabase
           .from("meal_logs")
-          .update({
-            total_grams: Math.round(newGrams),
-            kcal: Math.round(oldKcal * f),
-            protein_g: Math.round(Number(l.protein_g) * f * 10) / 10,
-            carbs_g: Math.round(Number(l.carbs_g) * f * 10) / 10,
-            fat_g: Math.round(Number(l.fat_g) * f * 10) / 10,
-          })
+          .update(update as never)
           .eq("id", l.id);
         if (upErr) {
           setBusy(false);
