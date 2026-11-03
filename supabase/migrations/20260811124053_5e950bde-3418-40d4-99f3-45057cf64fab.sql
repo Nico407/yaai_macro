@@ -1,4 +1,5 @@
-CREATE TABLE public.planned_meals (
+-- Made re-runnable for the Pi (MacroTacker didn't get this table when the data moved there).
+CREATE TABLE IF NOT EXISTS public.planned_meals (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE,
   plan_date DATE NOT NULL,
@@ -16,13 +17,14 @@ CREATE TABLE public.planned_meals (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE INDEX planned_meals_user_date_idx ON public.planned_meals (user_id, plan_date);
+CREATE INDEX IF NOT EXISTS planned_meals_user_date_idx ON public.planned_meals (user_id, plan_date);
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.planned_meals TO authenticated;
 GRANT ALL ON public.planned_meals TO service_role;
 
 ALTER TABLE public.planned_meals ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage their own planned meals" ON public.planned_meals;
 CREATE POLICY "Users can manage their own planned meals"
 ON public.planned_meals FOR ALL TO authenticated
 USING (auth.uid() = user_id)

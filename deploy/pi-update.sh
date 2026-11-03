@@ -2,9 +2,11 @@
 # Pull the latest macro tracker from GitHub, build it, and restart it on the Pi.
 # First time:  bash deploy/pi-update.sh --install
 #
-# The Supabase project comes from .env (committed). .env.local (never committed) adds the Pi's auto-login:
+# .env.local (never committed) points the Pi build at MacroTacker and signs in by itself:
+#   VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY / VITE_SUPABASE_PROJECT_ID
 #   VITE_AUTO_LOGIN_EMAIL / VITE_AUTO_LOGIN_PASSWORD
-# On the first run they are copied from Lingo's .env.local (~/yaai-lingo).
+#   MACRO_DB_URL   (database connection string, for migrations)
+# Missing ones are copied from Lingo's .env.local (~/yaai-lingo), which has all of them.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -14,25 +16,30 @@ if [ "${node_major:-0}" -lt 18 ]; then
   exit 1
 fi
 
-if ! grep -q '^VITE_AUTO_LOGIN_EMAIL=' .env.local 2>/dev/null; then
-  lingo=~/yaai-lingo/.env.local
-  if [ -f "$lingo" ]; then
-    echo "==> Copying the Pi's login from Lingo's .env.local"
-    grep -E '^VITE_AUTO_LOGIN_(EMAIL|PASSWORD)=' "$lingo" >> .env.local
-    chmod 600 .env.local
-    # the macro tracker's own Supabase project vs Lingo's: the login only works if it's the same project
-    mine=$(grep -E '^VITE_SUPABASE_PROJECT_ID=' .env | cut -d= -f2- | tr -d "\"'")
-    theirs=$(grep -E '^VITE_SUPABASE_PROJECT_ID=' "$lingo" | cut -d= -f2- | tr -d "\"'")
-    if [ -n "$theirs" ] && [ "$mine" != "$theirs" ]; then
-      echo "Note: the macro tracker uses a different Supabase project than Lingo; you may see its login page once."
-    fi
-  else
-    echo "No Lingo .env.local found: the app will show its login page."
+# MacroTacker (the project YAAI, Lingo and the agenda use; the committed .env still names the old one from before
+# the move), the Pi's login and the database address: copied from Lingo's .env.local, each only if missing
+lingo=~/yaai-lingo/.env.local
+add_from_lingo() {   # add_from_lingo NAME [NAME_IN_LINGO]
+  if ! grep -q "^$1=" .env.local 2>/dev/null && grep -q "^${2:-$1}=" "$lingo" 2>/dev/null; then
+    grep -E "^${2:-$1}=" "$lingo" | head -n1 | sed "s/^${2:-$1}=/$1=/" >> .env.local
+    echo "    added $1 from Lingo's settings"
   fi
+}
+if [ -f "$lingo" ]; then
+  touch .env.local && chmod 600 .env.local
+  for v in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY VITE_SUPABASE_PROJECT_ID VITE_AUTO_LOGIN_EMAIL VITE_AUTO_LOGIN_PASSWORD; do
+    add_from_lingo "$v"
+  done
+  add_from_lingo MACRO_DB_URL LINGO_DB_URL
+else
+  echo "No Lingo .env.local found: add MacroTacker's settings to .env.local by hand (see the top of this script)."
 fi
 
 echo "==> Pulling latest version"
 git pull --ff-only
+
+echo "==> Database"
+bash deploy/apply-migrations.sh
 
 echo "==> Installing dependencies (first run takes a few minutes)"
 npm install --no-audit --no-fund
