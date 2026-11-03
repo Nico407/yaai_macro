@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
@@ -30,7 +29,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { NO_FILTER, RecipeFilterBar, passes, useRecipeFacets, type RecipeFilter } from "@/components/RecipeFilters";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Carrot, Plus, Trash2, Search, Star } from "lucide-react";
+import { Loader2, Sparkles, Carrot, Plus, Minus, Check, ChevronDown, Trash2, Search, Star } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
@@ -90,6 +90,30 @@ export default function Index() {
     setEditing(null);
     await qc.invalidateQueries({ queryKey: ["meal_logs"] });
     toast.success("Meal removed");
+  }
+
+  /** Quick edit from the meal's card: a new amount (macros and ingredient grams scale with it) and/or another slot. */
+  async function updateLog(log: MealLog, patch: { grams?: number; slot?: string | null }) {
+    const update: Record<string, unknown> = {};
+    if (patch.grams && patch.grams !== Number(log.total_grams)) {
+      const f = patch.grams / Number(log.total_grams || patch.grams);
+      update.total_grams = Math.round(patch.grams);
+      update.kcal = Math.round(Number(log.kcal) * f);
+      update.protein_g = Math.round(Number(log.protein_g) * f * 10) / 10;
+      update.carbs_g = Math.round(Number(log.carbs_g) * f * 10) / 10;
+      update.fat_g = Math.round(Number(log.fat_g) * f * 10) / 10;
+      if (Array.isArray(log.ingredients_json)) {
+        update.ingredients_json = (log.ingredients_json as Array<{ grams: number }>).map((i) => ({ ...i, grams: Math.round(Number(i.grams) * f) }));
+      }
+    }
+    if (patch.slot !== undefined && patch.slot !== log.slot) update.slot = patch.slot;
+    if (!Object.keys(update).length) return;
+    const { error } = await supabase.from("meal_logs").update(update as never).eq("id", log.id);
+    if (error) {
+      toast.error("Couldn't save", { description: error.message });
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ["meal_logs"] });
   }
 
   const consumed = useMemo(
@@ -377,7 +401,9 @@ export default function Index() {
           <div className="grid gap-2 sm:grid-cols-2 md:gap-3">
             {SLOTS.map((slot) => {
               const log = (slotLogs[slot] ?? [])[0];
-              if (log) return <MealCard key={slot} label={slot} log={log} onOpen={() => setEditing(log)} />;
+              if (log) return <MealCard key={slot} label={slot} log={log} open={editing?.id === log.id}
+                onToggle={() => setEditing(editing?.id === log.id ? null : log)} onDelete={() => deleteLog(log.id)}
+                onSave={(p) => updateLog(log, p)} busy={deleting} />;
               return (
                 <Card
                   key={slot}
@@ -397,7 +423,8 @@ export default function Index() {
             {/* more meals (a second lunch, snacks, extras): each its own card, same size as the others */}
             {extraLogs.map((log) => (
               <MealCard key={log.id} label={log.slot && SLOTS.includes(log.slot as Slot) ? log.slot : "Extra"} log={log}
-                onOpen={() => setEditing(log)} />
+                open={editing?.id === log.id} onToggle={() => setEditing(editing?.id === log.id ? null : log)}
+                onDelete={() => deleteLog(log.id)} onSave={(p) => updateLog(log, p)} busy={deleting} />
             ))}
           </div>
           <Button
@@ -409,83 +436,6 @@ export default function Index() {
           </Button>
         </section>
       </div>
-
-      {/* Meal details dialog (read-only) */}
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing?.recipe_name}</DialogTitle>
-            <DialogDescription>
-              {editing && (
-                <>
-                  {Math.round(Number(editing.total_grams))}g · {Math.round(Number(editing.kcal))} kcal · P{" "}
-                  {Math.round(Number(editing.protein_g))} · C {Math.round(Number(editing.carbs_g))} · F{" "}
-                  {Math.round(Number(editing.fat_g))}
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-
-          {editing && (() => {
-            const ings = Array.isArray(editing.ingredients_json)
-              ? (editing.ingredients_json as Array<{ name: string; grams: number }>)
-              : [];
-            const steps = (editing.instructions ?? "")
-              .split(/\r?\n/)
-              .map((s) => s.replace(/^\s*\d+[.)]\s*/, "").trim())
-              .filter(Boolean);
-            return (
-              <div className="space-y-5 text-sm">
-                <section>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Ingredients
-                  </h3>
-                  {ings.length === 0 ? (
-                    <p className="text-muted-foreground">No ingredient breakdown saved.</p>
-                  ) : (
-                    <ul className="divide-y divide-border rounded-xl border">
-                      {ings.map((i, idx) => (
-                        <li key={idx} className="flex items-center justify-between px-3 py-2">
-                          <span>{i.name}</span>
-                          <span className="text-muted-foreground">{Math.round(Number(i.grams))} g</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-
-                <section>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    How to prep
-                  </h3>
-                  {steps.length === 0 ? (
-                    <p className="text-muted-foreground">No instructions yet.</p>
-                  ) : (
-                    <ol className="list-decimal space-y-1.5 pl-5">
-                      {steps.map((s, idx) => (
-                        <li key={idx}>{s}</li>
-                      ))}
-                    </ol>
-                  )}
-                </section>
-              </div>
-            );
-          })()}
-
-          {editing && (
-            <DialogFooter>
-              <Button
-                variant="destructive"
-                onClick={() => deleteLog(editing.id)}
-                disabled={deleting}
-              >
-                <Trash2 className="mr-1 h-4 w-4" />
-                {deleting ? "Removing…" : "Remove meal"}
-              </Button>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Slot picker dialog */}
       <Dialog
@@ -684,19 +634,98 @@ function Welcome() {
   );
 }
 
-/** One meal of today's plan: slot, name, grams and macros. */
-function MealCard({ label, log, onOpen }: { label: string; log: MealLog; onOpen: () => void }) {
+/** One meal of today's plan. Click to open it in place: ingredients, how to prep, and quick edits (amount, slot,
+ *  remove). An open card takes the full row, so its neighbour keeps its size. */
+function MealCard({ label, log, open, onToggle, onDelete, onSave, busy }: {
+  label: string; log: MealLog; open: boolean; onToggle: () => void; onDelete: () => void;
+  onSave: (p: { grams?: number; slot?: string | null }) => Promise<void>; busy: boolean;
+}) {
+  const [grams, setGrams] = useState(String(Math.round(Number(log.total_grams))));
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setGrams(String(Math.round(Number(log.total_grams)))), [log.total_grams, open]);
+  const ings = Array.isArray(log.ingredients_json) ? (log.ingredients_json as Array<{ name: string; grams: number }>) : [];
+  const steps = (log.instructions ?? "").split(/\r?\n/).map((x) => x.replace(/^\s*\d+[.)]\s*/, "").trim()).filter(Boolean);
+  const save = async (p: { grams?: number; slot?: string | null }) => {
+    setSaving(true);
+    await onSave(p);
+    setSaving(false);
+  };
+  const g = Number(grams);
   return (
-    <Card role="button" tabIndex={0} onClick={onOpen}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className="cursor-pointer rounded-2xl p-3 transition-colors hover:bg-accent/40 md:p-4">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-0.5 truncate font-semibold">{log.recipe_name}</div>
-      <div className="mt-0.5 text-xs text-muted-foreground">
-        {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
-        {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
-        {Math.round(Number(log.fat_g))}
+    <Card className={`overflow-hidden rounded-2xl transition-colors ${open ? "sm:col-span-2 border-primary/50" : "hover:bg-accent/40"}`}>
+      <div role="button" tabIndex={0} aria-expanded={open} onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+        className="flex cursor-pointer items-start gap-2 p-3 md:p-4">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+          <div className="mt-0.5 truncate font-semibold">{log.recipe_name}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
+            {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
+            {Math.round(Number(log.fat_g))}
+          </div>
+        </div>
+        <ChevronDown className={`mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </div>
+
+      {open && (
+        <div className="space-y-4 border-t border-border/70 px-3 pb-3 pt-3 text-sm md:px-4 md:pb-4">
+          {/* quick edits */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg" disabled={saving || g <= 10}
+                onClick={() => setGrams(String(Math.max(10, g - 10)))} aria-label="10 g less"><Minus className="h-3.5 w-3.5" /></Button>
+              <Input inputMode="numeric" value={grams} onChange={(e) => setGrams(e.target.value.replace(/[^0-9]/g, ""))}
+                className="h-8 w-20 text-center tabular-nums" aria-label="Amount in grams" />
+              <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg" disabled={saving}
+                onClick={() => setGrams(String(g + 10))} aria-label="10 g more"><Plus className="h-3.5 w-3.5" /></Button>
+              <span className="text-xs text-muted-foreground">g</span>
+              {g > 0 && g !== Math.round(Number(log.total_grams)) && (
+                <Button size="sm" className="h-8 rounded-lg" disabled={saving} onClick={() => save({ grams: g })}>
+                  <Check className="mr-1 h-3.5 w-3.5" /> Save
+                </Button>
+              )}
+            </div>
+            <Select value={log.slot ?? "__extra__"} onValueChange={(v) => save({ slot: v === "__extra__" ? null : v })}>
+              <SelectTrigger className="h-8 w-32 rounded-lg text-xs" aria-label="Move to"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SLOTS.map((sl) => <SelectItem key={sl} value={sl}>{sl}</SelectItem>)}
+                <SelectItem value="__extra__">Extra</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="ghost" className="ml-auto h-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={busy} onClick={onDelete}>
+              <Trash2 className="mr-1 h-3.5 w-3.5" /> {busy ? "Removing…" : "Remove"}
+            </Button>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <section>
+              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ingredients</h3>
+              {ings.length === 0 ? (
+                <p className="text-muted-foreground">No ingredient breakdown saved.</p>
+              ) : (
+                <ul className="divide-y divide-border rounded-xl border">
+                  {ings.map((i, idx) => (
+                    <li key={idx} className="flex items-center justify-between px-3 py-1.5">
+                      <span>{i.name}</span>
+                      <span className="tabular-nums text-muted-foreground">{Math.round(Number(i.grams))} g</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section>
+              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">How to prep</h3>
+              {steps.length === 0 ? (
+                <p className="text-muted-foreground">No instructions yet.</p>
+              ) : (
+                <ol className="list-decimal space-y-1 pl-5">{steps.map((x, idx) => <li key={idx}>{x}</li>)}</ol>
+              )}
+            </section>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
