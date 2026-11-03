@@ -47,6 +47,10 @@ export type RecipeRow = {
   is_fixed: boolean;
   is_favorite: boolean;
   cuisine_tags: string[];
+  base_tags?: string[];
+  protein_tags?: string[];
+  lifestyle?: string | null;
+  country?: string | null;
   recipe_ingredients: RecipeIngredientRow[];
 };
 
@@ -57,7 +61,7 @@ export function useRecipes() {
       const { data, error } = await supabase
         .from("recipes")
         .select(
-          "id, name, description, instructions, default_serving_g, min_total_g, max_total_g, is_fixed, is_favorite, cuisine_tags, recipe_ingredients(id, ingredient_id, ratio, ingredient:ingredients(id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, dietary_tags))",
+          "*, recipe_ingredients(id, ingredient_id, ratio, ingredient:ingredients(id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, dietary_tags))",
         )
         .order("name", { ascending: true });
       if (error) throw error;

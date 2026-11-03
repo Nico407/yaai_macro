@@ -33,6 +33,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
 import { useRecipes, CUISINE_TAGS } from "@/hooks/useRecipes";
+import { BASES, COUNTRIES, LIFESTYLES, PROTEINS, facetsOf, type Lifestyle } from "@/lib/recipeFacets";
 import { ArrowLeft, Check, ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 type Row = { ingredient_id: string; grams: string };
@@ -61,6 +62,12 @@ export default function RecipeNew() {
   const [hydrated, setHydrated] = useState(false);
   const [openIngIdx, setOpenIngIdx] = useState<number | null>(null);
   const [tagsOpen, setTagsOpen] = useState(false);
+  // Filter tags (Plan my meals): suggested from the ingredients until you change one yourself
+  const [baseTags, setBaseTags] = useState<string[]>([]);
+  const [proteinTags, setProteinTags] = useState<string[]>([]);
+  const [lifestyle, setLifestyle] = useState<Lifestyle | null>(null);
+  const [country, setCountry] = useState<string | null>(null);
+  const [tagsTouched, setTagsTouched] = useState(false);
 
   useEffect(() => {
     if (!isEdit || hydrated || !existing) return;
@@ -69,6 +76,14 @@ export default function RecipeNew() {
     setInstructions(existing.instructions ?? "");
     setIsFixed(!!existing.is_fixed);
     setCuisineTags(existing.cuisine_tags ?? []);
+    if (existing.lifestyle) {
+      // tagged before: keep those tags, no more suggestions
+      setBaseTags(existing.base_tags ?? []);
+      setProteinTags(existing.protein_tags ?? []);
+      setLifestyle(existing.lifestyle as Lifestyle);
+      setCountry(existing.country ?? null);
+      setTagsTouched(true);
+    }
     const total = Number(existing.default_serving_g) || 0;
     setRows(
       existing.recipe_ingredients.map((ri) => ({
@@ -78,6 +93,23 @@ export default function RecipeNew() {
     );
     setHydrated(true);
   }, [isEdit, hydrated, existing]);
+
+  // Suggest the filter tags from the name and ingredients, as long as you haven't set them yourself
+  const suggestion = useMemo(() => facetsOf(
+    rows.map((r) => ingredients.find((i) => i.id === r.ingredient_id)?.name ?? "").filter(Boolean),
+    { name, cuisineTags },
+  ), [rows, ingredients, name, cuisineTags]);
+  useEffect(() => {
+    if (tagsTouched) return;
+    setBaseTags(suggestion.bases);
+    setProteinTags(suggestion.proteins);
+    setLifestyle(suggestion.lifestyle);
+    setCountry(suggestion.country);
+  }, [suggestion, tagsTouched]);
+  const toggleIn = (list: string[], set: (v: string[]) => void, value: string) => {
+    setTagsTouched(true);
+    set(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
+  };
 
   const ingMap = useMemo(() => {
     const m = new Map<string, Ingredient>();
@@ -147,6 +179,10 @@ export default function RecipeNew() {
       max_total_g: Math.round(total * 3),
       is_fixed: isFixed,
       cuisine_tags: cuisineTags,
+      base_tags: baseTags,
+      protein_tags: proteinTags,
+      lifestyle: lifestyle ?? suggestion.lifestyle,
+      country,
     };
 
     let recipeId = id;
@@ -435,11 +471,28 @@ export default function RecipeNew() {
               </div>
             )}
 
+            <div className="space-y-3 rounded-xl border border-border p-4">
+              <div className="flex items-baseline justify-between">
+                <Label>Tags for filtering</Label>
+                <span className="text-xs text-muted-foreground">
+                  {tagsTouched ? "set by you" : "suggested from the ingredients"}
+                </span>
+              </div>
+              <TagRow label="Base" options={BASES.map(([b]) => b)} active={baseTags}
+                onToggle={(v) => toggleIn(baseTags, setBaseTags, v)} />
+              <TagRow label="Protein" options={PROTEINS.map(([p]) => p)} active={proteinTags}
+                onToggle={(v) => toggleIn(proteinTags, setProteinTags, v)} />
+              <TagRow label="Lifestyle" options={LIFESTYLES} active={lifestyle ? [lifestyle] : []}
+                onToggle={(v) => { setTagsTouched(true); setLifestyle(v as Lifestyle); }} />
+              <TagRow label="Country" options={[...new Set([...(country ? [country] : []), ...COUNTRIES])]} active={country ? [country] : []}
+                onToggle={(v) => { setTagsTouched(true); setCountry(country === v ? null : v); }} />
+            </div>
+
             <Collapsible open={tagsOpen} onOpenChange={setTagsOpen}>
               <CollapsibleTrigger asChild>
                 <Button type="button" variant="outline" className="w-full justify-between">
                   <span>
-                    Add tags
+                    Cuisine tags
                     {cuisineTags.length > 0 && (
                       <span className="ml-2 text-xs text-muted-foreground">({cuisineTags.length})</span>
                     )}
@@ -527,6 +580,34 @@ function Stat({ label, value, per }: { label: string; value: string | number; pe
         {label}
       </div>
       <div className="text-[10px] text-muted-foreground opacity-70">{per}/g</div>
+    </div>
+  );
+}
+
+/** One row of tag chips; active ones in the primary colour. */
+function TagRow({ label, options, active, onToggle }: {
+  label: string; options: readonly string[]; active: string[]; onToggle: (v: string) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            onClick={() => onToggle(o)}
+            className={cn(
+              "rounded-full border px-2.5 py-0.5 text-xs transition-colors",
+              active.includes(o)
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-muted-foreground hover:bg-secondary",
+            )}
+          >
+            {o}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -16,6 +16,9 @@ export type CookbookRecipe = {
   instructions: string[];
   sort_order: number;
   is_favorite: boolean;
+  base_tags?: string[];
+  protein_tags?: string[];
+  lifestyle?: string | null;
 };
 
 export function useCookbookRecipes(country: string | null = null) {

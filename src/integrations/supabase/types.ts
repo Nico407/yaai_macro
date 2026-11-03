@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       cookbook_recipes: {
         Row: {
+          base_tags: string[]
+          protein_tags: string[]
+          lifestyle: string | null
           carbs_g: number
           cook_time_min: number
           country: string | null
@@ -34,6 +37,9 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          base_tags?: string[]
+          protein_tags?: string[]
+          lifestyle?: string | null
           carbs_g?: number
           cook_time_min?: number
           country?: string | null
@@ -52,6 +58,9 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          base_tags?: string[]
+          protein_tags?: string[]
+          lifestyle?: string | null
           carbs_g?: number
           cook_time_min?: number
           country?: string | null
@@ -318,6 +327,10 @@ export type Database = {
       }
       recipes: {
         Row: {
+          base_tags: string[]
+          protein_tags: string[]
+          lifestyle: string | null
+          country: string | null
           created_at: string
           cuisine_tags: string[]
           default_serving_g: number
@@ -332,6 +345,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          base_tags?: string[]
+          protein_tags?: string[]
+          lifestyle?: string | null
+          country?: string | null
           created_at?: string
           cuisine_tags?: string[]
           default_serving_g?: number
@@ -346,6 +363,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          base_tags?: string[]
+          protein_tags?: string[]
+          lifestyle?: string | null
+          country?: string | null
           created_at?: string
           cuisine_tags?: string[]
           default_serving_g?: number

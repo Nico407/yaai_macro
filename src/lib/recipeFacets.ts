@@ -1,5 +1,7 @@
-// What a recipe is made of, worked out from its ingredient text, for the filters on "Plan my meals":
-// base (the carb source), protein, lifestyle (vegan / vegetarian / omnivore) and country.
+// Recipe tags for the filters on "Plan my meals": base (the carb source), protein, lifestyle (vegan / vegetarian /
+// omnivore) and country. They are stored with each recipe (base_tags, protein_tags, lifestyle, country) and set when
+// the recipe is created or edited; facetsOf() only suggests them from the ingredients. The same word lists filled in
+// the tags of existing recipes once (deploy/make-tags-sql.ts writes that migration).
 
 export type Facets = { bases: string[]; proteins: string[]; lifestyle: Lifestyle; country: string | null };
 export type Lifestyle = "Vegan" | "Vegetarian" | "Omnivore";
@@ -27,16 +29,16 @@ export const PROTEINS: [string, string[]][] = [
   ["Protein powder", ["whey", "protein powder", "casein", "protein shake"]],
 ];
 
-const MEAT = ["chicken", "beef", "steak", "veal", "pork", "bacon", "ham", "prosciutto", "sausage", "chorizo", "lamb", "turkey",
+export const MEAT = ["chicken", "beef", "steak", "veal", "pork", "bacon", "ham", "prosciutto", "sausage", "chorizo", "lamb", "turkey",
   "duck", "fish", "salmon", "tuna", "cod", "trout", "mackerel", "sardine", "anchov", "shrimp", "prawn", "crab", "squid",
   "scallop", "mussel", "seafood", "gelatin", "fish sauce"];
-const ANIMAL = ["egg", "milk", "butter", "cream", "cheese", "yogurt", "yoghurt", "skyr", "quark", "cottage", "ricotta", "feta",
+export const ANIMAL = ["egg", "milk", "butter", "cream", "cheese", "yogurt", "yoghurt", "skyr", "quark", "cottage", "ricotta", "feta",
   "mozzarella", "parmesan", "halloumi", "paneer", "ghee", "honey", "whey", "casein", "mayo"];
 // look-alikes that aren't what they seem
-const NOT = ["eggplant", "green bean", "coconut milk", "almond milk", "oat milk", "soy milk", "rice milk", "peanut butter",
+export const NOT = ["eggplant", "green bean", "coconut milk", "almond milk", "oat milk", "soy milk", "rice milk", "peanut butter",
   "almond butter", "cocoa butter", "vegan", "plant-based", "plant based", "cream of tartar", "rice vinegar", "jelly bean"];
 
-const CUISINE_COUNTRY: Record<string, string> = {
+export const CUISINE_COUNTRY: Record<string, string> = {
   italian: "Italy", mexican: "Mexico", indian: "India", japanese: "Japan", thai: "Thailand", greek: "Greece",
   chinese: "China", french: "France", american: "USA", korean: "Korea", spanish: "Spain", turkish: "Turkey",
   vietnamese: "Vietnam", "middle-eastern": "Middle East", swiss: "Switzerland",
@@ -76,6 +78,20 @@ export function facetsOf(
 }
 
 export const LIFESTYLES: Lifestyle[] = ["Vegan", "Vegetarian", "Omnivore"];
+
+/** Countries offered when tagging, besides the ones already used. */
+export const COUNTRIES = ["Italy", "Japan", "Mexico", "India", "Thailand", "Greece", "China", "France", "Korea", "Spain",
+  "Switzerland", "Middle East", "USA", "Turkey", "Vietnam"];
+
+/** The stored tags of a recipe row, or suggested ones for rows that were never tagged. */
+export function storedFacets(
+  row: { base_tags?: string[] | null; protein_tags?: string[] | null; lifestyle?: string | null; country?: string | null },
+  suggest: () => Facets,
+): Facets {
+  if (!row.lifestyle) return suggest();
+  return { bases: row.base_tags ?? [], proteins: row.protein_tags ?? [], lifestyle: row.lifestyle as Lifestyle,
+           country: row.country ?? null };
+}
 
 /** A recipe fits a lifestyle filter if it is at least that strict: vegan food also suits vegetarians and omnivores. */
 export function fitsLifestyle(recipe: Lifestyle, filter: Lifestyle): boolean {

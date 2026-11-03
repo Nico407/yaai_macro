@@ -9,7 +9,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { CookbookList } from "@/components/CookbookList";
-import { BASES, LIFESTYLES, PROTEINS, facetsOf, fitsLifestyle, type Facets, type Lifestyle } from "@/lib/recipeFacets";
+import { BASES, LIFESTYLES, PROTEINS, facetsOf, fitsLifestyle, storedFacets, type Facets, type Lifestyle } from "@/lib/recipeFacets";
 
 const ALL = "__all__";
 
@@ -36,13 +36,14 @@ export default function PlanMeals() {
   };
   const active = Object.values(filter).filter((v) => v !== ALL).length + (query ? 1 : 0);
 
-  const ownFacets = useMemo(() => new Map<string, Facets>(own.map((r) => [r.id, facetsOf(
+  // the tags saved with each recipe (set when it's created or edited); suggested ones only for untagged recipes
+  const ownFacets = useMemo(() => new Map<string, Facets>(own.map((r) => [r.id, storedFacets(r, () => facetsOf(
     (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.name ?? ""),
     { name: r.name, cuisineTags: r.cuisine_tags, dietaryTags: (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.dietary_tags ?? []) },
-  )])), [own]);
-  const cbFacets = useMemo(() => new Map<string, Facets>(cookbook.map((r) => [r.id, facetsOf(
+  ))])), [own]);
+  const cbFacets = useMemo(() => new Map<string, Facets>(cookbook.map((r) => [r.id, storedFacets(r, () => facetsOf(
     r.ingredients ?? [], { name: r.name, country: r.country },
-  )])), [cookbook]);
+  ))])), [cookbook]);
 
   const countries = useMemo(() => [...new Set([...ownFacets.values(), ...cbFacets.values()]
     .map((f) => f.country).filter((c): c is string => !!c))].sort(), [ownFacets, cbFacets]);
