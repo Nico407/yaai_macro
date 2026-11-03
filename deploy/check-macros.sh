@@ -28,9 +28,9 @@ select name, kcal_per_100g as kcal, round(4 * protein_per_100g + 4 * carbs_per_1
 from public.ingredients
 where abs(kcal_per_100g - (4 * protein_per_100g + 4 * carbs_per_100g + 9 * fat_per_100g)) > greatest(15, 0.15 * kcal_per_100g)
 order by name;
-\echo '== 4. Recipes whose ingredient shares do not add up to 100 %'
-select r.name, round(sum(ri.ratio) * 100, 1) as percent from public.recipes r join public.recipe_ingredients ri on ri.recipe_id = r.id
-group by r.id, r.name having abs(sum(ri.ratio) - 1) > 0.01;
+\echo '== 4. Recipes whose ingredient shares do not add up to 100 % (0 = no ingredients saved)'
+select r.name, round(coalesce(sum(ri.ratio), 0) * 100, 1) as percent from public.recipes r left join public.recipe_ingredients ri on ri.recipe_id = r.id
+group by r.id, r.name having abs(coalesce(sum(ri.ratio), 0) - 1) > 0.01;
 \echo '== 5. Cook book kcal'
 select count(*) as recipes, min(kcal), round(avg(kcal)) as avg, max(kcal) from public.cookbook_recipes;
 SQL
