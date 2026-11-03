@@ -1,6 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { Card } from "@/components/ui/card";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useCookbookRecipes } from "@/hooks/useCookbookRecipes";
 import { CookbookList } from "@/components/CookbookList";
 
@@ -25,19 +24,12 @@ export default function CountryCookbook() {
           <Link to="/plan/countries" className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back to countries
           </Link>
-          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Country pack preview</p>
+          <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Country recipes</p>
           <h1 className="font-display text-4xl font-bold md:text-5xl">
             {meta?.flag ?? "🌍"} {meta?.name ?? country}
           </h1>
           {meta?.desc && <p className="mt-2 text-sm text-muted-foreground">{meta.desc}</p>}
         </header>
-
-        <Card className="mb-6 flex items-start gap-3 rounded-2xl border-dashed bg-secondary/40 p-4">
-          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <p className="text-sm text-muted-foreground">
-            Sample meals from this pack — full library unlocks with the country pack.
-          </p>
-        </Card>
 
         {isLoading ? (
           <p className="py-10 text-center text-sm text-muted-foreground">Loading…</p>

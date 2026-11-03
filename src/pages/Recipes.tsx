@@ -16,6 +16,7 @@ import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram } from "@/lib/scaling";
 import { supabase } from "@/integrations/supabase/client";
+import { localDateISO } from "@/lib/dates";
 import { toast } from "sonner";
 import { ArrowLeft, Check, Loader2, Pencil, Plus, Search, Utensils } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -175,6 +176,7 @@ export default function Recipes() {
       user_id: user.id,
       recipe_id: recipe.id,
       recipe_name: recipe.name,
+      log_date: localDateISO(),   // today in Swiss time (the database default is UTC)
       total_grams: Math.round(grams),
       kcal: Math.round(totals.kcal),
       protein_g: Math.round(totals.protein_g * 10) / 10,

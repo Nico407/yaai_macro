@@ -30,8 +30,9 @@ import {
 } from "@/lib/scaling";
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
+import { localDateISO } from "@/lib/dates";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search, Settings, Calendar, UserCog, Star, ClipboardList, BookOpen, ChefHat, Globe, Lock } from "lucide-react";
+import { Loader2, Sparkles, Utensils, Carrot, Zap, Plus, Trash2, Search, Settings, Calendar, UserCog, Star, ClipboardList, BookOpen, ChefHat, Globe } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,7 +64,7 @@ export default function Index() {
   const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
   const [filterApplied, setFilterApplied] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
-  const [categoryOpen, setCategoryOpen] = useState<null | "__library__" | "__mine__">(null);
+  const [categoryOpen, setCategoryOpen] = useState<null | "__library__" | "__mine__" | "__countries__">(null);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
@@ -225,6 +226,7 @@ export default function Index() {
       user_id: user.id,
       recipe_id: recipe.id,
       recipe_name: recipe.name,
+      log_date: localDateISO(),   // today in Swiss time (the database default is UTC)
       total_grams: Math.round(grams),
       kcal: Math.round(totals.kcal),
       protein_g: Math.round(totals.protein_g * 10) / 10,
@@ -802,16 +804,14 @@ export default function Index() {
                     </button>
                     <button
                       type="button"
-                      disabled
-                      className="cursor-not-allowed rounded-xl border border-border p-3 text-left opacity-60"
+                      onClick={() => setCategoryOpen("__countries__")}
+                      className="rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20"
                     >
                       <div className="mb-1 flex items-center gap-2 text-primary">
                         <Globe className="h-4 w-4" />
-                        <span className="font-display text-sm font-bold">Add countries</span>
-                        <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-display text-sm font-bold">Countries</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Recipe packs from around the world.</p>
-                      <span className="mt-2 inline-block rounded-full bg-secondary px-2 py-0.5 text-[9px] uppercase tracking-wider">Coming soon</span>
+                      <p className="text-xs text-muted-foreground">Recipes from around the world.</p>
                     </button>
                   </div>
                 </TabsContent>
@@ -956,12 +956,14 @@ export default function Index() {
         <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
           <DialogHeader>
             <DialogTitle>
-              {categoryOpen === "__mine__" ? "My creations" : "Cook Book"}
+              {categoryOpen === "__mine__" ? "My creations" : categoryOpen === "__countries__" ? "Countries" : "Cook Book"}
             </DialogTitle>
             <DialogDescription>
               {categoryOpen === "__mine__"
                 ? "Recipes you've built yourself."
-                : "Free starter library of macro-friendly recipes."}
+                : categoryOpen === "__countries__"
+                  ? "Recipes from around the world, by country."
+                  : "Free starter library of macro-friendly recipes."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 overflow-y-auto">
@@ -996,7 +998,9 @@ export default function Index() {
                   </button>
                 ));
               }
-              const list = cookbookAll.filter((r) => !r.country);
+              const list = categoryOpen === "__countries__"
+                ? cookbookAll.filter((r) => r.country).sort((a, b) => (a.country ?? "").localeCompare(b.country ?? ""))
+                : cookbookAll.filter((r) => !r.country);
               if (list.length === 0) {
                 return (
                   <p className="py-6 text-center text-sm text-muted-foreground">
@@ -1020,7 +1024,7 @@ export default function Index() {
                       {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
                     </div>
                     <div className="mt-0.5 text-xs text-muted-foreground">
-                      {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
+                      {categoryOpen === "__countries__" && r.country ? `${r.country} · ` : ""}{r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
                     </div>
                   </div>
                   {r.image_url && (

@@ -35,10 +35,8 @@ export default function RecipesHub() {
           <HubCard
             to="/plan/countries"
             icon={<Globe className="h-5 w-5" />}
-            title="Add countries"
-            desc="Unlock recipe packs from around the world."
-            tag="Coming soon"
-            locked
+            title="Countries"
+            desc="Recipes from around the world: Italy, Japan, Mexico, India, Thailand, Greece."
           />
         </div>
       </div>

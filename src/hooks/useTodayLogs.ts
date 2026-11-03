@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { localDateISO } from "@/lib/dates";
 
 export type MealLog = {
   id: string;
@@ -19,7 +20,7 @@ export type MealLog = {
 };
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateISO();
 }
 
 export function useTodayLogs() {

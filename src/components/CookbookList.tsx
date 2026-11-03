@@ -14,6 +14,7 @@ import { BookOpen, Plus, Search, Clock, ChevronDown, Star, Check } from "lucide-
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { localDateISO } from "@/lib/dates";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { useProfile } from "@/hooks/useProfile";
 import { balancedGramsForShare, clampGrams, type PerGram } from "@/lib/scaling";
@@ -169,6 +170,7 @@ export function CookbookList({ recipes }: { recipes: CookbookRecipe[] }) {
       user_id: user.id,
       recipe_id: null,
       recipe_name: item.name,
+      log_date: localDateISO(),   // today in Swiss time (the database default is UTC)
       total_grams: Math.round(grams),
       kcal: Math.round(perGram.kcal * grams),
       protein_g: Math.round(perGram.protein_g * grams * 10) / 10,

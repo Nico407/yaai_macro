@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Globe, Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 
 const COUNTRIES = [
   { flag: "🇮🇹", name: "Italy", desc: "Pasta, risotto, antipasti" },
@@ -31,20 +31,13 @@ export default function Countries() {
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
-            Premium packs
+            Recipe collections
           </p>
-          <h1 className="font-display text-4xl font-bold md:text-5xl">Add countries</h1>
+          <h1 className="font-display text-4xl font-bold md:text-5xl">Countries</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Unlock curated recipe libraries from around the world.
+            Macro-friendly recipes from around the world.
           </p>
         </header>
-
-        <Card className="mb-6 flex items-start gap-3 rounded-2xl border-dashed bg-secondary/40 p-4">
-          <Globe className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <p className="text-sm text-muted-foreground">
-            Country packs are coming soon. Payments will be wired up later.
-          </p>
-        </Card>
 
         <div className="relative mb-4">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -76,7 +69,7 @@ export default function Countries() {
                       <div className="text-xs text-muted-foreground">{c.desc}</div>
                     </div>
                   </div>
-                  <span className="text-xs font-medium text-primary">Preview →</span>
+                  <span className="text-xs font-medium text-primary">Open →</span>
                 </Card>
               </Link>
             ))}
