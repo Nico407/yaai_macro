@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { localDateISO } from "@/lib/dates";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
@@ -94,7 +95,9 @@ export default function RecipeScale() {
     );
   }, [recipe, perGram, left, fit]);
 
-  const activeGrams = grams ?? suggested ?? recipe?.default_serving_g ?? 0;
+  // a fixed recipe (e.g. a protein shake) is always its own amounts: no fitting, no slider
+  const fixed = !!recipe?.is_fixed;
+  const activeGrams = fixed ? Number(recipe?.default_serving_g ?? 0) : grams ?? suggested ?? recipe?.default_serving_g ?? 0;
 
   if (loadingRecipes) {
     return (
@@ -129,6 +132,8 @@ export default function RecipeScale() {
       user_id: user.id,
       recipe_id: recipe.id,
       recipe_name: recipe.name,
+      log_date: localDateISO(),   // today in Swiss time (the database default is UTC)
+      is_fixed: fixed,
       total_grams: Math.round(activeGrams),
       kcal: Math.round(totals.kcal),
       protein_g: Math.round(totals.protein_g * 10) / 10,
@@ -179,7 +184,12 @@ export default function RecipeScale() {
         )}
 
         <Card className="rounded-2xl p-6 shadow-soft md:p-8">
-          {left && (
+          {fixed && (
+            <p className="mb-5 rounded-xl border border-border bg-secondary/40 p-3 text-sm text-muted-foreground">
+              Fixed recipe: always {Math.round(activeGrams)} g with its own amounts. It's never scaled.
+            </p>
+          )}
+          {left && !fixed && (
             <div className="mb-5">
               <Label>Fit to</Label>
               <Select
@@ -203,7 +213,7 @@ export default function RecipeScale() {
             </div>
           )}
 
-          <div className="mb-5">
+          <div className={`mb-5 ${fixed ? "hidden" : ""}`}>
             <div className="mb-2 flex items-center justify-between">
               <Label>Serving</Label>
               <div className="flex items-center gap-2">
