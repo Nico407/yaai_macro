@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { AppBar } from "@/components/AppBar";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -15,5 +16,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   if (!user) {
     return <Navigate to="/auth" replace state={{ from: location.pathname }} />;
   }
-  return <>{children}</>;
+  return (
+    <>
+      <AppBar />
+      {children}
+    </>
+  );
 }

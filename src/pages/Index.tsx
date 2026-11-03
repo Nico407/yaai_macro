@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,13 +32,7 @@ import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Carrot, Plus, Trash2, Search, Settings, Calendar, UserCog, Star, ClipboardList, BookOpen, ChefHat, Globe } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Loader2, Sparkles, Carrot, Plus, Trash2, Search, Star, BookOpen, ChefHat, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
@@ -66,6 +60,14 @@ export default function Index() {
   const [tagSearch, setTagSearch] = useState("");
   const [categoryOpen, setCategoryOpen] = useState<null | "__library__" | "__mine__" | "__countries__">(null);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  // the menu bar's star opens the favourites here (?favorites=1)
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (params.get("favorites")) {
+      setFavoritesOpen(true);
+      setParams({}, { replace: true });
+    }
+  }, [params, setParams]);
   const [favoritesQuery, setFavoritesQuery] = useState("");
   const [togglingFav, setTogglingFav] = useState<string | null>(null);
 
@@ -352,66 +354,6 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-5 md:py-12">
-        <header className="mb-5 flex items-end justify-between md:mb-8">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground md:text-sm">Today</p>
-            <h1 className="font-display text-2xl font-bold md:text-5xl">
-              {profile.display_name ? `Hi, ${profile.display_name}` : "Your day"}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setFavoritesOpen(true)}
-              aria-label="Favorites"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <Star className="h-5 w-5" />
-            </button>
-            <Link
-              to="/planner"
-              aria-label="Planner"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <ClipboardList className="h-5 w-5" />
-            </Link>
-            <Link
-              to="/history"
-              aria-label="History"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <Calendar className="h-5 w-5" />
-            </Link>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label="Settings"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
-              >
-                <Settings className="h-5 w-5" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link to="/onboarding">
-                    <UserCog className="mr-2 h-4 w-4" /> Edit profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings">
-                    <Settings className="mr-2 h-4 w-4" /> Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    window.location.href = "/auth";
-                  }}
-                >
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
 
         <Card className="rounded-2xl p-4 shadow-soft md:p-8">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
