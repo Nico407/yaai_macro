@@ -18,6 +18,7 @@ export const CUISINE_TAGS = [
   "quick",
   "comfort",
   "breakfast",
+  "yaai",
 ] as const;
 export type CuisineTag = (typeof CUISINE_TAGS)[number];
 

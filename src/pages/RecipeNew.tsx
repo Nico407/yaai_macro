@@ -520,7 +520,7 @@ export default function RecipeNew() {
                             : "border-border bg-background text-muted-foreground hover:bg-secondary",
                         )}
                       >
-                        {tag}
+                        {tag === "yaai" ? "YAAI" : tag}
                       </button>
                     );
                   })}

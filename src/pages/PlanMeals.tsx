@@ -97,6 +97,9 @@ function OwnRecipeCard({ r, f, onPlan, onEdit }: { r: RecipeRow; f: Facets; onPl
           <div className="flex flex-wrap items-center gap-2">
             <div className="font-display text-lg font-bold">{r.name}</div>
             {r.is_favorite && <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />}
+            {r.cuisine_tags?.includes("yaai") && (
+              <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-primary">YAAI</span>
+            )}
             <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">Your recipe</span>
           </div>
           {r.description && <div className="mt-1 text-xs text-muted-foreground">{r.description}</div>}

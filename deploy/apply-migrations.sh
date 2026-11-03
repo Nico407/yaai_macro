@@ -43,3 +43,4 @@ for f in $(ls supabase/migrations/*.sql | sort); do
   applied=$((applied + 1))
 done
 echo "Database up to date ($applied migration(s) applied)."
+bash deploy/seed-recipes.sh
