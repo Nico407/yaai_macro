@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
+const slotName = (s: string | null) => (!s || s === "__extra__" ? "extras" : s);
 type Slot = (typeof SLOTS)[number];
 
 export default function Index() {
@@ -152,6 +153,30 @@ export default function Index() {
 
   const emptySlots = SLOTS.filter((s) => !slotLogs[s]?.length).length;
 
+  // Picking a recipe closes the picker straight away; adding (and rescaling the other meals) runs behind a small
+  // "Adding…" note. Before, the picker stayed open with every recipe greyed out until the database answered, and an
+  // unexpected error left it like that for good.
+  async function pick(run: () => Promise<void>) {
+    if (adding) return;
+    closePicker();
+    const note = toast.loading("Adding…");
+    try {
+      // a request that never answers must not block the next add
+      await Promise.race([run(), new Promise((_, no) => setTimeout(() => no(new Error("No answer from the database, try again")), 20000))]);
+    } catch (e) {
+      toast.error("Couldn't add", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      toast.dismiss(note);
+      setAdding(false);
+    }
+  }
+  function closePicker() {
+    setPickerSlot(null);
+    setPickerQuery("");
+    setPickFilter(NO_FILTER);
+    setPickFav(false);
+  }
+
   async function addRecipeToSlot(recipe: RecipeRow) {
     if (!pickerSlot || !target) return;
     const perGram = recipePerGram(recipe);
@@ -195,19 +220,16 @@ export default function Index() {
 
     // Rescale only non-fixed existing meals to their balanced share
     if (scalableCount > 0) {
-      for (const l of scalableLogs) {
-        // the whole portion moves to the new share, with its saved ingredient grams
+      // the whole portion of each moves to the new share, with its saved ingredient grams (all at once, not one by one)
+      const results = await Promise.all(scalableLogs.map((l) => {
         const update = rescaledLog(l, share);
-        if (!update) continue;
-        const { error: upErr } = await supabase
-          .from("meal_logs")
-          .update(update as never)
-          .eq("id", l.id);
-        if (upErr) {
-          setAdding(false);
-          toast.error("Couldn't rescale meals", { description: upErr.message });
-          return;
-        }
+        return update ? supabase.from("meal_logs").update(update as never).eq("id", l.id) : Promise.resolve({ error: null });
+      }));
+      const upErr = results.find((r) => r.error)?.error;
+      if (upErr) {
+        setAdding(false);
+        toast.error("Couldn't rescale meals", { description: upErr.message });
+        return;
       }
     }
 
@@ -239,7 +261,7 @@ export default function Index() {
     }
     setPickerSlot(null);
     await qc.invalidateQueries({ queryKey: ["meal_logs"] });
-    toast.success(`${recipe.name} added to ${pickerSlot}`);
+    toast.success(`${recipe.name} added to ${slotName(pickerSlot)}`);
   }
 
   async function addCookbookToSlot(item: CookbookRecipe) {
@@ -271,19 +293,16 @@ export default function Index() {
     setAdding(true);
     if (target) {
       const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
-      for (const l of scalableLogs) {
-        // the whole portion moves to the new share, with its saved ingredient grams
+      // the whole portion of each moves to the new share, with its saved ingredient grams (all at once, not one by one)
+      const results = await Promise.all(scalableLogs.map((l) => {
         const update = rescaledLog(l, share);
-        if (!update) continue;
-        const { error: upErr } = await supabase
-          .from("meal_logs")
-          .update(update as never)
-          .eq("id", l.id);
-        if (upErr) {
-          setAdding(false);
-          toast.error("Couldn't rescale meals", { description: upErr.message });
-          return;
-        }
+        return update ? supabase.from("meal_logs").update(update as never).eq("id", l.id) : Promise.resolve({ error: null });
+      }));
+      const upErr = results.find((r) => r.error)?.error;
+      if (upErr) {
+        setAdding(false);
+        toast.error("Couldn't rescale meals", { description: upErr.message });
+        return;
       }
     }
 
@@ -309,7 +328,7 @@ export default function Index() {
     }
     setPickerSlot(null);
     await qc.invalidateQueries({ queryKey: ["meal_logs"] });
-    toast.success(`${item.name} added to ${pickerSlot}`);
+    toast.success(`${item.name} added to ${slotName(pickerSlot)}`);
   }
 
   if (isLoading) {
@@ -427,7 +446,7 @@ export default function Index() {
             return (
               <div className="-mx-1 flex-1 space-y-2 overflow-y-auto px-1 pt-1">
                 {ownList.map((r) => (
-                  <button key={`r-${r.id}`} onClick={() => addRecipeToSlot(r)} disabled={adding}
+                  <button key={`r-${r.id}`} onClick={() => { void pick(() => addRecipeToSlot(r)); }} disabled={adding}
                     className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20 disabled:opacity-50">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -440,7 +459,7 @@ export default function Index() {
                   </button>
                 ))}
                 {cbList.map((r) => (
-                  <button key={`c-${r.id}`} onClick={() => addCookbookToSlot(r)} disabled={adding}
+                  <button key={`c-${r.id}`} onClick={() => { void pick(() => addCookbookToSlot(r)); }} disabled={adding}
                     className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20 disabled:opacity-50">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
