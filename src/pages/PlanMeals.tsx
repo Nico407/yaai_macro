@@ -1,17 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ChefHat, Pencil, Plus, Search, Star, X } from "lucide-react";
+import { ArrowLeft, ChefHat, Pencil, Plus, Star } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { CookbookList } from "@/components/CookbookList";
-import { BASES, LIFESTYLES, PROTEINS, facetsOf, fitsLifestyle, storedFacets, type Facets, type Lifestyle } from "@/lib/recipeFacets";
-
-const ALL = "__all__";
+import { ALL, RecipeFilterBar, passes, useRecipeFacets, type RecipeFilter } from "@/components/RecipeFilters";
+import type { Facets } from "@/lib/recipeFacets";
 
 /** One page with every recipe (yours, the cook book, the country recipes), filtered by base, protein, country and
  *  lifestyle. The filters are kept in the address (?base=Rice&protein=Chicken…), so YAAI can open a filtered list. */
@@ -22,7 +19,7 @@ export default function PlanMeals() {
   const { data: own = [], isLoading: l1 } = useRecipes();
   const { data: cookbook = [], isLoading: l2 } = useAllCookbookRecipes();
 
-  const filter = {
+  const filter: RecipeFilter = {
     base: params.get("base") ?? ALL,
     protein: params.get("protein") ?? ALL,
     country: params.get("country") ?? ALL,
@@ -34,30 +31,8 @@ export default function PlanMeals() {
     else next.set(key, value);
     setParams(next, { replace: true });
   };
-  const active = Object.values(filter).filter((v) => v !== ALL).length + (query ? 1 : 0);
-
-  // the tags saved with each recipe (set when it's created or edited); suggested ones only for untagged recipes
-  const ownFacets = useMemo(() => new Map<string, Facets>(own.map((r) => [r.id, storedFacets(r, () => facetsOf(
-    (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.name ?? ""),
-    { name: r.name, cuisineTags: r.cuisine_tags, dietaryTags: (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.dietary_tags ?? []) },
-  ))])), [own]);
-  const cbFacets = useMemo(() => new Map<string, Facets>(cookbook.map((r) => [r.id, storedFacets(r, () => facetsOf(
-    r.ingredients ?? [], { name: r.name, country: r.country },
-  ))])), [cookbook]);
-
-  const countries = useMemo(() => [...new Set([...ownFacets.values(), ...cbFacets.values()]
-    .map((f) => f.country).filter((c): c is string => !!c))].sort(), [ownFacets, cbFacets]);
-
-  const fits = (f: Facets | undefined, name: string, desc: string | null) => {
-    if (!f) return false;
-    const q = query.trim().toLowerCase();
-    if (q && !name.toLowerCase().includes(q) && !(desc ?? "").toLowerCase().includes(q)) return false;
-    if (filter.base !== ALL && !(filter.base === "none" ? f.bases.length === 0 : f.bases.includes(filter.base))) return false;
-    if (filter.protein !== ALL && !f.proteins.includes(filter.protein)) return false;
-    if (filter.country !== ALL && f.country !== filter.country) return false;
-    if (filter.lifestyle !== ALL && !fitsLifestyle(f.lifestyle, filter.lifestyle as Lifestyle)) return false;
-    return true;
-  };
+  const { ownFacets, cbFacets, countries } = useRecipeFacets(own, cookbook);
+  const fits = (f: Facets | undefined, name: string, desc: string | null) => passes(f, name, desc, filter, query);
   const ownShown = own.filter((r) => fits(ownFacets.get(r.id), r.name, r.description));
   const cbShown: CookbookRecipe[] = cookbook.filter((r) => fits(cbFacets.get(r.id), r.name, r.description));
   const total = ownShown.length + cbShown.length;
@@ -80,26 +55,10 @@ export default function PlanMeals() {
           </div>
         </header>
 
-        <div className="relative mb-3">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search recipes…" className="pl-9" />
-        </div>
-        <div className="mb-2 grid grid-cols-2 gap-2 md:grid-cols-4">
-          <FilterSelect label="Base" value={filter.base} onChange={(v) => setFilter("base", v)}
-            options={[...BASES.map(([b]) => b), "none"]} labels={{ none: "No carb base" }} />
-          <FilterSelect label="Protein" value={filter.protein} onChange={(v) => setFilter("protein", v)}
-            options={PROTEINS.map(([p]) => p)} />
-          <FilterSelect label="Country" value={filter.country} onChange={(v) => setFilter("country", v)} options={countries} />
-          <FilterSelect label="Lifestyle" value={filter.lifestyle} onChange={(v) => setFilter("lifestyle", v)} options={LIFESTYLES} />
-        </div>
-        <div className="mb-5 flex items-center justify-between text-xs text-muted-foreground">
-          <span className="tabular-nums">{l1 || l2 ? "Loading…" : `${total} recipe${total === 1 ? "" : "s"}`}</span>
-          {active > 0 && (
-            <button onClick={() => { setQuery(""); setParams(new URLSearchParams(), { replace: true }); }}
-              className="inline-flex items-center gap-1 hover:text-foreground">
-              <X className="h-3 w-3" /> Clear filters
-            </button>
-          )}
+        <RecipeFilterBar query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} countries={countries}
+          onClear={() => { setQuery(""); setParams(new URLSearchParams(), { replace: true }); }} />
+        <div className="mb-5 mt-2 text-xs text-muted-foreground tabular-nums">
+          {l1 || l2 ? "Loading…" : `${total} recipe${total === 1 ? "" : "s"}`}
         </div>
 
         {!l1 && !l2 && total === 0 && (
@@ -115,22 +74,6 @@ export default function PlanMeals() {
         {cbShown.length > 0 && <div className={ownShown.length ? "mt-3" : ""}><CookbookList recipes={cbShown} bare /></div>}
       </div>
     </div>
-  );
-}
-
-function FilterSelect({ label, value, onChange, options, labels = {} }: {
-  label: string; value: string; onChange: (v: string) => void; options: string[]; labels?: Record<string, string>;
-}) {
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={`rounded-xl ${value !== ALL ? "border-primary/60 text-primary" : ""}`} aria-label={label}>
-        <SelectValue placeholder={label} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={ALL}>{label}: all</SelectItem>
-        {options.map((o) => <SelectItem key={o} value={o}>{labels[o] ?? o}</SelectItem>)}
-      </SelectContent>
-    </Select>
   );
 }
 

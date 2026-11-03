@@ -15,10 +15,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
 import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
-import { useIngredients } from "@/hooks/useIngredients";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
 import {
   balancedGramsForShare,
@@ -31,8 +28,9 @@ import {
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
+import { NO_FILTER, RecipeFilterBar, passes, useRecipeFacets, type RecipeFilter } from "@/components/RecipeFilters";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Carrot, Plus, Trash2, Search, Star, BookOpen, ChefHat, Globe } from "lucide-react";
+import { Loader2, Sparkles, Carrot, Plus, Trash2, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
@@ -44,7 +42,7 @@ export default function Index() {
   const { data: logs = [] } = useTodayLogs();
   const { data: recipes = [] } = useRecipes();
   const { data: cookbookAll = [] } = useAllCookbookRecipes();
-  const { data: allIngredients = [] } = useIngredients();
+  const pickFacets = useRecipeFacets(recipes, cookbookAll);
 
   const [editing, setEditing] = useState<MealLog | null>(null);
 
@@ -52,13 +50,8 @@ export default function Index() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
-  const [pickerTab, setPickerTab] = useState<"favorites" | "cookbooks" | "filter">("favorites");
-  const [pickerCookbook, setPickerCookbook] = useState<string>("__library__");
-  const [filterCuisine, setFilterCuisine] = useState<string[]>([]);
-  const [filterIngredient, setFilterIngredient] = useState<string[]>([]);
-  const [filterApplied, setFilterApplied] = useState(false);
-  const [tagSearch, setTagSearch] = useState("");
-  const [categoryOpen, setCategoryOpen] = useState<null | "__library__" | "__mine__" | "__countries__">(null);
+  const [pickFilter, setPickFilter] = useState<RecipeFilter>(NO_FILTER);
+  const [pickFav, setPickFav] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   // the menu bar's star opens the favourites here (?favorites=1)
   const [params, setParams] = useSearchParams();
@@ -125,16 +118,19 @@ export default function Index() {
     [profile],
   );
 
-  // Group logs by slot, oldest first. Meals without a slot ("Add more") join the Snack card, so every meal of the
-  // day sits in one of the four cards (no separate "Other meals" list).
+  // Group logs by slot, oldest first: the first meal of each slot fills its card, every further meal (a second lunch,
+  // snacks, extras without a slot) gets a card of its own after the four
   const slotLogs = useMemo(() => {
     const map: Record<string, MealLog[]> = {};
     [...logs].reverse().forEach((l) => {
-      const slot = l.slot && SLOTS.includes(l.slot as Slot) ? l.slot : "Snack";
-      (map[slot] ??= []).push(l);
+      if (l.slot && SLOTS.includes(l.slot as Slot)) (map[l.slot] ??= []).push(l);
     });
     return map;
   }, [logs]);
+  const extraLogs = useMemo(() => {
+    const firsts = new Set(SLOTS.map((sl) => slotLogs[sl]?.[0]?.id).filter(Boolean));
+    return [...logs].reverse().filter((l) => !firsts.has(l.id));
+  }, [logs, slotLogs]);
 
   const emptySlots = SLOTS.filter((s) => !slotLogs[s]?.length).length;
 
@@ -380,31 +376,8 @@ export default function Index() {
           </div>
           <div className="grid gap-2 sm:grid-cols-2 md:gap-3">
             {SLOTS.map((slot) => {
-              const list = slotLogs[slot] ?? [];
-              if (list.length) {
-                return (
-                  <Card key={slot} className="rounded-2xl p-3 md:p-4">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{slot}</div>
-                    <div className="mt-0.5 divide-y divide-border/60">
-                      {list.map((log) => (
-                        <button
-                          key={log.id}
-                          type="button"
-                          onClick={() => setEditing(log)}
-                          className="-mx-2 block w-[calc(100%+1rem)] rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-accent/20 first:pt-0.5"
-                        >
-                          <div className="font-semibold">{log.recipe_name}</div>
-                          <div className="mt-0.5 text-xs text-muted-foreground">
-                            {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
-                            {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
-                            {Math.round(Number(log.fat_g))}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </Card>
-                );
-              }
+              const log = (slotLogs[slot] ?? [])[0];
+              if (log) return <MealCard key={slot} label={slot} log={log} onOpen={() => setEditing(log)} />;
               return (
                 <Card
                   key={slot}
@@ -421,6 +394,11 @@ export default function Index() {
                 </Card>
               );
             })}
+            {/* more meals (a second lunch, snacks, extras): each its own card, same size as the others */}
+            {extraLogs.map((log) => (
+              <MealCard key={log.id} label={log.slot && SLOTS.includes(log.slot as Slot) ? log.slot : "Extra"} log={log}
+                onOpen={() => setEditing(log)} />
+            ))}
           </div>
           <Button
             variant="outline"
@@ -516,6 +494,8 @@ export default function Index() {
           if (!o) {
             setPickerSlot(null);
             setPickerQuery("");
+            setPickFilter(NO_FILTER);
+            setPickFav(false);
           }
         }}
       >
@@ -527,425 +507,53 @@ export default function Index() {
             </DialogDescription>
           </DialogHeader>
 
+          <RecipeFilterBar query={pickerQuery} onQuery={setPickerQuery} filter={pickFilter}
+            onFilter={(k, v) => setPickFilter((f) => ({ ...f, [k]: v }))} countries={pickFacets.countries}
+            favoritesOnly={pickFav} onFavoritesOnly={setPickFav}
+            onClear={() => { setPickerQuery(""); setPickFilter(NO_FILTER); setPickFav(false); }} />
           {(() => {
-            const q = pickerQuery.trim().toLowerCase();
-            const matchQ = (name: string, desc?: string | null) =>
-              !q || name.toLowerCase().includes(q) || (desc ?? "").toLowerCase().includes(q);
-
-            const favRecipes = recipes.filter((r) => r.is_favorite && matchQ(r.name, r.description));
-            const favCookbook = cookbookAll.filter((r) => r.is_favorite && matchQ(r.name, r.description));
-
-            const cookbookCountries = Array.from(
-              new Set(cookbookAll.map((r) => r.country).filter((c): c is string => !!c)),
-            ).sort();
-            const cookbookOptions: { value: string; label: string }[] = [
-              { value: "__library__", label: "Free library" },
-              ...cookbookCountries.map((c) => ({ value: c, label: c })),
-              { value: "__mine__", label: "Recipes" },
-            ];
-
-            let cookbookList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [];
-            if (pickerCookbook === "__mine__") {
-              cookbookList = recipes
-                .filter((r) => matchQ(r.name, r.description))
-                .map((r) => ({ kind: "recipe" as const, r }));
-            } else if (pickerCookbook === "__library__") {
-              cookbookList = cookbookAll
-                .filter((r) => !r.country && matchQ(r.name, r.description))
-                .map((r) => ({ kind: "cookbook" as const, r }));
-            } else {
-              cookbookList = cookbookAll
-                .filter((r) => r.country === pickerCookbook && matchQ(r.name, r.description))
-                .map((r) => ({ kind: "cookbook" as const, r }));
+            const ownList = recipes.filter((r) => (!pickFav || r.is_favorite)
+              && passes(pickFacets.ownFacets.get(r.id), r.name, r.description, pickFilter, pickerQuery));
+            const cbList = cookbookAll.filter((r) => (!pickFav || r.is_favorite)
+              && passes(pickFacets.cbFacets.get(r.id), r.name, r.description, pickFilter, pickerQuery));
+            if (!ownList.length && !cbList.length) {
+              return <p className="py-6 text-center text-sm text-muted-foreground">No recipes match.</p>;
             }
-
-            // Build tag pools
-            const cuisineSet = new Set<string>();
-            recipes.forEach((r) => (r.cuisine_tags ?? []).forEach((t) => cuisineSet.add(t)));
-            cookbookAll.forEach((r) => r.country && cuisineSet.add(r.country));
-            const cuisineOptions = Array.from(cuisineSet).sort();
-
-            const ingredientSet = new Set<string>();
-            recipes.forEach((r) =>
-              r.recipe_ingredients?.forEach((ri) => ri.ingredient?.name && ingredientSet.add(ri.ingredient.name)),
-            );
-            // For cookbook recipes, match canonical ingredient names that appear in their raw ingredient lines
-            const canonicalNames = allIngredients.map((i) => i.name);
-            cookbookAll.forEach((r) => {
-              const blob = (r.ingredients ?? []).join(" ").toLowerCase();
-              canonicalNames.forEach((n) => {
-                if (blob.includes(n.toLowerCase())) ingredientSet.add(n);
-              });
-            });
-            const ingredientOptions = Array.from(ingredientSet).sort();
-
-            const recipeMatchesFilters = (r: RecipeRow) => {
-              if (filterCuisine.length && !filterCuisine.some((t) => (r.cuisine_tags ?? []).includes(t))) return false;
-              if (filterIngredient.length) {
-                const names = (r.recipe_ingredients ?? []).map((ri) => ri.ingredient?.name ?? "");
-                if (!filterIngredient.every((t) => names.includes(t))) return false;
-              }
-              return true;
-            };
-            const cookbookMatchesFilters = (r: CookbookRecipe) => {
-              if (filterCuisine.length && !filterCuisine.some((t) => r.country === t)) return false;
-              if (filterIngredient.length) {
-                const blob = (r.ingredients ?? []).join(" ").toLowerCase();
-                if (!filterIngredient.every((t) => blob.includes(t.toLowerCase()))) return false;
-              }
-              return true;
-            };
-
-            const filterList: Array<{ kind: "recipe"; r: RecipeRow } | { kind: "cookbook"; r: CookbookRecipe }> = [
-              ...recipes.filter((r) => matchQ(r.name, r.description) && recipeMatchesFilters(r)).map((r) => ({ kind: "recipe" as const, r })),
-              ...cookbookAll.filter((r) => matchQ(r.name, r.description) && cookbookMatchesFilters(r)).map((r) => ({ kind: "cookbook" as const, r })),
-            ];
-
-            const renderRecipeBtn = (r: RecipeRow) => (
-              <button
-                key={`r-${r.id}`}
-                onClick={() => addRecipeToSlot(r)}
-                disabled={adding}
-                className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-semibold">{r.name}</span>
-                    {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
-                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">My recipe</span>
-                  </div>
-                  {r.description && (
-                    <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
-                  )}
-                </div>
-              </button>
-            );
-            const renderCookbookBtn = (r: CookbookRecipe) => (
-              <button
-                key={`c-${r.id}`}
-                onClick={() => addCookbookToSlot(r)}
-                disabled={adding}
-                className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-semibold">{r.name}</span>
-                    {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
-                    <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {r.country ?? "Library"}
-                    </span>
-                  </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    {r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
-                  </div>
-                </div>
-                {r.image_url && (
-                  <img
-                    src={r.image_url}
-                    alt={r.name}
-                    className="h-14 w-14 shrink-0 rounded-lg object-cover"
-                    loading="lazy"
-                  />
-                )}
-              </button>
-            );
-
             return (
-              <Tabs value={pickerTab} onValueChange={(v) => setPickerTab(v as typeof pickerTab)}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="favorites">Favourites</TabsTrigger>
-                  <TabsTrigger value="cookbooks">Categories</TabsTrigger>
-                  <TabsTrigger value="filter">Filter</TabsTrigger>
-                </TabsList>
-
-                {pickerTab === "favorites" && (
-                  <div className="relative mt-3">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      value={pickerQuery}
-                      onChange={(e) => setPickerQuery(e.target.value)}
-                      placeholder="Search recipes…"
-                      className="pl-9"
-                    />
-                  </div>
-                )}
-
-                <TabsContent value="favorites" className="h-[50vh] space-y-2 overflow-y-auto">
-                  {favRecipes.length === 0 && favCookbook.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                      No favourites yet. Star a recipe to see it here.
-                    </p>
-                  ) : (
-                    <>
-                      {favRecipes.map(renderRecipeBtn)}
-                      {favCookbook.map(renderCookbookBtn)}
-                    </>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="cookbooks" className="space-y-3">
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <button
-                      type="button"
-                      onClick={() => setCategoryOpen("__library__")}
-                      className="rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20"
-                    >
-                      <div className="mb-1 flex items-center gap-2 text-primary">
-                        <BookOpen className="h-4 w-4" />
-                        <span className="font-display text-sm font-bold">Cook Book</span>
+              <div className="-mx-1 flex-1 space-y-2 overflow-y-auto px-1 pt-1">
+                {ownList.map((r) => (
+                  <button key={`r-${r.id}`} onClick={() => addRecipeToSlot(r)} disabled={adding}
+                    className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20 disabled:opacity-50">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-semibold">{r.name}</span>
+                        {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                        <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">Your recipe</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">Free starter library of macro-friendly recipes.</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCategoryOpen("__mine__")}
-                      className="rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20"
-                    >
-                      <div className="mb-1 flex items-center gap-2 text-primary">
-                        <ChefHat className="h-4 w-4" />
-                        <span className="font-display text-sm font-bold">Recipes</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Recipes you've built yourself.</p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCategoryOpen("__countries__")}
-                      className="rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20"
-                    >
-                      <div className="mb-1 flex items-center gap-2 text-primary">
-                        <Globe className="h-4 w-4" />
-                        <span className="font-display text-sm font-bold">Countries</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Recipes from around the world.</p>
-                    </button>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="filter" className="flex max-h-[50vh] flex-col gap-3 overflow-hidden">
-                  <div className="space-y-2 overflow-y-auto pr-1">
-                    {!filterApplied && (
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          value={tagSearch}
-                          onChange={(e) => setTagSearch(e.target.value)}
-                          placeholder="Search tags…"
-                          className="pl-9"
-                        />
-                      </div>
-                    )}
-                    {(filterCuisine.length > 0 || filterIngredient.length > 0) && (
-                      <div className="rounded-lg border border-primary/40 bg-primary/5 p-2">
-                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Selected tags</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {filterCuisine.map((tag) => (
-                            <button
-                              key={`sel-c-${tag}`}
-                              type="button"
-                              onClick={() => {
-                                setFilterApplied(false);
-                                setFilterCuisine((prev) => prev.filter((t) => t !== tag));
-                              }}
-                              className="rounded-full border border-primary bg-primary px-2.5 py-0.5 text-xs text-primary-foreground"
-                            >
-                              {tag} ×
-                            </button>
-                          ))}
-                          {filterIngredient.map((tag) => (
-                            <button
-                              key={`sel-i-${tag}`}
-                              type="button"
-                              onClick={() => {
-                                setFilterApplied(false);
-                                setFilterIngredient((prev) => prev.filter((t) => t !== tag));
-                              }}
-                              className="rounded-full border border-primary bg-primary px-2.5 py-0.5 text-xs text-primary-foreground"
-                            >
-                              {tag} ×
-                            </button>
-                          ))}
-                        </div>
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFilterCuisine([]);
-                              setFilterIngredient([]);
-                              setFilterApplied(false);
-                            }}
-                            className="text-xs text-muted-foreground underline"
-                          >
-                            Clear filters
-                          </button>
-                          {filterApplied ? (
-                            <Button size="sm" variant="outline" onClick={() => setFilterApplied(false)}>
-                              Edit
-                            </Button>
-                          ) : (
-                            <Button size="sm" onClick={() => setFilterApplied(true)}>
-                              Done
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {!filterApplied && (
-                      <>
-                        <div>
-                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Cuisine tags</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {cuisineOptions.length === 0 && (
-                              <span className="text-xs text-muted-foreground">No cuisine tags yet.</span>
-                            )}
-                            {cuisineOptions.filter((t) => !filterCuisine.includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())).map((tag) => (
-                              <button
-                                key={tag}
-                                type="button"
-                                onClick={() => {
-                                  setFilterApplied(false);
-                                  setFilterCuisine((prev) => [...prev, tag]);
-                                }}
-                                className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary"
-                              >
-                                {tag}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Ingredients</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {ingredientOptions.length === 0 && (
-                              <span className="text-xs text-muted-foreground">No ingredients yet.</span>
-                            )}
-                            {ingredientOptions.filter((t) => !filterIngredient.includes(t) && t.toLowerCase().includes(tagSearch.toLowerCase())).map((tag) => (
-                              <button
-                                key={tag}
-                                type="button"
-                                onClick={() => {
-                                  setFilterApplied(false);
-                                  setFilterIngredient((prev) => [...prev, tag]);
-                                }}
-                                className="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary"
-                              >
-                                {tag}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  {filterApplied && (filterCuisine.length > 0 || filterIngredient.length > 0) && (
-                    <div className="flex-1 space-y-2 overflow-y-auto border-t pt-2">
-                      {filterList.length === 0 ? (
-                        <p className="py-6 text-center text-sm text-muted-foreground">
-                          No recipes match your filters.
-                        </p>
-                      ) : (
-                        filterList.map((it) =>
-                          it.kind === "recipe" ? renderRecipeBtn(it.r) : renderCookbookBtn(it.r),
-                        )
-                      )}
+                      {r.description && <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>}
                     </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+                  </button>
+                ))}
+                {cbList.map((r) => (
+                  <button key={`c-${r.id}`} onClick={() => addCookbookToSlot(r)} disabled={adding}
+                    className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/20 disabled:opacity-50">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-semibold">{r.name}</span>
+                        {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
+                        <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">{r.country ?? "Cook book"}</span>
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">{r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}</div>
+                    </div>
+                    {r.image_url && <img src={r.image_url} alt={r.name} className="h-14 w-14 shrink-0 rounded-lg object-cover" loading="lazy" />}
+                  </button>
+                ))}
+              </div>
             );
           })()}
         </DialogContent>
       </Dialog>
 
-      {/* Category recipes dialog */}
-      <Dialog open={categoryOpen !== null} onOpenChange={(o) => !o && setCategoryOpen(null)}>
-        <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
-          <DialogHeader>
-            <DialogTitle>
-              {categoryOpen === "__mine__" ? "Recipes" : categoryOpen === "__countries__" ? "Countries" : "Cook Book"}
-            </DialogTitle>
-            <DialogDescription>
-              {categoryOpen === "__mine__"
-                ? "Recipes you've built yourself."
-                : categoryOpen === "__countries__"
-                  ? "Recipes from around the world, by country."
-                  : "Free starter library of macro-friendly recipes."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 overflow-y-auto">
-            {(() => {
-              if (categoryOpen === "__mine__") {
-                if (recipes.length === 0) {
-                  return (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                      You haven't created any recipes yet.
-                    </p>
-                  );
-                }
-                return recipes.map((r) => (
-                  <button
-                    key={`cr-${r.id}`}
-                    onClick={async () => {
-                      await addRecipeToSlot(r);
-                      setCategoryOpen(null);
-                    }}
-                    disabled={adding}
-                    className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-semibold">{r.name}</span>
-                        {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
-                      </div>
-                      {r.description && (
-                        <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{r.description}</div>
-                      )}
-                    </div>
-                  </button>
-                ));
-              }
-              const list = categoryOpen === "__countries__"
-                ? cookbookAll.filter((r) => r.country).sort((a, b) => (a.country ?? "").localeCompare(b.country ?? ""))
-                : cookbookAll.filter((r) => !r.country);
-              if (list.length === 0) {
-                return (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    No recipes here yet.
-                  </p>
-                );
-              }
-              return list.map((r) => (
-                <button
-                  key={`cc-${r.id}`}
-                  onClick={async () => {
-                    await addCookbookToSlot(r);
-                    setCategoryOpen(null);
-                  }}
-                  disabled={adding}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-semibold">{r.name}</span>
-                      {r.is_favorite && <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />}
-                    </div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {categoryOpen === "__countries__" && r.country ? `${r.country} · ` : ""}{r.kcal} kcal · P {r.protein_g} · C {r.carbs_g} · F {r.fat_g}
-                    </div>
-                  </div>
-                  {r.image_url && (
-                    <img
-                      src={r.image_url}
-                      alt={r.name}
-                      className="h-14 w-14 shrink-0 rounded-lg object-cover"
-                      loading="lazy"
-                    />
-                  )}
-                </button>
-              ));
-            })()}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Favorites dialog */}
       <Dialog
@@ -1073,5 +681,22 @@ function Welcome() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** One meal of today's plan: slot, name, grams and macros. */
+function MealCard({ label, log, onOpen }: { label: string; log: MealLog; onOpen: () => void }) {
+  return (
+    <Card role="button" tabIndex={0} onClick={onOpen}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+      className="cursor-pointer rounded-2xl p-3 transition-colors hover:bg-accent/40 md:p-4">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 truncate font-semibold">{log.recipe_name}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">
+        {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
+        {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
+        {Math.round(Number(log.fat_g))}
+      </div>
+    </Card>
   );
 }
