@@ -5,7 +5,9 @@ ingredients only (no ready meals, cakes, drinks or alcohol), per 100 g with fibr
 dietary tags from the food's
 category. Prints SQL for psql; run through deploy/import-swiss-foods.sh, which downloads the file and applies it.
 
-  python3 import_swiss_foods.py <file.xlsx> <existing-names.txt>  > import.sql      (summary on stderr)
+  python3 import_swiss_foods.py <english.xlsx> <existing-names.txt> [<german.xlsx>]  > import.sql   (summary on stderr)
+
+The English file gives the names; the German one (optional) only adds German names for searching.
 
 No duplicates:
 - each food is stored with source 'swiss-fcdb' and its ID: running again updates values, never adds a copy;
@@ -149,7 +151,16 @@ WANT = {
 }
 
 
-def find_columns(rows):
+def _lang(heads):
+    """'en', 'de' or None (multilingual): one-language files just say 'name' / 'category'."""
+    if any(h.startswith("energie") or h.startswith("kategorie") for h in heads):
+        return "de"
+    if any(h.startswith("energy") for h in heads) and "name" in heads:
+        return "en"
+    return None
+
+
+def find_columns(rows, need_english=True):
     for i, row in enumerate(rows[:15]):
         heads = [str(h or "").strip().lower() for h in row]
         if "id" not in heads:
@@ -161,25 +172,53 @@ def find_columns(rows):
                 if hit is not None:
                     cols[key] = hit
                     break
+        lang = _lang(heads)
+        if lang:                                   # "name" / "synonyms" / "category" are in the file's language
+            for k in ("name_en", "name_de", "cat_en", "cat_de"):
+                cols.pop(k, None)
+            cols[f"name_{lang}"] = heads.index("name")
+            cat = next((j for j, h in enumerate(heads) if h.startswith(("category", "kategorie"))), None)
+            if cat is not None:
+                cols[f"cat_{lang}"] = cat
         missing = [k for k in ("id", "kcal", "protein", "carbs", "fat") if k not in cols]
-        if "name_en" not in cols:            # names stay English: never fall back to the German ones
-            missing.append("English name (name E)")
+        if need_english and "name_en" not in cols:  # names stay English: never fall back to the German ones
+            missing.append("English names (this is the German file)" if lang == "de" else "English name column")
         if missing:
             sys.exit(f"Nothing imported. Header row found, but not these columns: {missing}\n"
                      f"Headers: {[h for h in heads if h]}\n"
-                     "Download the Excel file with English names from the downloads page (https://naehrwertdaten.ch/de/downloads/) and run:\n"
+                     "The English file is on https://naehrwertdaten.ch/en/downloads/ ; run:\n"
                      "  bash ~/yaai_macro/deploy/import-swiss-foods.sh <file.xlsx>")
         return i, cols
     sys.exit("No header row with an 'ID' column in the first 15 rows; the file's layout changed.")
+
+
+def german_names(path):
+    """ID -> German name, from the German file, for searching ('Lauch' finds leek). Optional."""
+    try:
+        _, rows = read_sheet(path)
+        h, cols = find_columns(rows, need_english=False)
+    except (SystemExit, Exception) as e:
+        print(f"   (no German names: {e})", file=sys.stderr)
+        return {}
+    if "name_de" not in cols:
+        return {}
+    out = {}
+    for r in rows[h + 1:]:
+        fid = r[cols["id"]] if cols["id"] < len(r) else None
+        de = r[cols["name_de"]] if cols["name_de"] < len(r) else None
+        if fid and de:
+            out[str(fid).split(".")[0]] = str(de).strip()
+    return out
 
 
 def q(s):
     return "'" + str(s).replace("'", "''") + "'"
 
 
-def main(xlsx, existing_path):
+def main(xlsx, existing_path, xlsx_de=None):
     sheet, rows = read_sheet(xlsx)
     h, cols = find_columns(rows)
+    de_by_id = german_names(xlsx_de) if xlsx_de else {}
     have = {}
     for line in open(existing_path, encoding="utf-8"):
         if line.strip():
@@ -209,7 +248,7 @@ def main(xlsx, existing_path):
             continue
         name = NOISE.sub("", name).strip()[:120]
         key = words(name)
-        de = NOISE.sub("", (get("name_de") or "")).strip()[:120] or None
+        de = NOISE.sub("", (get("name_de") or de_by_id.get(str(fid).split(".")[0]) or "")).strip()[:120] or None
         if key in have:
             dupes.append((name, have[key], de, fibre, salt))
             continue
@@ -247,6 +286,6 @@ def main(xlsx, existing_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 4):
         sys.exit(__doc__)
-    main(sys.argv[1], sys.argv[2])
+    main(*sys.argv[1:])
