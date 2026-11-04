@@ -28,7 +28,7 @@ NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
 SOURCE = "swiss-fcdb"
 
 # Categories (English, or German) left out: dishes and drinks, not ingredients
-SKIP = re.compile(r"^(prepared dishes|fertiggerichte|alcoholic beverages|alkoholische getränke|savoury snacks|salzige snacks"
+SKIP = re.compile(r"^(prepared dishes|fertiggerichte|gerichte|alcoholic beverages|alkoholische getränke|savoury snacks|salzige snacks"
                   r"|sweets/(cakes|cookies|other sweet pastries|creams|candies)|süssigkeiten/(kuchen|guetzli|kekse|anderes süsses|cremen|bonbons)"
                   r"|non-alcoholic beverages/(soft drinks|coffee|tea|cocoa)|alkoholfreie getränke/(süssgetränke|kaffee|tee|kakao))", re.I)
 
@@ -270,6 +270,12 @@ def main(xlsx, existing_path, xlsx_de=None):
               " name = excluded.name, name_de = excluded.name_de, kcal_per_100g = excluded.kcal_per_100g, protein_per_100g = excluded.protein_per_100g,"
               " carbs_per_100g = excluded.carbs_per_100g, fat_per_100g = excluded.fat_per_100g,"
               " fibre_per_100g = excluded.fibre_per_100g, salt_per_100g = excluded.salt_per_100g;")
+    # Swiss foods from an earlier import that this file doesn't have (or now leaves out, like dishes): removed,
+    # unless a recipe uses them
+    if out:
+        ids = ",".join(q(o[0]) for o in out)
+        print(f"delete from public.ingredients i where i.source = '{SOURCE}' and i.source_id not in ({ids})"
+              " and not exists (select 1 from public.recipe_ingredients ri where ri.ingredient_id = i.id);")
     # yours that match a Swiss food: only fill what's empty (German name, fibre, salt); your macros stay
     for mine, theirs, de, fibre, salt in dupes:
         print(f"update public.ingredients set name_de = coalesce(name_de, {q(de) if de else 'null'}),"

@@ -29,4 +29,6 @@ psql "$db" -qtAX -c "select name from public.ingredients where source is distinc
 echo "==> Reading it"
 python3 -I deploy/import_swiss_foods.py "$tmp/foods.xlsx" "$tmp/existing.txt" $( [ -f "$tmp/foods_de.xlsx" ] && echo "$tmp/foods_de.xlsx" ) > "$tmp/import.sql"
 psql "$db" -X -q -v ON_ERROR_STOP=1 -f "$tmp/import.sql"
+left=$(psql "$db" -qtAX -c "select count(*) from public.ingredients i where source = 'swiss-fcdb' and name = name_de and exists (select 1 from public.recipe_ingredients ri where ri.ingredient_id = i.id)")
+[ "$left" != "0" ] && echo "    $left older Swiss foods kept because a recipe uses them (rename or swap them in the recipe)."
 echo "    Done: $(psql "$db" -qtAX -c "select count(*) from public.ingredients where source = 'swiss-fcdb'") Swiss foods, $(psql "$db" -qtAX -c "select count(*) from public.ingredients") ingredients in total."
