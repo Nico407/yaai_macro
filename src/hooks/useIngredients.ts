@@ -25,6 +25,9 @@ export type Ingredient = {
   carbs_per_100g: number;
   fat_per_100g: number;
   dietary_tags: string[];
+  name_de?: string | null;      // German name (Swiss foods), searchable too
+  source?: string | null;       // null: yours · "swiss-fcdb": Swiss Food Composition Database · "off": Open Food Facts
+  source_id?: string | null;    // the food's ID there (barcode for Open Food Facts)
 };
 
 export function useIngredients() {

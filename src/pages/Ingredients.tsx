@@ -11,6 +11,7 @@ import { useIngredients, DIETARY_TAGS } from "@/hooks/useIngredients";
 import { ArrowLeft, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Ingredient } from "@/hooks/useIngredients";
+import { sameFood, searchIngredients } from "@/lib/ingredientSearch";
 
 function TagPicker({
   value,
@@ -58,45 +59,53 @@ type OFFHit = {
   fat: number;
 };
 
+const OFF_FIELDS = "code,product_name,brands,nutriments";
+
+function toHit(p: any): OFFHit {
+  const n = p.nutriments ?? {};
+  const kcal = Number(n["energy-kcal_100g"]) || (n["energy_100g"] ? Number(n["energy_100g"]) / 4.184 : NaN);
+  return {
+    code: String(p.code ?? ""),
+    name: p.product_name || "Unnamed",
+    brand: p.brands ? String(p.brands).split(",")[0].trim() : undefined,
+    kcal,
+    protein: Number(n.proteins_100g),
+    carbs: Number(n.carbohydrates_100g),
+    fat: Number(n.fat_100g),
+  };
+}
+const complete = (h: OFFHit) =>
+  !!h.code && !!h.name && [h.kcal, h.protein, h.carbs, h.fat].every((x) => Number.isFinite(x));
+
+/** Open Food Facts: a barcode (8-14 digits) is looked up directly; words search products sold in Switzerland
+ *  first, then everywhere if that finds nothing. */
 async function searchOpenFoodFacts(q: string): Promise<OFFHit[]> {
-  const url = new URL("https://world.openfoodfacts.org/cgi/search.pl");
-  url.searchParams.set("search_terms", q);
-  url.searchParams.set("search_simple", "1");
-  url.searchParams.set("action", "process");
-  url.searchParams.set("json", "1");
-  url.searchParams.set("page_size", "12");
-  url.searchParams.set(
-    "fields",
-    "code,product_name,brands,nutriments",
-  );
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error("Search failed");
-  const data = await res.json();
-  const products: any[] = data.products ?? [];
-  return products
-    .map((p) => {
-      const n = p.nutriments ?? {};
-      const kcal =
-        Number(n["energy-kcal_100g"]) ||
-        (n["energy_100g"] ? Number(n["energy_100g"]) / 4.184 : NaN);
-      return {
-        code: p.code,
-        name: p.product_name || "Unnamed",
-        brand: p.brands || undefined,
-        kcal,
-        protein: Number(n.proteins_100g),
-        carbs: Number(n.carbohydrates_100g),
-        fat: Number(n.fat_100g),
-      } as OFFHit;
-    })
-    .filter(
-      (h) =>
-        h.name &&
-        Number.isFinite(h.kcal) &&
-        Number.isFinite(h.protein) &&
-        Number.isFinite(h.carbs) &&
-        Number.isFinite(h.fat),
-    );
+  if (/^\d{8,14}$/.test(q)) {
+    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${q}.json?fields=${OFF_FIELDS}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.status === 1 && data.product ? [toHit({ code: q, ...data.product })].filter(complete) : [];
+  }
+  const run = async (swiss: boolean) => {
+    const url = new URL("https://world.openfoodfacts.org/cgi/search.pl");
+    url.searchParams.set("search_terms", q);
+    url.searchParams.set("search_simple", "1");
+    url.searchParams.set("action", "process");
+    url.searchParams.set("json", "1");
+    url.searchParams.set("page_size", "12");
+    url.searchParams.set("fields", OFF_FIELDS);
+    if (swiss) {
+      url.searchParams.set("tagtype_0", "countries");
+      url.searchParams.set("tag_contains_0", "contains");
+      url.searchParams.set("tag_0", "switzerland");
+    }
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error("Search failed");
+    const data = await res.json();
+    return ((data.products ?? []) as any[]).map(toHit).filter(complete);
+  };
+  const ch = await run(true);
+  return ch.length ? ch : run(false);
 }
 
 
@@ -106,9 +115,9 @@ export default function Ingredients() {
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("");
 
-  const filteredIngredients = ingredients.filter((i) =>
-    i.name.toLowerCase().includes(filter.trim().toLowerCase()),
-  );
+  // ~800 with the Swiss foods: search English and German names, show the best 150
+  const matching = filter.trim() ? searchIngredients(ingredients, filter, 10000) : ingredients;
+  const filteredIngredients = matching.slice(0, 150);
 
   const [name, setName] = useState("");
   const [protein, setProtein] = useState("");
@@ -119,6 +128,11 @@ export default function Ingredients() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<OFFHit[] | null>(null);
+  const [picked, setPicked] = useState<OFFHit | null>(null);       // the product the form was filled from
+  // your ingredients that match what's typed in the search: use one of these instead of adding a copy
+  const yours = query.trim().length >= 2 && !/^\d+$/.test(query.trim()) ? searchIngredients(ingredients, query, 6) : [];
+  const byBarcode = new Map(ingredients.filter((i) => i.source === "off" && i.source_id).map((i) => [i.source_id!, i]));
+  const sameAsName = name.trim() ? ingredients.find((i) => sameFood(i.name, name)) : undefined;
 
   // 4·P + 4·C + 9·F
   const computedKcal =
@@ -129,7 +143,7 @@ export default function Ingredients() {
     ) / 10;
 
   function reset() {
-    setName(""); setProtein(""); setCarbs(""); setFat(""); setTags([]);
+    setName(""); setProtein(""); setCarbs(""); setFat(""); setTags([]); setPicked(null);
   }
 
   async function onSearch(e: React.FormEvent) {
@@ -150,6 +164,12 @@ export default function Ingredients() {
   }
 
   function pickResult(h: OFFHit) {
+    const have = byBarcode.get(h.code);
+    if (have) {
+      toast({ title: "Already in your list", description: have.name });
+      return;
+    }
+    setPicked(h);
     setName(h.brand ? `${h.name} (${h.brand})` : h.name);
     setProtein(String(Math.round(h.protein * 10) / 10));
     setCarbs(String(Math.round(h.carbs * 10) / 10));
@@ -170,10 +190,13 @@ export default function Ingredients() {
       carbs_per_100g: parseFloat(carbs || "0"),
       fat_per_100g: parseFloat(fat || "0"),
       dietary_tags: tags,
+      // a product from Open Food Facts keeps its barcode, so it can't be added twice
+      ...(picked ? { source: "off", source_id: picked.code } : {}),
     });
     setSaving(false);
     if (error) {
-      toast({ title: "Couldn't save", description: error.message, variant: "destructive" });
+      const dup = error.code === "23505";
+      toast({ title: dup ? "Already in your list" : "Couldn't save", description: dup ? "That product is saved already." : error.message, variant: "destructive" });
       return;
     }
     await qc.invalidateQueries({ queryKey: ["ingredients"] });
@@ -257,7 +280,7 @@ export default function Ingredients() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search foods (e.g. greek yogurt, oats)…"
+              placeholder="Search foods or type a barcode (e.g. greek yogurt, 7610…)"
             />
             <Button type="submit" disabled={searching || !query.trim()}>
               {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
@@ -265,8 +288,21 @@ export default function Ingredients() {
             </Button>
           </form>
           <p className="mt-2 text-xs text-muted-foreground">
-            Powered by Open Food Facts. Pick a result to pre-fill the form.
+            Products from Open Food Facts (Swiss first). Pick one to pre-fill the form, check the values, save.
           </p>
+          {yours.length > 0 && (
+            <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-2.5">
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-primary">Already in your list</div>
+              {yours.map((i) => (
+                <div key={i.id} className="flex items-center justify-between gap-3 py-0.5 text-sm">
+                  <span className="truncate">{i.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {Math.round(Number(i.kcal_per_100g))} kcal · P {Number(i.protein_per_100g)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {results && results.length > 0 && (
             <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">
               {results.map((h) => (
@@ -282,6 +318,9 @@ export default function Ingredients() {
                       <div className="truncate text-xs text-muted-foreground">{h.brand}</div>
                     )}
                   </div>
+                  {byBarcode.has(h.code) && (
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">saved</span>
+                  )}
                   <div className="shrink-0 text-right text-xs text-muted-foreground">
                     {Math.round(h.kcal)} kcal · P {Math.round(h.protein)} · C {Math.round(h.carbs)} · F{" "}
                     {Math.round(h.fat)}
@@ -310,6 +349,12 @@ export default function Ingredients() {
               <Field label="fat (g)" value={fat} onChange={setFat} />
             </div>
             <TagPicker value={tags} onChange={setTags} />
+            {sameAsName && (
+              <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+                You already have <span className="font-semibold">{sameAsName.name}</span>. Use that one in your recipes, or
+                save this anyway if it's a different product.
+              </p>
+            )}
             <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
               <span className="text-muted-foreground">Calculated calories: </span>
               <span className="font-display font-bold tabular-nums">{computedKcal}</span>
@@ -342,7 +387,7 @@ export default function Ingredients() {
                 <Input
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  placeholder="Filter your ingredients…"
+                  placeholder="Filter your ingredients (English or German)…"
                   className="pl-9"
                 />
               </div>
@@ -352,10 +397,24 @@ export default function Ingredients() {
                 </p>
               ) : (
                 <div className="space-y-2">
+                  {matching.length > filteredIngredients.length && (
+                    <p className="text-xs text-muted-foreground">
+                      Showing {filteredIngredients.length} of {matching.length}. Type to narrow it down.
+                    </p>
+                  )}
                   {filteredIngredients.map((ing) => (
                     <Card key={ing.id} className="flex items-center justify-between gap-3 rounded-xl p-4">
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-semibold">{ing.name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-semibold">{ing.name}</span>
+                          {ing.source && (
+                            <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground"
+                              title={ing.source === "off" ? `Open Food Facts · ${ing.source_id}` : "Swiss Food Composition Database (FSVO)"}>
+                              {ing.source === "off" ? "OFF" : "CH"}
+                            </span>
+                          )}
+                        </div>
+                        {ing.name_de && <div className="truncate text-xs text-muted-foreground">{ing.name_de}</div>}
                         <div className="text-xs text-muted-foreground">
                           {Math.round(Number(ing.kcal_per_100g))} kcal · P {Number(ing.protein_per_100g)} · C{" "}
                           {Number(ing.carbs_per_100g)} · F {Number(ing.fat_per_100g)} <span className="opacity-60">/ 100g</span>

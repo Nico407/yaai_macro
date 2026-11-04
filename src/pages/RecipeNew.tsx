@@ -35,6 +35,7 @@ import { useIngredients, type Ingredient } from "@/hooks/useIngredients";
 import { useRecipes, CUISINE_TAGS } from "@/hooks/useRecipes";
 import { useRecipePhotos, useSaveRecipePhoto } from "@/hooks/useRecipePhotos";
 import { RecipePhoto } from "@/components/RecipePhoto";
+import { searchIngredients } from "@/lib/ingredientSearch";
 import { BASES, COUNTRIES, LIFESTYLES, PROTEINS, facetsOf, type Lifestyle } from "@/lib/recipeFacets";
 import { ArrowLeft, Check, ChevronsUpDown, Loader2, Plus, Trash2 } from "lucide-react";
 
@@ -46,6 +47,7 @@ export default function RecipeNew() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: ingredients = [], isLoading } = useIngredients();
+  const [ingQuery, setIngQuery] = useState("");
   const { data: recipes = [], isLoading: loadingRecipes } = useRecipes();
   const existing = isEdit ? recipes.find((r) => r.id === id) : undefined;
 
@@ -395,7 +397,7 @@ export default function RecipeNew() {
                     return (
                       <div key={idx} className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
-                          <Popover open={openIngIdx === idx} onOpenChange={(o) => setOpenIngIdx(o ? idx : null)}>
+                          <Popover open={openIngIdx === idx} onOpenChange={(o) => { setOpenIngIdx(o ? idx : null); setIngQuery(""); }}>
                             <PopoverTrigger asChild>
                               <Button
                                 type="button"
@@ -411,15 +413,19 @@ export default function RecipeNew() {
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                              <Command>
-                                <CommandInput placeholder="Search ingredients…" />
+                              {/* our own search: ~800 ingredients, English or German names, best matches first */}
+                              <Command shouldFilter={false}>
+                                <CommandInput placeholder="Search ingredients (English or German)…" value={ingQuery} onValueChange={setIngQuery} />
                                 <CommandList>
-                                  <CommandEmpty>No ingredients found.</CommandEmpty>
+                                  <CommandEmpty>
+                                    No ingredients found.{" "}
+                                    <Link to="/ingredients" className="underline">Look it up on Open Food Facts</Link>
+                                  </CommandEmpty>
                                   <CommandGroup>
-                                    {ingredients.map((i) => (
+                                    {searchIngredients(ingredients, ingQuery).map((i) => (
                                       <CommandItem
                                         key={i.id}
-                                        value={i.name}
+                                        value={i.id}
                                         onSelect={() => {
                                           updateRow(idx, { ingredient_id: i.id });
                                           setOpenIngIdx(null);
@@ -431,7 +437,10 @@ export default function RecipeNew() {
                                             r.ingredient_id === i.id ? "opacity-100" : "opacity-0",
                                           )}
                                         />
-                                        {i.name}
+                                        <span className="min-w-0 flex-1 truncate">{i.name}</span>
+                                        <span className="ml-2 shrink-0 text-[10px] text-muted-foreground">
+                                          {Math.round(Number(i.kcal_per_100g))} kcal · P {Number(i.protein_per_100g)}
+                                        </span>
                                       </CommandItem>
                                     ))}
                                   </CommandGroup>

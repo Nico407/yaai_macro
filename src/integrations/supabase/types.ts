@@ -92,6 +92,9 @@ export type Database = {
           id: string
           kcal_per_100g: number
           name: string
+          name_de: string | null
+          source: string | null
+          source_id: string | null
           protein_per_100g: number
         }
         Insert: {
@@ -102,6 +105,9 @@ export type Database = {
           id?: string
           kcal_per_100g: number
           name: string
+          name_de?: string | null
+          source?: string | null
+          source_id?: string | null
           protein_per_100g?: number
         }
         Update: {
@@ -112,6 +118,9 @@ export type Database = {
           id?: string
           kcal_per_100g?: number
           name?: string
+          name_de?: string | null
+          source?: string | null
+          source_id?: string | null
           protein_per_100g?: number
         }
         Relationships: []
