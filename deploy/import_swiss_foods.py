@@ -167,7 +167,7 @@ def find_columns(rows):
         if missing:
             sys.exit(f"Nothing imported. Header row found, but not these columns: {missing}\n"
                      f"Headers: {[h for h in heads if h]}\n"
-                     "Download the English or multilingual Excel file from https://naehrwertdaten.ch/en/downloads/ and run:\n"
+                     "Download the Excel file with English names from the downloads page (https://naehrwertdaten.ch/de/downloads/) and run:\n"
                      "  bash ~/yaai_macro/deploy/import-swiss-foods.sh <file.xlsx>")
         return i, cols
     sys.exit("No header row with an 'ID' column in the first 15 rows; the file's layout changed.")
