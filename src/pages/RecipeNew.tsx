@@ -424,7 +424,7 @@ export default function RecipeNew() {
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                               {/* our own search: ~800 ingredients, English or German names, best matches first */}
                               <Command shouldFilter={false}>
-                                <CommandInput placeholder="Search ingredients (English or German)…" value={ingQuery} onValueChange={setIngQuery} />
+                                <CommandInput placeholder="Search ingredients…" value={ingQuery} onValueChange={setIngQuery} />
                                 <CommandList>
                                   <CommandEmpty>
                                     No ingredients found.{" "}

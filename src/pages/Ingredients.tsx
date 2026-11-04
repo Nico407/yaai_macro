@@ -408,7 +408,7 @@ export default function Ingredients() {
                 <Input
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  placeholder="Filter your ingredients (English or German)…"
+                  placeholder="Filter your ingredients…"
                   className="pl-9"
                 />
               </div>
@@ -435,7 +435,6 @@ export default function Ingredients() {
                             </span>
                           )}
                         </div>
-                        {ing.name_de && <div className="truncate text-xs text-muted-foreground">{ing.name_de}</div>}
                         <div className="text-xs text-muted-foreground">
                           {Math.round(Number(ing.kcal_per_100g))} kcal · P {Number(ing.protein_per_100g)} · C{" "}
                           {Number(ing.carbs_per_100g)} · F {Number(ing.fat_per_100g)}

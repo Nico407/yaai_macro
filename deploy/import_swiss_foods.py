@@ -162,10 +162,13 @@ def find_columns(rows):
                     cols[key] = hit
                     break
         missing = [k for k in ("id", "kcal", "protein", "carbs", "fat") if k not in cols]
-        if "name_en" not in cols and "name_de" not in cols:
-            missing.append("name")
+        if "name_en" not in cols:            # names stay English: never fall back to the German ones
+            missing.append("English name (name E)")
         if missing:
-            sys.exit(f"Header row found, but not these columns: {missing}\nHeaders: {[h for h in heads if h]}")
+            sys.exit(f"Nothing imported. Header row found, but not these columns: {missing}\n"
+                     f"Headers: {[h for h in heads if h]}\n"
+                     "Download the English or multilingual Excel file from https://naehrwertdaten.ch/en/downloads/ and run:\n"
+                     "  bash ~/yaai_macro/deploy/import-swiss-foods.sh <file.xlsx>")
         return i, cols
     sys.exit("No header row with an 'ID' column in the first 15 rows; the file's layout changed.")
 
@@ -187,7 +190,7 @@ def main(xlsx, existing_path):
     for r in rows[h + 1:]:
         get = lambda k: r[cols[k]] if k in cols and cols[k] < len(r) else None
         fid = get("id")
-        name = (get("name_en") or get("name_de") or "").strip()
+        name = (get("name_en") or "").strip()          # English; the German name is only kept for searching
         if not fid or not name:
             continue
         cat = (get("cat_en") or get("cat_de") or "").strip()
