@@ -267,7 +267,7 @@ def main(xlsx, existing_path, xlsx_de=None):
               f" fibre_per_100g, salt_per_100g, dietary_tags, source, source_id) values ({q(name)}, {q(de) if de else 'null'},"
               f" {kcal}, {p}, {c}, {f}, {sql(fibre)}, {sql(salt)}, {arr}, '{SOURCE}', {q(fid)})"
               " on conflict (source, source_id) where source is not null do update set"
-              " name_de = excluded.name_de, kcal_per_100g = excluded.kcal_per_100g, protein_per_100g = excluded.protein_per_100g,"
+              " name = excluded.name, name_de = excluded.name_de, kcal_per_100g = excluded.kcal_per_100g, protein_per_100g = excluded.protein_per_100g,"
               " carbs_per_100g = excluded.carbs_per_100g, fat_per_100g = excluded.fat_per_100g,"
               " fibre_per_100g = excluded.fibre_per_100g, salt_per_100g = excluded.salt_per_100g;")
     # yours that match a Swiss food: only fill what's empty (German name, fibre, salt); your macros stay
@@ -285,7 +285,22 @@ def main(xlsx, existing_path, xlsx_de=None):
         print(f"   … and {len(dupes) - 40} more", file=sys.stderr)
 
 
+def inspect(path):
+    """What's in a file: the header row and a few foods, to see which column holds which names."""
+    sheet, rows = read_sheet(path)
+    head = next((i for i, r in enumerate(rows[:15]) if "id" in [str(h or "").strip().lower() for h in r]), 0)
+    heads = rows[head]
+    print(f"{path}: sheet '{sheet}', {len(rows) - head - 1} rows")
+    print("first columns:", [h for h in heads[:12]])
+    for r in rows[head + 1:head + 6]:
+        print("  ", [c for c in r[:8]])
+
+
 if __name__ == "__main__":
+    if len(sys.argv) >= 3 and sys.argv[1] == "--inspect":
+        for f in sys.argv[2:]:
+            inspect(f)
+        sys.exit(0)
     if len(sys.argv) not in (3, 4):
         sys.exit(__doc__)
     main(*sys.argv[1:])
