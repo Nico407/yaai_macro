@@ -46,6 +46,7 @@ export type RecipeRow = {
   min_total_g: number;
   max_total_g: number;
   is_fixed: boolean;
+  extra_ingredients?: string[];          // listed with the recipe, not weighed ("salt", "pepper")
   is_favorite: boolean;
   cuisine_tags: string[];
   base_tags?: string[];
@@ -62,7 +63,7 @@ export function useRecipes() {
       const { data, error } = await supabase
         .from("recipes")
         .select(
-          "*, recipe_ingredients(id, ingredient_id, ratio, ingredient:ingredients(id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, dietary_tags))",
+          "*, recipe_ingredients(id, ingredient_id, ratio, ingredient:ingredients(id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, fibre_per_100g, salt_per_100g, dietary_tags))",
         )
         .order("name", { ascending: true });
       if (error) throw error;

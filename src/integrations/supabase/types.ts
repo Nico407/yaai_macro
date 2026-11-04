@@ -89,6 +89,8 @@ export type Database = {
           created_at: string
           dietary_tags: string[]
           fat_per_100g: number
+          fibre_per_100g: number | null
+          salt_per_100g: number | null
           id: string
           kcal_per_100g: number
           name: string
@@ -102,6 +104,8 @@ export type Database = {
           created_at?: string
           dietary_tags?: string[]
           fat_per_100g?: number
+          fibre_per_100g?: number | null
+          salt_per_100g?: number | null
           id?: string
           kcal_per_100g: number
           name: string
@@ -115,6 +119,8 @@ export type Database = {
           created_at?: string
           dietary_tags?: string[]
           fat_per_100g?: number
+          fibre_per_100g?: number | null
+          salt_per_100g?: number | null
           id?: string
           kcal_per_100g?: number
           name?: string
@@ -345,6 +351,7 @@ export type Database = {
       }
       recipes: {
         Row: {
+          extra_ingredients: string[]
           base_tags: string[]
           protein_tags: string[]
           lifestyle: string | null
@@ -363,6 +370,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          extra_ingredients?: string[]
           base_tags?: string[]
           protein_tags?: string[]
           lifestyle?: string | null
@@ -381,6 +389,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          extra_ingredients?: string[]
           base_tags?: string[]
           protein_tags?: string[]
           lifestyle?: string | null

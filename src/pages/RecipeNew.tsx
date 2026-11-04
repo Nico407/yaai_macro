@@ -48,6 +48,7 @@ export default function RecipeNew() {
   const qc = useQueryClient();
   const { data: ingredients = [], isLoading } = useIngredients();
   const [ingQuery, setIngQuery] = useState("");
+  const [extras, setExtras] = useState("");
   const { data: recipes = [], isLoading: loadingRecipes } = useRecipes();
   const existing = isEdit ? recipes.find((r) => r.id === id) : undefined;
 
@@ -90,6 +91,7 @@ export default function RecipeNew() {
     setName(existing.name);
     setDescription(existing.description ?? "");
     setInstructions(existing.instructions ?? "");
+    setExtras((existing.extra_ingredients ?? []).join(", "));
     setIsFixed(!!existing.is_fixed);
     setCuisineTags(existing.cuisine_tags ?? []);
     if (existing.lifestyle) {
@@ -138,7 +140,10 @@ export default function RecipeNew() {
     let kcal = 0,
       protein = 0,
       carbs = 0,
-      fat = 0;
+      fat = 0,
+      fibre = 0,
+      salt = 0,
+      unknown = 0;          // weighed ingredients without fibre / salt data
     rows.forEach((r) => {
       const g = parseFloat(r.grams);
       const ing = ingMap.get(r.ingredient_id);
@@ -148,8 +153,11 @@ export default function RecipeNew() {
       protein += (Number(ing.protein_per_100g) * g) / 100;
       carbs += (Number(ing.carbs_per_100g) * g) / 100;
       fat += (Number(ing.fat_per_100g) * g) / 100;
+      if (ing.fibre_per_100g == null || ing.salt_per_100g == null) unknown += 1;
+      fibre += (Number(ing.fibre_per_100g ?? 0) * g) / 100;
+      salt += (Number(ing.salt_per_100g ?? 0) * g) / 100;
     });
-    return { totalG, kcal, protein, carbs, fat };
+    return { totalG, kcal, protein, carbs, fat, fibre, salt, unknown };
   }, [rows, ingMap]);
 
   const valid =
@@ -190,6 +198,7 @@ export default function RecipeNew() {
       name: name.trim(),
       description: description.trim() || null,
       instructions: instructions.trim() || null,
+      extra_ingredients: extras.split(",").map((x) => x.trim()).filter(Boolean),
       default_serving_g: Math.round(total),
       min_total_g: Math.max(50, Math.round(total * 0.5)),
       max_total_g: Math.round(total * 3),
@@ -505,8 +514,21 @@ export default function RecipeNew() {
                   <Stat label="carbs" value={`${totals.carbs.toFixed(1)}g`} per={(totals.carbs / totals.totalG).toFixed(2)} />
                   <Stat label="fat" value={`${totals.fat.toFixed(1)}g`} per={(totals.fat / totals.totalG).toFixed(2)} />
                 </div>
+                <div className="mt-2 flex justify-center gap-4 text-xs text-muted-foreground">
+                  <span>fibre <span className="font-semibold text-foreground">{totals.fibre.toFixed(1)}g</span></span>
+                  <span>salt <span className="font-semibold text-foreground">{totals.salt.toFixed(1)}g</span></span>
+                  {totals.unknown > 0 && <span className="opacity-70">({totals.unknown} without fibre/salt data)</span>}
+                </div>
               </div>
             )}
+
+            {/* listed with the recipe, not weighed: salt, pepper, hot sauce… */}
+            <div>
+              <Label htmlFor="r-extras">Also needed (not weighed)</Label>
+              <Input id="r-extras" value={extras} onChange={(e) => setExtras(e.target.value)}
+                placeholder="salt, pepper, hot sauce" className="mt-1.5" />
+              <p className="mt-1 text-xs text-muted-foreground">Comma-separated. Shown with the recipe, no macros counted.</p>
+            </div>
 
             <div className="space-y-3 rounded-xl border border-border p-4">
               <div className="flex items-baseline justify-between">

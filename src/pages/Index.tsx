@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs, type MealLog } from "@/hooks/useTodayLogs";
+import { useIngredients } from "@/hooks/useIngredients";
 import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
@@ -36,6 +37,7 @@ export default function Index() {
   const qc = useQueryClient();
   const { data: profile, isLoading } = useProfile();
   const { data: logs = [] } = useTodayLogs();
+  const { data: allIngredients = [] } = useIngredients();
   const { data: recipes = [] } = useRecipes();
   const fixedRecipeIds = useMemo(() => new Set(recipes.filter((r) => r.is_fixed).map((r) => r.id)), [recipes]);
   const { data: cookbookAll = [] } = useAllCookbookRecipes();
@@ -113,6 +115,25 @@ export default function Index() {
     }
     await qc.invalidateQueries({ queryKey: ["meal_logs"] });
   }
+
+  // fibre and salt of today's meals, from their saved ingredient grams (only ingredients that have the data)
+  const extra = useMemo(() => {
+    const byId = new Map(allIngredients.map((i) => [i.id, i]));
+    let fibre = 0, salt = 0, known = 0, weighed = 0;
+    for (const l of logs) {
+      for (const it of (Array.isArray(l.ingredients_json) ? l.ingredients_json : []) as { ingredient_id?: string; grams?: number }[]) {
+        const g = Number(it.grams);
+        if (!it.ingredient_id || !(g > 0)) continue;
+        weighed += 1;
+        const ing = byId.get(it.ingredient_id);
+        if (!ing || ing.fibre_per_100g == null || ing.salt_per_100g == null) continue;
+        known += 1;
+        fibre += (Number(ing.fibre_per_100g) * g) / 100;
+        salt += (Number(ing.salt_per_100g) * g) / 100;
+      }
+    }
+    return { fibre, salt, known, weighed };
+  }, [logs, allIngredients]);
 
   const consumed = useMemo(
     () =>
@@ -251,11 +272,15 @@ export default function Index() {
       slot: pickerSlot === ("__extra__" as Slot) ? null : pickerSlot,
       is_fixed: isFixed,
       instructions: recipe.instructions ?? null,
-      ingredients_json: breakdown.map((b) => ({
-        ingredient_id: b.ingredient_id,
-        name: b.name,
-        grams: Math.round(b.grams),
-      })),
+      ingredients_json: [
+        ...breakdown.map((b) => ({
+          ingredient_id: b.ingredient_id,
+          name: b.name,
+          grams: Math.round(b.grams),
+        })),
+        // salt, pepper…: listed, not weighed
+        ...(recipe.extra_ingredients ?? []).map((name) => ({ name, grams: 0 })),
+      ],
     });
     setAdding(false);
     if (error) {
@@ -359,6 +384,15 @@ export default function Index() {
             <MacroRing consumed={consumed.carbs_g} target={target.carbs_g} label="Carbs" unit="g" colorVar="--macro-carbs" />
             <MacroRing consumed={consumed.fat_g} target={target.fat_g} label="Fat" unit="g" colorVar="--macro-fat" />
           </div>
+          {extra.weighed > 0 && (
+            <p className="mt-3 text-center text-xs text-muted-foreground" title="Recommended: at least 30 g fibre, at most 5 g salt a day">
+              Fibre <span className="font-semibold text-foreground tabular-nums">{extra.fibre.toFixed(1)} g</span>
+              <span className="opacity-60"> / 30</span> · Salt{" "}
+              <span className={`font-semibold tabular-nums ${extra.salt > 5 ? "text-destructive" : "text-foreground"}`}>{extra.salt.toFixed(1)} g</span>
+              <span className="opacity-60"> / 5</span>
+              {extra.known < extra.weighed && <span className="opacity-60"> · {extra.weighed - extra.known} ingredients without data</span>}
+            </p>
+          )}
         </Card>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 md:mt-8 md:gap-4">
@@ -688,7 +722,7 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
                   {ings.map((i, idx) => (
                     <li key={idx} className="flex items-center justify-between px-3 py-1.5">
                       <span>{i.name}</span>
-                      <span className="tabular-nums text-muted-foreground">{Math.round(Number(i.grams))} g</span>
+                      <span className="tabular-nums text-muted-foreground">{Number(i.grams) > 0 ? `${Math.round(Number(i.grams))} g` : "to taste"}</span>
                     </li>
                   ))}
                 </ul>

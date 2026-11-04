@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Import the Swiss Food Composition Database (BLV, naehrwertdaten.ch) into the ingredients table: plain foods and
-ingredients only (no ready meals, cakes, drinks or alcohol), per 100 g, with dietary tags from the food's
+ingredients only (no ready meals, cakes, drinks or alcohol), per 100 g with fibre and salt (from sodium), and
+dietary tags from the food's
 category. Prints SQL for psql; run through deploy/import-swiss-foods.sh, which downloads the file and applies it.
 
   python3 import_swiss_foods.py <file.xlsx> <existing-names.txt>  > import.sql      (summary on stderr)
@@ -9,7 +10,7 @@ category. Prints SQL for psql; run through deploy/import-swiss-foods.sh, which d
 No duplicates:
 - each food is stored with source 'swiss-fcdb' and its ID: running again updates values, never adds a copy;
 - a food whose name matches one you already have (same words, any order: "Chicken breast (raw)" = "Chicken,
-  breast, raw") is skipped, and yours stays as it is;
+  breast, raw") isn't added; yours keeps its values and only gets what it's missing (German name, fibre, salt);
 - Open Food Facts products you add in the app carry source 'off' + barcode, so they can't double up either.
 
 Reads the .xlsx with the standard library only (it's a zip of XML files), so the Pi needs nothing installed.
@@ -142,6 +143,9 @@ WANT = {
     "protein": [r"^protein", r"^eiweiss"],
     "carbs": [r"^carbohydrates?,? available", r"^kohlenhydrate,? verfügbar", r"^carbohydrates?$", r"^kohlenhydrate$"],
     "fat": [r"^fat,? total", r"^fett,? total", r"^fat$", r"^fett$"],
+    "fibre": [r"^dietary fib", r"^nahrungsfasern", r"^fib(re|er)"],
+    "salt": [r"^salt\b", r"^salz\b", r"nacl"],
+    "sodium": [r"^sodium", r"^natrium"],
 }
 
 
@@ -191,33 +195,49 @@ def main(xlsx, existing_path):
             skipped_cat += 1
             continue
         kcal, p, c, f = (num(get(k)) for k in ("kcal", "protein", "carbs", "fat"))
+        fibre = num(get("fibre"))
+        salt = num(get("salt"))
+        if salt is None and num(get("sodium")) is not None:
+            na = num(get("sodium"))
+            unit = str(r[cols["sodium"] + 1] if cols["sodium"] + 1 < len(r) else "").lower()
+            salt = na * 2.5 / (1 if unit.startswith("g") else 1000)     # sodium in mg (or g) -> salt (NaCl) in g
         if None in (kcal, p, c, f):
             bad += 1
             continue
         name = NOISE.sub("", name).strip()[:120]
         key = words(name)
+        de = NOISE.sub("", (get("name_de") or "")).strip()[:120] or None
         if key in have:
-            dupes.append((name, have[key]))
+            dupes.append((name, have[key], de, fibre, salt))
             continue
         if key in seen:                      # two entries that read the same once shortened: keep the first
             continue
         seen.add(key)
-        de = NOISE.sub("", (get("name_de") or "")).strip()[:120] or None
-        out.append((str(fid).split(".")[0], name, de, round(kcal, 1), round(p, 1), round(c, 1), round(f, 1), tags_for(name, cat)))
+        out.append((str(fid).split(".")[0], name, de, round(kcal, 1), round(p, 1), round(c, 1), round(f, 1), tags_for(name, cat),
+                    None if fibre is None else round(fibre, 1), None if salt is None else round(salt, 2)))
 
     print("-- Swiss Food Composition Database (FSVO/BLV, naehrwertdaten.ch), sheet:", sheet)
     print("\\set ON_ERROR_STOP on\nbegin;")
-    for fid, name, de, kcal, p, c, f, tags in out:
+    sql = lambda v: "null" if v is None else v
+    for fid, name, de, kcal, p, c, f, tags, fibre, salt in out:
         arr = "array[" + ",".join(q(t) for t in tags) + "]::text[]" if tags else "'{}'::text[]"
         print("insert into public.ingredients (name, name_de, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g,"
-              f" dietary_tags, source, source_id) values ({q(name)}, {q(de) if de else 'null'}, {kcal}, {p}, {c}, {f}, {arr},"
-              f" '{SOURCE}', {q(fid)}) on conflict (source, source_id) where source is not null do update set"
+              f" fibre_per_100g, salt_per_100g, dietary_tags, source, source_id) values ({q(name)}, {q(de) if de else 'null'},"
+              f" {kcal}, {p}, {c}, {f}, {sql(fibre)}, {sql(salt)}, {arr}, '{SOURCE}', {q(fid)})"
+              " on conflict (source, source_id) where source is not null do update set"
               " name_de = excluded.name_de, kcal_per_100g = excluded.kcal_per_100g, protein_per_100g = excluded.protein_per_100g,"
-              " carbs_per_100g = excluded.carbs_per_100g, fat_per_100g = excluded.fat_per_100g;")
+              " carbs_per_100g = excluded.carbs_per_100g, fat_per_100g = excluded.fat_per_100g,"
+              " fibre_per_100g = excluded.fibre_per_100g, salt_per_100g = excluded.salt_per_100g;")
+    # yours that match a Swiss food: only fill what's empty (German name, fibre, salt); your macros stay
+    for mine, theirs, de, fibre, salt in dupes:
+        print(f"update public.ingredients set name_de = coalesce(name_de, {q(de) if de else 'null'}),"
+              f" fibre_per_100g = coalesce(fibre_per_100g, {sql(None if fibre is None else round(fibre, 1))}),"
+              f" salt_per_100g = coalesce(salt_per_100g, {sql(None if salt is None else round(salt, 2))})"
+              f" where name = {q(theirs)} and source is distinct from '{SOURCE}';")
     print("commit;")
     print(f"{len(out)} foods to add or update · {skipped_cat} dishes/drinks left out · {len(dupes)} you already have"
           f"{f' · {bad} without full macros' if bad else ''}", file=sys.stderr)
-    for mine, theirs in dupes[:40]:
+    for mine, theirs, *_ in dupes[:40]:
         print(f"   kept yours: {theirs}   (= {mine})", file=sys.stderr)
     if len(dupes) > 40:
         print(f"   … and {len(dupes) - 40} more", file=sys.stderr)

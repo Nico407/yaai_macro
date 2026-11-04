@@ -25,6 +25,8 @@ export type Ingredient = {
   carbs_per_100g: number;
   fat_per_100g: number;
   dietary_tags: string[];
+  fibre_per_100g?: number | null;   // empty = not known
+  salt_per_100g?: number | null;    // salt (NaCl) in g; empty = not known
   name_de?: string | null;      // German name (Swiss foods), searchable too
   source?: string | null;       // null: yours · "swiss-fcdb": Swiss Food Composition Database · "off": Open Food Facts
   source_id?: string | null;    // the food's ID there (barcode for Open Food Facts)

@@ -57,6 +57,8 @@ type OFFHit = {
   protein: number;
   carbs: number;
   fat: number;
+  fibre?: number;
+  salt?: number;
 };
 
 const OFF_FIELDS = "code,product_name,brands,nutriments";
@@ -72,6 +74,8 @@ function toHit(p: any): OFFHit {
     protein: Number(n.proteins_100g),
     carbs: Number(n.carbohydrates_100g),
     fat: Number(n.fat_100g),
+    fibre: Number.isFinite(Number(n.fiber_100g)) && n.fiber_100g !== undefined ? Number(n.fiber_100g) : undefined,
+    salt: Number.isFinite(Number(n.salt_100g)) && n.salt_100g !== undefined ? Number(n.salt_100g) : undefined,
   };
 }
 const complete = (h: OFFHit) =>
@@ -123,6 +127,8 @@ export default function Ingredients() {
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
+  const [fibre, setFibre] = useState("");
+  const [salt, setSalt] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
   const [query, setQuery] = useState("");
@@ -143,7 +149,7 @@ export default function Ingredients() {
     ) / 10;
 
   function reset() {
-    setName(""); setProtein(""); setCarbs(""); setFat(""); setTags([]); setPicked(null);
+    setName(""); setProtein(""); setCarbs(""); setFat(""); setFibre(""); setSalt(""); setTags([]); setPicked(null);
   }
 
   async function onSearch(e: React.FormEvent) {
@@ -174,6 +180,8 @@ export default function Ingredients() {
     setProtein(String(Math.round(h.protein * 10) / 10));
     setCarbs(String(Math.round(h.carbs * 10) / 10));
     setFat(String(Math.round(h.fat * 10) / 10));
+    setFibre(h.fibre !== undefined ? String(Math.round(h.fibre * 10) / 10) : "");
+    setSalt(h.salt !== undefined ? String(Math.round(h.salt * 100) / 100) : "");
     setResults(null);
     setQuery("");
     toast({ title: "Loaded — review & save below" });
@@ -189,6 +197,8 @@ export default function Ingredients() {
       protein_per_100g: parseFloat(protein || "0"),
       carbs_per_100g: parseFloat(carbs || "0"),
       fat_per_100g: parseFloat(fat || "0"),
+      fibre_per_100g: optNum(fibre),
+      salt_per_100g: optNum(salt),
       dietary_tags: tags,
       // a product from Open Food Facts keeps its barcode, so it can't be added twice
       ...(picked ? { source: "off", source_id: picked.code } : {}),
@@ -218,6 +228,8 @@ export default function Ingredients() {
   const [editProtein, setEditProtein] = useState("");
   const [editCarbs, setEditCarbs] = useState("");
   const [editFat, setEditFat] = useState("");
+  const [editFibre, setEditFibre] = useState("");
+  const [editSalt, setEditSalt] = useState("");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -234,6 +246,8 @@ export default function Ingredients() {
     setEditProtein(String(ing.protein_per_100g));
     setEditCarbs(String(ing.carbs_per_100g));
     setEditFat(String(ing.fat_per_100g));
+    setEditFibre(ing.fibre_per_100g == null ? "" : String(ing.fibre_per_100g));
+    setEditSalt(ing.salt_per_100g == null ? "" : String(ing.salt_per_100g));
     setEditTags(ing.dietary_tags ?? []);
   }
 
@@ -248,6 +262,8 @@ export default function Ingredients() {
         protein_per_100g: parseFloat(editProtein || "0"),
         carbs_per_100g: parseFloat(editCarbs || "0"),
         fat_per_100g: parseFloat(editFat || "0"),
+        fibre_per_100g: optNum(editFibre),
+        salt_per_100g: optNum(editSalt),
         dietary_tags: editTags,
       })
       .eq("id", editing.id);
@@ -348,6 +364,11 @@ export default function Ingredients() {
               <Field label="carbs (g)" value={carbs} onChange={setCarbs} />
               <Field label="fat (g)" value={fat} onChange={setFat} />
             </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="fibre (g)" value={fibre} onChange={setFibre} placeholder="–" />
+              <Field label="salt (g)" value={salt} onChange={setSalt} placeholder="–" />
+              <p className="self-end pb-2 text-[11px] text-muted-foreground">Optional. Empty = not known.</p>
+            </div>
             <TagPicker value={tags} onChange={setTags} />
             {sameAsName && (
               <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
@@ -417,7 +438,10 @@ export default function Ingredients() {
                         {ing.name_de && <div className="truncate text-xs text-muted-foreground">{ing.name_de}</div>}
                         <div className="text-xs text-muted-foreground">
                           {Math.round(Number(ing.kcal_per_100g))} kcal · P {Number(ing.protein_per_100g)} · C{" "}
-                          {Number(ing.carbs_per_100g)} · F {Number(ing.fat_per_100g)} <span className="opacity-60">/ 100g</span>
+                          {Number(ing.carbs_per_100g)} · F {Number(ing.fat_per_100g)}
+                          {ing.fibre_per_100g != null && <> · fibre {Number(ing.fibre_per_100g)}</>}
+                          {ing.salt_per_100g != null && <> · salt {Number(ing.salt_per_100g)}</>}
+                          <span className="opacity-60"> / 100g</span>
                         </div>
                         {ing.dietary_tags && ing.dietary_tags.length > 0 && (
                           <div className="mt-1 flex flex-wrap gap-1">
@@ -474,6 +498,10 @@ export default function Ingredients() {
               <Field label="carbs (g)" value={editCarbs} onChange={setEditCarbs} />
               <Field label="fat (g)" value={editFat} onChange={setEditFat} />
             </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="fibre (g)" value={editFibre} onChange={setEditFibre} placeholder="–" />
+              <Field label="salt (g)" value={editSalt} onChange={setEditSalt} placeholder="–" />
+            </div>
             <TagPicker value={editTags} onChange={setEditTags} />
             <div className="rounded-lg bg-secondary px-3 py-2 text-sm">
               <span className="text-muted-foreground">Calculated calories: </span>
@@ -494,14 +522,19 @@ export default function Ingredients() {
   );
 }
 
+/** "" -> null (not known), else the number */
+const optNum = (v: string) => (v.trim() === "" || !Number.isFinite(parseFloat(v)) ? null : parseFloat(v));
+
 function Field({
   label,
   value,
   onChange,
+  placeholder = "0",
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  placeholder?: string;
 }) {
   return (
     <div>
@@ -513,7 +546,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1"
-        placeholder="0"
+        placeholder={placeholder}
       />
     </div>
   );
