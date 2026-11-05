@@ -14,7 +14,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import { ingredientBreakdown, macrosFor, recipePerGram, fitRecipe, rescaledLog, isFixedMeal } from "@/lib/scaling";
+import { ingredientBreakdown, macrosFor, recipePerGram, fitRecipe, rescaledLog, isFixedMeal, servingGrams, mealPortion, portionLimits } from "@/lib/scaling";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
 import { toast } from "sonner";
@@ -107,19 +107,19 @@ export default function Recipes() {
     const fixedLogs = logs.filter((l) => isFixedMeal(l, fixedRecipeIds));
     const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
 
-    let grams = Number(recipe.default_serving_g);
+    let grams = servingGrams(recipe);
     let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
     let scalableCount = 0;
     if (target) {
       const fixedConsumed = {
         kcal: fixedLogs.reduce((s, l) => s + Number(l.kcal), 0) +
-          (isFixed ? recipePerGram(recipe).kcal * Number(recipe.default_serving_g) : 0),
+          (isFixed ? recipePerGram(recipe).kcal * servingGrams(recipe) : 0),
         protein_g: fixedLogs.reduce((s, l) => s + Number(l.protein_g), 0) +
-          (isFixed ? perGram.protein_g * Number(recipe.default_serving_g) : 0),
+          (isFixed ? perGram.protein_g * servingGrams(recipe) : 0),
         carbs_g: fixedLogs.reduce((s, l) => s + Number(l.carbs_g), 0) +
-          (isFixed ? perGram.carbs_g * Number(recipe.default_serving_g) : 0),
+          (isFixed ? perGram.carbs_g * servingGrams(recipe) : 0),
         fat_g: fixedLogs.reduce((s, l) => s + Number(l.fat_g), 0) +
-          (isFixed ? perGram.fat_g * Number(recipe.default_serving_g) : 0),
+          (isFixed ? perGram.fat_g * servingGrams(recipe) : 0),
       };
       scalableCount = scalableLogs.length + (isFixed ? 0 : 1);
       const denom = Math.max(1, scalableCount);
@@ -141,7 +141,8 @@ export default function Recipes() {
     if (target && scalableCount > 0) {
       for (const l of scalableLogs) {
         // the whole portion moves to the new share, with its saved ingredient grams
-        const update = rescaledLog(l, share);
+        const r = l.recipe_id ? recipes.find((x) => x.id === l.recipe_id) : undefined;
+        const update = rescaledLog(l, share, r ? portionLimits(r) : undefined);
         if (!update) continue;
         const { error: upErr } = await supabase
           .from("meal_logs")
@@ -169,6 +170,7 @@ export default function Recipes() {
       fat_g: Math.round(totals.fat_g * 10) / 10,
       slot: slot === "__extra__" ? null : slot,
       is_fixed: isFixed,
+      ...mealPortion(recipe, grams),
       instructions: recipe.instructions ?? null,
       ingredients_json: breakdown.map((b) => ({
         ingredient_id: b.ingredient_id,

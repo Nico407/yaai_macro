@@ -19,7 +19,7 @@ import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { usePlannedMeals, type PlannedMeal } from "@/hooks/usePlannedMeals";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ingredientBreakdown, macrosFor, recipePerGram, type PerGram, isFixedMeal, rescaledLog } from "@/lib/scaling";
+import { ingredientBreakdown, macrosFor, recipePerGram, type PerGram, isFixedMeal, rescaledLog, servingGrams } from "@/lib/scaling";
 import {
   ChevronLeft,
   ChevronRight,
@@ -146,7 +146,7 @@ export default function Planner() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Sign in required");
-      const grams = recipe.is_fixed ? Number(recipe.default_serving_g) : Number(recipe.default_serving_g);
+      const grams = servingGrams(recipe);
       const totals = macrosFor(perGram, grams);
       const breakdown = ingredientBreakdown(recipe, grams);
       const { data, error } = await supabase

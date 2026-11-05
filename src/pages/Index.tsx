@@ -17,7 +17,7 @@ import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useAllCookbookRecipes } from "@/hooks/useAllCookbookRecipes";
 import type { CookbookRecipe } from "@/hooks/useCookbookRecipes";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram, fitRecipe, rescaledLog, cookbookPerGram, cookbookServing, isFixedMeal } from "@/lib/scaling";
+import { balancedGramsForShare, clampGrams, ingredientBreakdown, macrosFor, recipePerGram, type PerGram, fitRecipe, rescaledLog, cookbookPerGram, cookbookServing, isFixedMeal, mealPortion, portionLimits, servingGrams } from "@/lib/scaling";
 import { MacroRing } from "@/components/MacroRing";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
@@ -40,6 +40,12 @@ export default function Index() {
   const { data: allIngredients = [] } = useIngredients();
   const { data: recipes = [] } = useRecipes();
   const fixedRecipeIds = useMemo(() => new Set(recipes.filter((r) => r.is_fixed).map((r) => r.id)), [recipes]);
+  const recipeById = useMemo(() => new Map(recipes.map((r) => [r.id, r])), [recipes]);
+  // how far a planned meal may be rescaled: a batch-cooked soup stays within 0.5-1.5 servings, etc.
+  const limitsOf = (l: MealLog) => {
+    const r = l.recipe_id ? recipeById.get(l.recipe_id) : undefined;
+    return r ? portionLimits(r) : undefined;
+  };
   const { data: cookbookAll = [] } = useAllCookbookRecipes();
   const pickFacets = useRecipeFacets(recipes, cookbookAll);
 
@@ -105,6 +111,8 @@ export default function Index() {
       if (Array.isArray(log.ingredients_json)) {
         update.ingredients_json = (log.ingredients_json as Array<{ grams: number }>).map((i) => ({ ...i, grams: Math.round(Number(i.grams) * f) }));
       }
+      if (log.servings != null) update.servings = Math.round(Number(log.servings) * f * 100) / 100;
+      if (log.portion_g != null) update.portion_g = Math.round(Number(log.portion_g) * f);
     }
     if (patch.slot !== undefined && patch.slot !== log.slot) update.slot = patch.slot;
     if (!Object.keys(update).length) return;
@@ -218,13 +226,13 @@ export default function Index() {
     // Subtract fixed meals from the daily target, then split the rest evenly
     const fixedConsumed = {
       kcal: fixedLogs.reduce((s, l) => s + Number(l.kcal), 0) +
-        (isFixed ? perGram.kcal * Number(recipe.default_serving_g) : 0),
+        (isFixed ? perGram.kcal * servingGrams(recipe) : 0),
       protein_g: fixedLogs.reduce((s, l) => s + Number(l.protein_g), 0) +
-        (isFixed ? perGram.protein_g * Number(recipe.default_serving_g) : 0),
+        (isFixed ? perGram.protein_g * servingGrams(recipe) : 0),
       carbs_g: fixedLogs.reduce((s, l) => s + Number(l.carbs_g), 0) +
-        (isFixed ? perGram.carbs_g * Number(recipe.default_serving_g) : 0),
+        (isFixed ? perGram.carbs_g * servingGrams(recipe) : 0),
       fat_g: fixedLogs.reduce((s, l) => s + Number(l.fat_g), 0) +
-        (isFixed ? perGram.fat_g * Number(recipe.default_serving_g) : 0),
+        (isFixed ? perGram.fat_g * servingGrams(recipe) : 0),
     };
     const scalableCount = scalableLogs.length + (isFixed ? 0 : 1);
     const share = {
@@ -234,9 +242,11 @@ export default function Index() {
       fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / Math.max(1, scalableCount),
     };
 
-    // fixed meals keep their batch size; others get each ingredient's amount fitted to this meal's share
+    // fixed meals are always one serving; others get fitted to this meal's share (see fitRecipe)
     const fitted = isFixed ? null : fitRecipe(recipe, share);
-    const grams = fitted ? fitted.grams : Number(recipe.default_serving_g);
+    const grams = fitted ? fitted.grams : servingGrams(recipe);
+    // in servings and plate grams, for recipes that have servings, are batch cooked or have a cooked weight
+    const portion = mealPortion(recipe, grams);
     const totals = fitted ? fitted.totals : macrosFor(perGram, grams);
     const breakdown = fitted ? fitted.breakdown : ingredientBreakdown(recipe, grams);
 
@@ -246,7 +256,7 @@ export default function Index() {
     if (scalableCount > 0) {
       // the whole portion of each moves to the new share, with its saved ingredient grams (all at once, not one by one)
       const results = await Promise.all(scalableLogs.map((l) => {
-        const update = rescaledLog(l, share);
+        const update = rescaledLog(l, share, limitsOf(l));
         return update ? supabase.from("meal_logs").update(update as never).eq("id", l.id) : Promise.resolve({ error: null });
       }));
       const upErr = results.find((r) => r.error)?.error;
@@ -271,6 +281,7 @@ export default function Index() {
       fat_g: Math.round(totals.fat_g * 10) / 10,
       slot: pickerSlot === ("__extra__" as Slot) ? null : pickerSlot,
       is_fixed: isFixed,
+      ...portion,
       instructions: recipe.instructions ?? null,
       ingredients_json: [
         ...breakdown.map((b) => ({
@@ -323,7 +334,7 @@ export default function Index() {
       const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
       // the whole portion of each moves to the new share, with its saved ingredient grams (all at once, not one by one)
       const results = await Promise.all(scalableLogs.map((l) => {
-        const update = rescaledLog(l, share);
+        const update = rescaledLog(l, share, limitsOf(l));
         return update ? supabase.from("meal_logs").update(update as never).eq("id", l.id) : Promise.resolve({ error: null });
       }));
       const upErr = results.find((r) => r.error)?.error;
@@ -648,13 +659,20 @@ function Welcome() {
 
 /** One meal of today's plan. Click to open it in place: ingredients, how to prep, and quick edits (amount, slot,
  *  remove). An open card takes the full row, so its neighbour keeps its size. */
+const fmtServings = (n: number) => `${+n.toFixed(2)} serving${n === 1 ? "" : "s"}`;
+
 function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }: {
   label: string; log: MealLog; photo?: string; open: boolean; onToggle: () => void; onDelete: () => void;
   onSave: (p: { grams?: number; slot?: string | null }) => Promise<void>; busy: boolean;
 }) {
-  const [grams, setGrams] = useState(String(Math.round(Number(log.total_grams))));
+  // meals of recipes with servings (batch soups…) are edited in servings, others in grams
+  const inServings = log.servings != null && Number(log.servings) > 0;
+  const current = inServings ? String(Number(log.servings)) : String(Math.round(Number(log.total_grams)));
+  const [grams, setGrams] = useState(current);
   const [saving, setSaving] = useState(false);
-  useEffect(() => setGrams(String(Math.round(Number(log.total_grams)))), [log.total_grams, open]);
+  useEffect(() => setGrams(current), [current, open]);
+  const step = inServings ? 0.25 : 10;
+  const toRawGrams = (v: number) => (inServings ? (v / Number(log.servings)) * Number(log.total_grams) : v);
   const ings = Array.isArray(log.ingredients_json) ? (log.ingredients_json as Array<{ name: string; grams: number }>) : [];
   const steps = (log.instructions ?? "").split(/\r?\n/).map((x) => x.replace(/^\s*\d+[.)]\s*/, "").trim()).filter(Boolean);
   const save = async (p: { grams?: number; slot?: string | null }) => {
@@ -673,7 +691,9 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
           <div className="mt-0.5 truncate font-semibold">{log.recipe_name}</div>
           <div className="mt-0.5 text-xs text-muted-foreground">
-            {Math.round(Number(log.total_grams))}g · {Math.round(Number(log.kcal))} kcal · P{" "}
+            {inServings
+              ? <>{fmtServings(Number(log.servings))} · {Math.round(Number(log.portion_g ?? log.total_grams))} g</>
+              : <>{Math.round(Number(log.total_grams))}g</>} · {Math.round(Number(log.kcal))} kcal · P{" "}
             {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
             {Math.round(Number(log.fat_g))}
           </div>
@@ -686,15 +706,15 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
           {/* quick edits */}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1">
-              <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg" disabled={saving || g <= 10}
-                onClick={() => setGrams(String(Math.max(10, g - 10)))} aria-label="10 g less"><Minus className="h-3.5 w-3.5" /></Button>
-              <Input inputMode="numeric" value={grams} onChange={(e) => setGrams(e.target.value.replace(/[^0-9]/g, ""))}
-                className="h-8 w-20 text-center tabular-nums" aria-label="Amount in grams" />
+              <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg" disabled={saving || g <= step}
+                onClick={() => setGrams(String(Math.max(step, +(g - step).toFixed(2))))} aria-label={inServings ? "Less" : "10 g less"}><Minus className="h-3.5 w-3.5" /></Button>
+              <Input inputMode="decimal" value={grams} onChange={(e) => setGrams(e.target.value.replace(",", ".").replace(/[^0-9.]/g, ""))}
+                className="h-8 w-20 text-center tabular-nums" aria-label={inServings ? "Servings" : "Amount in grams"} />
               <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg" disabled={saving}
-                onClick={() => setGrams(String(g + 10))} aria-label="10 g more"><Plus className="h-3.5 w-3.5" /></Button>
-              <span className="text-xs text-muted-foreground">g</span>
-              {g > 0 && g !== Math.round(Number(log.total_grams)) && (
-                <Button size="sm" className="h-8 rounded-lg" disabled={saving} onClick={() => save({ grams: g })}>
+                onClick={() => setGrams(String(+(g + step).toFixed(2)))} aria-label={inServings ? "More" : "10 g more"}><Plus className="h-3.5 w-3.5" /></Button>
+              <span className="text-xs text-muted-foreground">{inServings ? "servings" : "g"}</span>
+              {g > 0 && String(g) !== current && (
+                <Button size="sm" className="h-8 rounded-lg" disabled={saving} onClick={() => save({ grams: toRawGrams(g) })}>
                   <Check className="mr-1 h-3.5 w-3.5" /> Save
                 </Button>
               )}

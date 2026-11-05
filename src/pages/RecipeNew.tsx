@@ -71,6 +71,10 @@ export default function RecipeNew() {
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
   const [isFixed, setIsFixed] = useState(false);
+  const [servings, setServings] = useState("1");          // the amounts below make this many servings
+  const [batchCooked, setBatchCooked] = useState(false);  // cooked ahead: only the portion changes
+  const [cookedWeight, setCookedWeight] = useState("");   // whole batch, cooked (optional)
+  const nServings = Math.max(1, parseInt(servings, 10) || 1);
   const [cuisineTags, setCuisineTags] = useState<string[]>([]);
   const [rows, setRows] = useState<Row[]>([
     { ingredient_id: "", grams: "" },
@@ -93,6 +97,9 @@ export default function RecipeNew() {
     setInstructions(existing.instructions ?? "");
     setExtras((existing.extra_ingredients ?? []).join(", "));
     setIsFixed(!!existing.is_fixed);
+    setServings(String(existing.servings ?? 1));
+    setBatchCooked(!!existing.batch_cooked);
+    setCookedWeight(existing.cooked_weight_g ? String(Math.round(Number(existing.cooked_weight_g))) : "");
     setCuisineTags(existing.cuisine_tags ?? []);
     if (existing.lifestyle) {
       // tagged before: keep those tags, no more suggestions
@@ -203,6 +210,9 @@ export default function RecipeNew() {
       min_total_g: Math.max(50, Math.round(total * 0.5)),
       max_total_g: Math.round(total * 3),
       is_fixed: isFixed,
+      servings: nServings,
+      batch_cooked: batchCooked,
+      cooked_weight_g: Number(cookedWeight) > 0 ? Math.round(Number(cookedWeight)) : null,
       cuisine_tags: cuisineTags,
       base_tags: baseTags,
       protein_tags: proteinTags,
@@ -364,14 +374,53 @@ export default function RecipeNew() {
               <p className="mt-1 text-xs text-muted-foreground">One step per line.</p>
             </div>
 
-            <div className="flex items-start justify-between gap-4 rounded-xl border bg-secondary/40 p-4">
-              <div className="flex-1">
-                <Label htmlFor="r-fixed" className="font-semibold">Fixed serving size</Label>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  When on, this meal won't be auto-scaled to your macros (e.g. a protein shake). Other meals on the day still scale around it.
-                </p>
+            {/* servings and batch cooking: the planner works from one serving, never the whole pot */}
+            <div className="space-y-4 rounded-xl border bg-secondary/40 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="r-servings" className="font-semibold">Makes</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">How many servings the amounts below make.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input id="r-servings" inputMode="numeric" value={servings} className="h-9 w-16 text-center"
+                    onChange={(e) => setServings(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} />
+                  <span className="text-sm text-muted-foreground">serving{nServings === 1 ? "" : "s"}</span>
+                </div>
               </div>
-              <Switch id="r-fixed" checked={isFixed} onCheckedChange={setIsFixed} />
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="r-batch" className="font-semibold">Batch cooked</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Cooked ahead (soups, stews, meal prep). The planner only changes how much you take (½ to 1½ servings),
+                    never the ingredient amounts one by one.
+                  </p>
+                </div>
+                <Switch id="r-batch" checked={batchCooked} onCheckedChange={setBatchCooked} />
+              </div>
+              {(batchCooked || nServings > 1) && (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="r-cooked" className="font-semibold">Cooked weight of the whole batch</Label>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Optional. Weigh the pot once (minus the pot): meals then say how much to put in your bowl.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input id="r-cooked" inputMode="numeric" value={cookedWeight} placeholder="–" className="h-9 w-20 text-center"
+                      onChange={(e) => setCookedWeight(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))} />
+                    <span className="text-sm text-muted-foreground">g</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-start justify-between gap-4 border-t border-border/60 pt-4">
+                <div className="flex-1">
+                  <Label htmlFor="r-fixed" className="font-semibold">Fixed serving size</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Always exactly one serving, never scaled (e.g. a protein shake). Other meals on the day scale around it.
+                  </p>
+                </div>
+                <Switch id="r-fixed" checked={isFixed} onCheckedChange={setIsFixed} />
+              </div>
             </div>
 
             {/* cuisine tags moved below */}
@@ -379,7 +428,7 @@ export default function RecipeNew() {
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <Label>Ingredients</Label>
-                <span className="text-xs text-muted-foreground">grams in one batch</span>
+                <span className="text-xs text-muted-foreground">grams for the whole recipe ({nServings} serving{nServings === 1 ? "" : "s"})</span>
               </div>
 
               {isLoading ? (
@@ -514,6 +563,17 @@ export default function RecipeNew() {
                   <Stat label="carbs" value={`${totals.carbs.toFixed(1)}g`} per={(totals.carbs / totals.totalG).toFixed(2)} />
                   <Stat label="fat" value={`${totals.fat.toFixed(1)}g`} per={(totals.fat / totals.totalG).toFixed(2)} />
                 </div>
+                {nServings > 1 && (
+                  <p className="mt-3 text-center text-sm">
+                    <span className="text-muted-foreground">Per serving ({nServings}): </span>
+                    <span className="font-semibold">
+                      {Math.round(totals.kcal / nServings)} kcal · P {(totals.protein / nServings).toFixed(1)} g ·{" "}
+                      {Number(cookedWeight) > 0
+                        ? `${Math.round(Number(cookedWeight) / nServings)} g cooked`
+                        : `${Math.round(totals.totalG / nServings)} g`}
+                    </span>
+                  </p>
+                )}
                 <div className="mt-2 flex justify-center gap-4 text-xs text-muted-foreground">
                   <span>fibre <span className="font-semibold text-foreground">{totals.fibre.toFixed(1)}g</span></span>
                   <span>salt <span className="font-semibold text-foreground">{totals.salt.toFixed(1)}g</span></span>

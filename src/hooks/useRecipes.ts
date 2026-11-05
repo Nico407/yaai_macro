@@ -47,6 +47,9 @@ export type RecipeRow = {
   max_total_g: number;
   is_fixed: boolean;
   extra_ingredients?: string[];          // listed with the recipe, not weighed ("salt", "pepper")
+  servings?: number;                     // the ingredient amounts make this many servings (default 1)
+  batch_cooked?: boolean;                // cooked ahead: only the portion changes, never the proportions
+  cooked_weight_g?: number | null;       // the whole batch, cooked
   is_favorite: boolean;
   cuisine_tags: string[];
   base_tags?: string[];

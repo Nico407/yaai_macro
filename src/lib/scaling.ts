@@ -131,25 +131,66 @@ export function mealFromIngredientGrams(recipe: RecipeRow, ingredientGrams: numb
   return { grams: breakdown.reduce((s, b) => s + b.grams, 0), totals, breakdown };
 }
 
-/** The meal for a recipe and a macro share: ingredients fitted one by one (own recipes), within 30-5000 g. */
+/** Grams (raw ingredients) of one serving: the recipe's amounts divided by the servings it makes. */
+export function servingGrams(recipe: Pick<RecipeRow, "default_serving_g"> & { servings?: number | null }): number {
+  return Number(recipe.default_serving_g) / Math.max(1, Number(recipe.servings) || 1);
+}
+
+/** How big one meal of this recipe may get, in raw grams. A batch-cooked recipe: 0.5-1.5 servings (you take a
+ *  portion of what's in the pot). A recipe that makes several servings: 0.5-2 servings. A one-serving recipe:
+ *  30-5000 g as before (its ingredient amounts are a starting point, not a portion). */
+export function portionLimits(recipe: Pick<RecipeRow, "default_serving_g"> & { servings?: number | null; batch_cooked?: boolean | null }) {
+  const s = servingGrams(recipe);
+  if (recipe.batch_cooked) return { min: 0.5 * s, max: 1.5 * s };
+  if ((Number(recipe.servings) || 1) > 1) return { min: 0.5 * s, max: 2 * s };
+  return { min: 30, max: 5000 };
+}
+
+/** What a meal of `rawGrams` is in servings, and how much to put on the plate: the cooked weight when the batch's
+ *  cooked weight is known, else the raw weight. */
+export function portionOf(recipe: Pick<RecipeRow, "default_serving_g"> & { servings?: number | null; cooked_weight_g?: number | null },
+  rawGrams: number) {
+  const servings = rawGrams / servingGrams(recipe);
+  const cooked = Number(recipe.cooked_weight_g);
+  const plate = cooked > 0 ? (rawGrams / Number(recipe.default_serving_g)) * cooked : rawGrams;
+  return { servings: Math.round(servings * 100) / 100, portion_g: Math.round(plate) };
+}
+
+/** servings / portion_g to save with a meal, for recipes where that means something (servings, batch, cooked
+ *  weight); {} for plain ones, whose meals keep showing grams. */
+export function mealPortion(recipe: Parameters<typeof portionOf>[0] & { batch_cooked?: boolean | null }, rawGrams: number) {
+  return (Number(recipe.servings) || 1) > 1 || recipe.batch_cooked || Number(recipe.cooked_weight_g) > 0
+    ? portionOf(recipe, rawGrams) : {};
+}
+
+/** The meal for a recipe and a macro share. Fresh recipes: each ingredient fitted (see fitIngredients). Batch-
+ *  cooked ones: only the portion changes, the pot is what it is. Both within portionLimits. */
 export function fitRecipe(recipe: RecipeRow, share: Share) {
-  const { ingredientGrams, grams } = fitIngredients(recipe, share);
-  const f = grams > 5000 ? 5000 / grams : grams < 30 && grams > 0 ? 30 / grams : 1;
+  const { min, max } = portionLimits(recipe);
+  let ingredientGrams: number[];
+  if (recipe.batch_cooked) {
+    const g = balancedGramsForShare(recipePerGram(recipe), share) || servingGrams(recipe);
+    ingredientGrams = recipe.recipe_ingredients.map((ri) => Number(ri.ratio) * g);
+  } else {
+    ingredientGrams = fitIngredients(recipe, share).ingredientGrams;
+  }
+  const grams = ingredientGrams.reduce((a, b) => a + b, 0);
+  const f = grams > max ? max / grams : grams < min && grams > 0 ? min / grams : 1;
   return mealFromIngredientGrams(recipe, ingredientGrams.map((g) => g * f));
 }
 
 type LogLike = { total_grams: number | string; kcal: number | string; protein_g: number | string; carbs_g: number | string;
-  fat_g: number | string; ingredients_json?: unknown };
+  fat_g: number | string; ingredients_json?: unknown; servings?: number | string | null; portion_g?: number | string | null };
 
 /** The update that rescales an already planned meal to a new share: the whole portion (its ingredient proportions
  *  are kept), macros and the saved ingredient grams together. null if nothing to do. */
-export function rescaledLog(l: LogLike, share: Share): Record<string, unknown> | null {
+export function rescaledLog(l: LogLike, share: Share, limits: { min: number; max: number } = { min: 30, max: 5000 }): Record<string, unknown> | null {
   const oldGrams = Number(l.total_grams);
   const oldKcal = Number(l.kcal);
   if (!oldGrams || !oldKcal) return null;
   const perGram: PerGram = { kcal: oldKcal / oldGrams, protein_g: Number(l.protein_g) / oldGrams,
     carbs_g: Number(l.carbs_g) / oldGrams, fat_g: Number(l.fat_g) / oldGrams };
-  const newGrams = clampGrams(balancedGramsForShare(perGram, share) || oldGrams, 30, 5000);
+  const newGrams = clampGrams(balancedGramsForShare(perGram, share) || oldGrams, limits.min, limits.max);
   const f = newGrams / oldGrams;
   const update: Record<string, unknown> = {
     total_grams: Math.round(newGrams),
@@ -158,6 +199,8 @@ export function rescaledLog(l: LogLike, share: Share): Record<string, unknown> |
     carbs_g: Math.round(Number(l.carbs_g) * f * 10) / 10,
     fat_g: Math.round(Number(l.fat_g) * f * 10) / 10,
   };
+  if (l.servings != null) update.servings = Math.round(Number(l.servings) * f * 100) / 100;
+  if (l.portion_g != null) update.portion_g = Math.round(Number(l.portion_g) * f);
   // the ingredient list has to move with the portion, or it shows the old grams (it didn't, before)
   if (Array.isArray(l.ingredients_json)) {
     update.ingredients_json = (l.ingredients_json as Array<{ grams: number }>).map((i) => ({ ...i, grams: Math.round(Number(i.grams) * f) }));

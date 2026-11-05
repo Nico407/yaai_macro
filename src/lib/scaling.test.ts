@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { balancedGramsForShare, fitRecipe, macrosFor, recipePerGram, rescaledLog } from "./scaling";
+import { balancedGramsForShare, fitRecipe, macrosFor, portionLimits, portionOf, recipePerGram, rescaledLog, servingGrams } from "./scaling";
 import type { RecipeRow } from "@/hooks/useRecipes";
 
 const ing = (name: string, kcal: number, p: number, c: number, f: number) =>
@@ -92,5 +92,43 @@ describe("fixed meals", () => {
     expect(isFixedMeal({ is_fixed: false, recipe_id: "shake" }, fixedRecipes)).toBe(true);
     expect(isFixedMeal({ is_fixed: true, recipe_id: null }, fixedRecipes)).toBe(true);
     expect(isFixedMeal({ is_fixed: false, recipe_id: "bowl" }, fixedRecipes)).toBe(false);
+  });
+});
+
+describe("servings and batch cooking", () => {
+  const soup = {
+    ...recipe, id: "soup", name: "Leek potato soup", default_serving_g: 1142, servings: 4, batch_cooked: true, cooked_weight_g: 1000,
+    recipe_ingredients: [
+      { id: "a", ratio: 222 / 1142, ingredient: { id: "leek", name: "Leek", kcal_per_100g: 29, protein_per_100g: 2.2, carbs_per_100g: 3.3, fat_per_100g: 0.3, dietary_tags: [] } },
+      { id: "b", ratio: 600 / 1142, ingredient: { id: "pot", name: "Potato", kcal_per_100g: 72, protein_per_100g: 2, carbs_per_100g: 15.2, fat_per_100g: 0.1, dietary_tags: [] } },
+      { id: "c", ratio: 320 / 1142, ingredient: { id: "milk", name: "Milk", kcal_per_100g: 46, protein_per_100g: 3.4, carbs_per_100g: 4.9, fat_per_100g: 1.5, dietary_tags: [] } },
+    ],
+  } as unknown as RecipeRow;
+  const bigShare = { kcal: 800, protein_g: 50, carbs_g: 90, fat_g: 25 };
+
+  it("one serving is the batch / servings", () => {
+    expect(servingGrams(soup)).toBeCloseTo(285.5, 1);
+  });
+  it("a batch-cooked meal stays within 1.5 servings and keeps the pot's proportions", () => {
+    const m = fitRecipe(soup, bigShare);
+    expect(m.grams).toBeCloseTo(1.5 * 285.5, 0);           // the soup can't fill an 800 kcal meal: capped
+    const leek = m.breakdown.find((b) => b.name === "Leek")!.grams;
+    const pot = m.breakdown.find((b) => b.name === "Potato")!.grams;
+    expect(pot / leek).toBeCloseTo(600 / 222, 5);            // nothing changed one by one
+    const p = portionOf(soup, m.grams);
+    expect(p.servings).toBeCloseTo(1.5, 2);
+    expect(p.portion_g).toBe(375);                            // 1.5 servings of a 1000 g cooked pot
+  });
+  it("a fresh recipe with servings stays within 0.5-2 servings; a one-serving recipe as before", () => {
+    const fresh = { ...soup, batch_cooked: false } as RecipeRow;
+    expect(fitRecipe(fresh, bigShare).grams).toBeLessThanOrEqual(2 * 285.5 + 0.01);
+    expect(portionLimits({ ...soup, servings: 1, batch_cooked: false })).toEqual({ min: 30, max: 5000 });
+  });
+  it("rescaling a planned meal keeps its limits and moves servings and plate grams along", () => {
+    const u = rescaledLog({ total_grams: 285.5, kcal: 150, protein_g: 6, carbs_g: 25, fat_g: 2, servings: 1, portion_g: 250 },
+      bigShare, portionLimits(soup))!;
+    expect(Number(u.total_grams)).toBe(428);
+    expect(u.servings).toBe(1.5);
+    expect(u.portion_g).toBe(375);
   });
 });

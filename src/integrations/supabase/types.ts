@@ -133,6 +133,8 @@ export type Database = {
       }
       meal_logs: {
         Row: {
+          servings: number | null
+          portion_g: number | null
           carbs_g: number
           fat_g: number
           id: string
@@ -150,6 +152,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          servings?: number | null
+          portion_g?: number | null
           carbs_g: number
           fat_g: number
           id?: string
@@ -167,6 +171,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          servings?: number | null
+          portion_g?: number | null
           carbs_g?: number
           fat_g?: number
           id?: string
@@ -351,6 +357,9 @@ export type Database = {
       }
       recipes: {
         Row: {
+          servings: number
+          batch_cooked: boolean
+          cooked_weight_g: number | null
           extra_ingredients: string[]
           base_tags: string[]
           protein_tags: string[]
@@ -370,6 +379,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          servings?: number
+          batch_cooked?: boolean
+          cooked_weight_g?: number | null
           extra_ingredients?: string[]
           base_tags?: string[]
           protein_tags?: string[]
@@ -389,6 +401,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          servings?: number
+          batch_cooked?: boolean
+          cooked_weight_g?: number | null
           extra_ingredients?: string[]
           base_tags?: string[]
           protein_tags?: string[]

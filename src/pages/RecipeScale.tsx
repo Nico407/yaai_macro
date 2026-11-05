@@ -16,18 +16,11 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { localDateISO } from "@/lib/dates";
-import { useRecipes } from "@/hooks/useRecipes";
+import { useRecipes, type RecipeRow } from "@/hooks/useRecipes";
 import { useProfile } from "@/hooks/useProfile";
 import { useTodayLogs } from "@/hooks/useTodayLogs";
 import { sumMacros, remaining as calcRemaining } from "@/lib/macros";
-import {
-  clampGrams,
-  gramsForTarget,
-  ingredientBreakdown,
-  macrosFor,
-  recipePerGram,
-  type FitTarget,
-} from "@/lib/scaling";
+import { clampGrams, gramsForTarget, ingredientBreakdown, macrosFor, recipePerGram, type FitTarget, servingGrams, portionLimits, mealPortion } from "@/lib/scaling";
 import { ArrowLeft, Loader2, Utensils } from "lucide-react";
 
 const FIT_LABELS: Record<FitTarget, string> = {
@@ -88,16 +81,13 @@ export default function RecipeScale() {
   const suggested = useMemo(() => {
     if (!recipe || !perGram || !left) return null;
     const raw = gramsForTarget(perGram, fit, left[fit]);
-    return clampGrams(
-      raw || recipe.default_serving_g,
-      Number(recipe.min_total_g),
-      Number(recipe.max_total_g),
-    );
+    const lim = scaleLimits(recipe);
+    return clampGrams(raw || servingGrams(recipe), lim.min, lim.max);
   }, [recipe, perGram, left, fit]);
 
   // a fixed recipe (e.g. a protein shake) is always its own amounts: no fitting, no slider
   const fixed = !!recipe?.is_fixed;
-  const activeGrams = fixed ? Number(recipe?.default_serving_g ?? 0) : grams ?? suggested ?? recipe?.default_serving_g ?? 0;
+  const activeGrams = fixed ? (recipe ? servingGrams(recipe) : 0) : grams ?? suggested ?? (recipe ? servingGrams(recipe) : 0);
 
   if (loadingRecipes) {
     return (
@@ -118,8 +108,9 @@ export default function RecipeScale() {
     );
   }
 
-  const minG = Math.max(10, Math.round(Number(recipe.min_total_g)));
-  const maxG = Math.max(minG + 10, Math.round(Number(recipe.max_total_g)));
+  const lim = scaleLimits(recipe);
+  const minG = Math.max(10, Math.round(lim.min));
+  const maxG = Math.max(minG + 10, Math.round(lim.max));
 
   const totals = macrosFor(perGram, activeGrams);
   const breakdown = ingredientBreakdown(recipe, activeGrams);
@@ -134,6 +125,7 @@ export default function RecipeScale() {
       recipe_name: recipe.name,
       log_date: localDateISO(),   // today in Swiss time (the database default is UTC)
       is_fixed: fixed,
+      ...mealPortion(recipe, activeGrams),
       total_grams: Math.round(activeGrams),
       kcal: Math.round(totals.kcal),
       protein_g: Math.round(totals.protein_g * 10) / 10,
@@ -292,4 +284,11 @@ function Mini({ label, value, sub }: { label: string; value: string | number; su
       {sub && <div className="text-[10px] text-muted-foreground opacity-70">{sub}</div>}
     </div>
   );
+}
+
+/** The slider's range: servings-based for recipes with servings or batch cooked, else the recipe's own range. */
+function scaleLimits(recipe: RecipeRow) {
+  return (Number(recipe.servings) || 1) > 1 || recipe.batch_cooked
+    ? portionLimits(recipe)
+    : { min: Number(recipe.min_total_g), max: Number(recipe.max_total_g) };
 }
