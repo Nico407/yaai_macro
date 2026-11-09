@@ -30,6 +30,7 @@ import {
   ClipboardList,
   ArrowLeft,
   CheckCheck,
+  ShoppingCart,
 } from "lucide-react";
 
 const SLOTS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
@@ -344,6 +345,9 @@ export default function Planner() {
               Plan your meals for the whole week ahead.
             </p>
           </div>
+          <Button asChild size="sm" variant="secondary" className="mt-5 shrink-0">
+            <Link to="/groceries"><ShoppingCart className="mr-1 h-3.5 w-3.5" /> Groceries</Link>
+          </Button>
         </header>
 
         <Card className="mb-4 flex items-center justify-between gap-2 p-3">

@@ -14,6 +14,7 @@ import RecipeScale from "./pages/RecipeScale.tsx";
 import QuickLog from "./pages/QuickLog.tsx";
 import History from "./pages/History.tsx";
 import Planner from "./pages/Planner.tsx";
+import Groceries from "./pages/Groceries.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/plan/mine" element={<Navigate to="/recipes" replace />} />
           <Route path="/quick-log" element={<P><QuickLog /></P>} />
           <Route path="/planner" element={<P><Planner /></P>} />
+          <Route path="/groceries" element={<P><Groceries /></P>} />
           <Route path="/history" element={<P><History /></P>} />
           <Route path="/settings" element={<P><Settings /></P>} />
           <Route path="*" element={<NotFound />} />
