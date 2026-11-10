@@ -19,6 +19,7 @@ export type MealLog = {
   instructions: string | null;
   servings?: number | null;     // e.g. 1.5 servings (recipes with servings / batch cooked)
   portion_g?: number | null;    // grams on the plate (cooked weight when known)
+  eaten?: boolean | null;       // ticked off (Hub / Telegram): its amounts don't change any more
 };
 
 function todayISO() {

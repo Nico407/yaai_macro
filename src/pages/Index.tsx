@@ -41,6 +41,8 @@ export default function Index() {
   const { data: recipes = [] } = useRecipes();
   const fixedRecipeIds = useMemo(() => new Set(recipes.filter((r) => r.is_fixed).map((r) => r.id)), [recipes]);
   const recipeById = useMemo(() => new Map(recipes.map((r) => [r.id, r])), [recipes]);
+  // meals whose amounts stay as they are when the day is rebalanced: fixed recipes, and meals already eaten
+  const pinned = (l: MealLog) => isFixedMeal(l, fixedRecipeIds) || !!l.eaten;
   // how far a planned meal may be rescaled: a batch-cooked soup stays within 0.5-1.5 servings, etc.
   const limitsOf = (l: MealLog) => {
     const r = l.recipe_id ? recipeById.get(l.recipe_id) : undefined;
@@ -88,14 +90,42 @@ export default function Index() {
   async function deleteLog(id: string) {
     setDeleting(true);
     const { error } = await supabase.from("meal_logs").delete().eq("id", id);
-    setDeleting(false);
     if (error) {
+      setDeleting(false);
       toast.error("Couldn't remove", { description: error.message });
       return;
     }
+    // the meals left share the day's target again (fixed and eaten ones stay as they are)
+    const rest = await rebalance(logs.filter((l) => l.id !== id));
+    setDeleting(false);
+    if (rest) toast.error("Couldn't rebalance the other meals", { description: rest });
     setEditing(null);
     await qc.invalidateQueries({ queryKey: ["meal_logs"] });
     toast.success("Meal removed");
+  }
+
+  /** Every meal that isn't fixed or eaten moves to an even share of what the fixed / eaten ones leave of the day's
+   *  target, its ingredient proportions kept (rescaledLog, within its portion limits). Returns an error message. */
+  async function rebalance(dayLogs: MealLog[]): Promise<string | null> {
+    if (!target) return null;
+    const scalable = dayLogs.filter((l) => !pinned(l));
+    if (!scalable.length) return null;
+    const used = dayLogs.filter((l) => pinned(l)).reduce(
+      (a, l) => ({ kcal: a.kcal + Number(l.kcal), protein_g: a.protein_g + Number(l.protein_g),
+                   carbs_g: a.carbs_g + Number(l.carbs_g), fat_g: a.fat_g + Number(l.fat_g) }),
+      { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+    const n = scalable.length;
+    const share = {
+      kcal: Math.max(0, target.kcal - used.kcal) / n,
+      protein_g: Math.max(0, target.protein_g - used.protein_g) / n,
+      carbs_g: Math.max(0, target.carbs_g - used.carbs_g) / n,
+      fat_g: Math.max(0, target.fat_g - used.fat_g) / n,
+    };
+    const results = await Promise.all(scalable.map((l) => {
+      const update = rescaledLog(l, share, limitsOf(l));
+      return update ? supabase.from("meal_logs").update(update as never).eq("id", l.id) : Promise.resolve({ error: null });
+    }));
+    return results.find((r) => r.error)?.error?.message ?? null;
   }
 
   /** Quick edit from the meal's card: a new amount (macros and ingredient grams scale with it) and/or another slot. */
@@ -220,8 +250,8 @@ export default function Index() {
     const isFixed = !!recipe.is_fixed;
 
     // Fixed meals are not scaled — use the recipe's default batch size
-    const fixedLogs = logs.filter((l) => isFixedMeal(l, fixedRecipeIds));
-    const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
+    const fixedLogs = logs.filter((l) => pinned(l));
+    const scalableLogs = logs.filter((l) => !pinned(l));
 
     // Subtract fixed meals from the daily target, then split the rest evenly
     const fixedConsumed = {
@@ -310,8 +340,8 @@ export default function Index() {
     let grams = cookbookServing(item);
     let share = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
     if (target) {
-      const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
-      const fixedLogs = logs.filter((l) => isFixedMeal(l, fixedRecipeIds));
+      const scalableLogs = logs.filter((l) => !pinned(l));
+      const fixedLogs = logs.filter((l) => pinned(l));
       const fixedConsumed = {
         kcal: fixedLogs.reduce((s, l) => s + Number(l.kcal), 0),
         protein_g: fixedLogs.reduce((s, l) => s + Number(l.protein_g), 0),
@@ -331,7 +361,7 @@ export default function Index() {
 
     setAdding(true);
     if (target) {
-      const scalableLogs = logs.filter((l) => !isFixedMeal(l, fixedRecipeIds));
+      const scalableLogs = logs.filter((l) => !pinned(l));
       // the whole portion of each moves to the new share, with its saved ingredient grams (all at once, not one by one)
       const results = await Promise.all(scalableLogs.map((l) => {
         const update = rescaledLog(l, share, limitsOf(l));
