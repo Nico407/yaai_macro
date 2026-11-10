@@ -391,8 +391,7 @@ export default function RecipeNew() {
                 <div className="flex-1">
                   <Label htmlFor="r-batch" className="font-semibold">Batch cooked</Label>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Cooked ahead (soups, stews, meal prep). The planner only changes how much you take (½ to 1½ servings),
-                    never the ingredient amounts one by one.
+                    Cooked ahead (soups, stews, meal prep). The planner keeps your portion between ½ and 1½ servings.
                   </p>
                 </div>
                 <Switch id="r-batch" checked={batchCooked} onCheckedChange={setBatchCooked} />

@@ -130,7 +130,7 @@ export default function Recipes() {
         fat_g: Math.max(0, target.fat_g - fixedConsumed.fat_g) / denom,
       };
     }
-    // fixed meals keep their batch size; others get each ingredient's amount fitted to this meal's share
+    // fixed meals keep their batch size; others are scaled as a whole (proportions kept) to this meal's share
     const fitted = target && !isFixed ? fitRecipe(recipe, share) : null;
     if (fitted) grams = fitted.grams;
     const totals = fitted ? fitted.totals : macrosFor(perGram, grams);

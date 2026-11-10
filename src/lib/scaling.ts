@@ -68,51 +68,6 @@ export function balancedGramsForShare(perGram: PerGram, share: Share, weights: W
   return num / den;
 }
 
-/**
- * Fit a recipe to a macro share by changing the amount of EACH ingredient, not just the whole portion: e.g. a bit
- * more chicken and less rice when protein is short. Each ingredient stays between half and double of its share in
- * the uniformly scaled recipe, so the dish stays the dish, and a small pull towards the recipe's proportions keeps
- * changes no bigger than they need to be.
- *   minimise Σm w·((Σi a_im·x_i − Tm)/Tm)²  +  λ·Σi ((x_i − b_i)/b_i)²,   0.5·b_i ≤ x_i ≤ 2·b_i
- * solved by coordinate descent (a convex quadratic with box limits, a handful of ingredients).
- * Returns the grams per ingredient (same order as recipe_ingredients) and the meal's total.
- */
-export function fitIngredients(recipe: RecipeRow, share: Share, opts: { weights?: Weights; lambda?: number } = {}) {
-  const ris = recipe.recipe_ingredients;
-  const per = ris.map((ri) => ({
-    kcal: Number(ri.ingredient.kcal_per_100g) / 100,
-    protein_g: Number(ri.ingredient.protein_per_100g) / 100,
-    carbs_g: Number(ri.ingredient.carbs_per_100g) / 100,
-    fat_g: Number(ri.ingredient.fat_per_100g) / 100,
-  }));
-  const uniform = clampGrams(balancedGramsForShare(recipePerGram(recipe), share, opts.weights) || Number(recipe.default_serving_g), 30, 5000);
-  const base = ris.map((ri) => Math.max(0.1, Number(ri.ratio) * uniform));
-  const x = [...base];
-  const w = weightsOf(opts.weights ?? {});
-  const lambda = opts.lambda ?? 0.15;
-  const keys = MACRO_KEYS.filter((k) => share[k] > 0);
-  const c = Object.fromEntries(keys.map((k) => [k, w[k] / (share[k] * share[k])])) as Record<keyof PerGram, number>;
-  const total = (k: keyof PerGram) => x.reduce((s, xi, i) => s + per[i][k] * xi, 0);
-  for (let sweep = 0; sweep < 200; sweep++) {
-    let moved = 0;
-    for (let i = 0; i < x.length; i++) {
-      let grad = (lambda * (x[i] - base[i])) / (base[i] * base[i]);
-      let curv = lambda / (base[i] * base[i]);
-      for (const k of keys) {
-        const miss = total(k) - share[k];
-        grad += c[k] * per[i][k] * miss;
-        curv += c[k] * per[i][k] * per[i][k];
-      }
-      const next = Math.min(2 * base[i], Math.max(0.5 * base[i], x[i] - grad / curv));
-      moved = Math.max(moved, Math.abs(next - x[i]));
-      x[i] = next;
-    }
-    if (moved < 0.01) break;
-  }
-  const grams = x.reduce((s, v) => s + v, 0);
-  return { ingredientGrams: x, grams };
-}
-
 /** Macros and ingredient breakdown of a recipe made with the given grams per ingredient. */
 export function mealFromIngredientGrams(recipe: RecipeRow, ingredientGrams: number[]) {
   const breakdown = recipe.recipe_ingredients.map((ri, i) => {
@@ -163,17 +118,13 @@ export function mealPortion(recipe: Parameters<typeof portionOf>[0] & { batch_co
     ? portionOf(recipe, rawGrams) : {};
 }
 
-/** The meal for a recipe and a macro share. Fresh recipes: each ingredient fitted (see fitIngredients). Batch-
- *  cooked ones: only the portion changes, the pot is what it is. Both within portionLimits. */
+/** The meal for a recipe and a macro share: the whole recipe scaled up or down (ingredient proportions kept) to
+ *  the portion closest to the share, within portionLimits. Fixed recipes don't come here: always one serving. */
 export function fitRecipe(recipe: RecipeRow, share: Share) {
   const { min, max } = portionLimits(recipe);
-  let ingredientGrams: number[];
-  if (recipe.batch_cooked) {
-    const g = balancedGramsForShare(recipePerGram(recipe), share) || servingGrams(recipe);
-    ingredientGrams = recipe.recipe_ingredients.map((ri) => Number(ri.ratio) * g);
-  } else {
-    ingredientGrams = fitIngredients(recipe, share).ingredientGrams;
-  }
+  // the whole recipe scales: every ingredient keeps its share of the dish (50 / 10 / 40 % stays 50 / 10 / 40 %)
+  const g = balancedGramsForShare(recipePerGram(recipe), share) || servingGrams(recipe);
+  const ingredientGrams = recipe.recipe_ingredients.map((ri) => Number(ri.ratio) * g);
   const grams = ingredientGrams.reduce((a, b) => a + b, 0);
   const f = grams > max ? max / grams : grams < min && grams > 0 ? min / grams : 1;
   return mealFromIngredientGrams(recipe, ingredientGrams.map((g) => g * f));

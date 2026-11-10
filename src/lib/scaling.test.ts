@@ -35,28 +35,26 @@ describe("balanced fit", () => {
   });
 });
 
-describe("fitting ingredients one by one", () => {
-  it("lands closer to the share than scaling the whole recipe", () => {
-    const uniform = macrosFor(recipePerGram(recipe), balancedGramsForShare(recipePerGram(recipe), share));
+describe("fitting a recipe to a share", () => {
+  it("scales the whole recipe: every ingredient keeps its share", () => {
     const fitted = fitRecipe(recipe, share);
-    const err = (m: typeof uniform) => miss(m).reduce((a, b) => a + b, 0);
-    expect(err(fitted.totals)).toBeLessThan(err(uniform));
     const chicken = fitted.breakdown.find((b) => b.name === "Chicken breast")!.grams;
     const rice = fitted.breakdown.find((b) => b.name === "Rice, cooked")!.grams;
-    // 40 g protein ≈ 150-170 g chicken, 57 g carbs ≈ 190-210 g rice: no longer the fixed 50/50 split
-    expect(chicken).toBeGreaterThan(140);
-    expect(chicken).toBeLessThan(190);
-    expect(rice).toBeGreaterThan(180);
-    expect(rice).toBeLessThan(220);
-    expect(fitted.grams).toBeCloseTo(chicken + rice, 5);
-    // macros of the meal are exactly its ingredients' macros
+    expect(chicken / rice).toBeCloseTo(1, 6);                          // 50 / 50 stays 50 / 50
+    expect(fitted.grams).toBeCloseTo(balancedGramsForShare(recipePerGram(recipe), share), 6);
     expect(fitted.totals.protein_g).toBeCloseTo((chicken * 23 + rice * 2.7) / 100, 5);
   });
-  it("keeps every ingredient between half and double of the plain scaled recipe", () => {
-    const fitted = fitRecipe(recipe, { kcal: 512, protein_g: 120, carbs_g: 5, fat_g: 14 });   // extreme: protein only
-    const rice = fitted.breakdown.find((b) => b.name === "Rice, cooked")!.grams;
-    const chicken = fitted.breakdown.find((b) => b.name === "Chicken breast")!.grams;
-    expect(chicken / rice).toBeLessThanOrEqual(4.0001);   // at most 2x vs 0.5x
+  it("keeps 50 / 10 / 40 at 50 / 10 / 40 even for a lopsided share", () => {
+    const three = { ...recipe, recipe_ingredients: [
+      { ...recipe.recipe_ingredients[0], ratio: 0.5 },
+      { ...recipe.recipe_ingredients[1], ratio: 0.1 },
+      { ...recipe.recipe_ingredients[0], ratio: 0.4, ingredient: { ...recipe.recipe_ingredients[0].ingredient, id: "z", name: "Z" } },
+    ] };
+    const m = fitRecipe(three as typeof recipe, { kcal: 512, protein_g: 120, carbs_g: 5, fat_g: 14 });
+    const g = Object.fromEntries(m.breakdown.map((b) => [b.name, b.grams / m.grams]));
+    expect(g["Chicken breast"]).toBeCloseTo(0.5, 6);
+    expect(g["Rice, cooked"]).toBeCloseTo(0.1, 6);
+    expect(g["Z"]).toBeCloseTo(0.4, 6);
   });
 });
 
