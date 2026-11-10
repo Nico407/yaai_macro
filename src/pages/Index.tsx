@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { BodyCard } from "@/components/BodyCard";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -435,6 +436,8 @@ export default function Index() {
             </p>
           )}
         </Card>
+
+        <BodyCard />
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 md:mt-8 md:gap-4">
           <Link to="/plan">

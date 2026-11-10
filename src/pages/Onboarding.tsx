@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,6 +33,7 @@ export default function Onboarding() {
   const [sex, setSex] = useState<Sex>("male");
   const [height, setHeight] = useState("180");
   const [weight, setWeight] = useState("75");
+  const [waterGoal, setWaterGoal] = useState("2500");
   const [activity, setActivity] = useState<ActivityLevel>("moderate");
   const [goal, setGoal] = useState<Goal>("maintain");
   const [nutritionPref, setNutritionPref] = useState<"omnivore" | "vegetarian" | "vegan" | "pescatarian">("omnivore");
@@ -44,6 +46,7 @@ export default function Onboarding() {
     if (existing.sex) setSex(existing.sex);
     if (existing.height_cm != null) setHeight(String(existing.height_cm));
     if (existing.weight_kg != null) setWeight(String(existing.weight_kg));
+    if (existing.water_goal_ml != null) setWaterGoal(String(existing.water_goal_ml));
     if (existing.activity_level) setActivity(existing.activity_level);
     if (existing.goal) setGoal(existing.goal);
     const anyExisting = existing as unknown as {
@@ -116,7 +119,15 @@ export default function Onboarding() {
       target_fat_g: preview.fat_g,
       nutrition_preference: nutritionPref,
       dietary_restrictions: restrictions,
+      water_goal_ml: Math.max(500, Math.round(Number(waterGoal) || 2500)),
     };
+    // a new weight here is a weigh-in too, so the body log and its trend have it
+    if (existing?.weight_kg != null && Math.abs(Number(existing.weight_kg) - parseFloat(weight)) >= 0.05) {
+      await (supabase as unknown as { from: (t: string) => any }).from("body_metrics").insert({
+        user_id: user.id, metric: "weight", value: parseFloat(weight), unit: "kg", source: "app",
+        measured_at: new Date().toISOString(), day: format(new Date(), "yyyy-MM-dd"),
+      });
+    }
     const { error } = existing?.id
       ? await supabase.from("profile").update(payload).eq("id", existing.id)
       : await supabase.from("profile").insert(payload);
@@ -201,6 +212,18 @@ export default function Onboarding() {
                   step="0.1"
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="water-goal">Water goal (ml a day)</Label>
+                <Input
+                  id="water-goal"
+                  type="number"
+                  inputMode="numeric"
+                  step="250"
+                  value={waterGoal}
+                  onChange={(e) => setWaterGoal(e.target.value)}
                   className="mt-1.5"
                 />
               </div>

@@ -277,6 +277,7 @@ export type Database = {
           target_protein_g: number | null
           updated_at: string
           user_id: string
+          water_goal_ml: number
           weight_kg: number | null
         }
         Insert: {
@@ -296,6 +297,7 @@ export type Database = {
           target_protein_g?: number | null
           updated_at?: string
           user_id: string
+          water_goal_ml?: number
           weight_kg?: number | null
         }
         Update: {
@@ -315,6 +317,7 @@ export type Database = {
           target_protein_g?: number | null
           updated_at?: string
           user_id?: string
+          water_goal_ml?: number
           weight_kg?: number | null
         }
         Relationships: []

@@ -20,6 +20,7 @@ export type Profile = {
   target_protein_g: number | null;
   target_carbs_g: number | null;
   target_fat_g: number | null;
+  water_goal_ml?: number | null;
 };
 
 export function useProfile() {

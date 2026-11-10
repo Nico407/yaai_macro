@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { format, addWeeks, startOfWeek, endOfWeek } from "date-fns";
 import { Card } from "@/components/ui/card";
+import { WeightCard } from "@/components/WeightCard";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -152,6 +153,15 @@ export default function History() {
         .order("logged_at", { ascending: false });
       if (error) throw error;
       const exportLogs = (data ?? []) as MealLog[];
+      // the body log for the same days: the morning weight and the water per day
+      const body = await (supabase as unknown as { from: (t: string) => any }).from("body_metrics")
+        .select("day,metric,value,measured_at").gte("day", start).lte("day", end).order("measured_at");
+      const weightOf: Record<string, number> = {};
+      const waterOf: Record<string, number> = {};
+      for (const r of (body.data ?? []) as { day: string; metric: string; value: number }[]) {
+        if (r.metric === "weight" && !(r.day in weightOf)) weightOf[r.day] = Number(r.value);
+        if (r.metric === "water") waterOf[r.day] = (waterOf[r.day] ?? 0) + Number(r.value);
+      }
 
       const summaryDays = summarizeByRange(exportLogs, start, end);
 
@@ -168,9 +178,16 @@ export default function History() {
         "Protein (g)": Math.round(d.protein_g),
         "Carbs (g)": Math.round(d.carbs_g),
         "Fat (g)": Math.round(d.fat_g),
+        "Water (ml)": waterOf[d.date] != null ? Math.round(waterOf[d.date]) : "",
+        "Weight (kg)": weightOf[d.date] ?? "",
         Meals: (dayMeals.get(d.date) ?? []).join(", "),
       }));
       const loggedRows = rows.filter((r) => r.Meals !== "");
+      // average over the days that have a value ("" where none)
+      const avgOf = (vals: (number | string)[], digits: number): number | string => {
+        const nums = vals.filter((v): v is number => typeof v === "number");
+        return nums.length ? Math.round((nums.reduce((x, y) => x + y, 0) / nums.length) * 10 ** digits) / 10 ** digits : "";
+      };
       const avgCount = loggedRows.length || 1;
       const avgRow = {
         Date: "Average",
@@ -178,6 +195,8 @@ export default function History() {
         "Protein (g)": Math.round(loggedRows.reduce((a, r) => a + r["Protein (g)"], 0) / avgCount) || 0,
         "Carbs (g)": Math.round(loggedRows.reduce((a, r) => a + r["Carbs (g)"], 0) / avgCount) || 0,
         "Fat (g)": Math.round(loggedRows.reduce((a, r) => a + r["Fat (g)"], 0) / avgCount) || 0,
+        "Water (ml)": avgOf(rows.map((r) => r["Water (ml)"]), 0),
+        "Weight (kg)": avgOf(rows.map((r) => r["Weight (kg)"]), 1),
         Meals: "",
       };
       const rowsWithAvg = [...rows, avgRow];
@@ -212,7 +231,7 @@ export default function History() {
           return lines.join("\n");
         };
 
-        const summaryHeaders = ["Date", "Calories", "Protein (g)", "Carbs (g)", "Fat (g)", "Meals"];
+        const summaryHeaders = ["Date", "Calories", "Protein (g)", "Carbs (g)", "Fat (g)", "Water (ml)", "Weight (kg)", "Meals"];
         const mealHeaders = ["Date", "Meal", "Slot", "Calories", "Protein (g)", "Carbs (g)", "Fat (g)", "Total (g)"];
         const csv = [
           toCsv(rowsWithAvg, summaryHeaders),
@@ -471,6 +490,7 @@ export default function History() {
                 ))}
               </div>
             </Card>
+            <WeightCard />
 
             <section className="mt-8">
               <h2 className="mb-3 font-display text-xl font-bold">Daily breakdown</h2>
