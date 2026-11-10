@@ -251,34 +251,16 @@ export default function Planner() {
   }
 
   async function logDay(date: string) {
-    const items = byDay[date] ?? [];
-    if (!items.length) return;
+    // the day's planned meals onto that day's plan; ones already there (today's, or logged before) aren't doubled
     setBusy(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sign in required");
-      const { error } = await supabase.from("meal_logs").insert(
-        items.map((p) => ({
-          user_id: user.id,
-          recipe_id: p.recipe_id,
-          recipe_name: p.recipe_name,
-          total_grams: Math.round(Number(p.total_grams)),
-          kcal: Math.round(Number(p.kcal)),
-          protein_g: Number(p.protein_g),
-          carbs_g: Number(p.carbs_g),
-          fat_g: Number(p.fat_g),
-          log_date: date,
-          slot: p.slot,
-          is_fixed: p.is_fixed,
-          instructions: p.instructions,
-          ingredients_json: (p.ingredients_json ?? []) as never,
-        })),
-      );
-      if (error) throw error;
+      const { data, error } = await (supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+      }).rpc("sync_meal_day", { p_date: date });
+      if (error) throw new Error(error.message);
       await qc.invalidateQueries({ queryKey: ["meal_logs"] });
-      toast.success("Day logged");
+      await qc.invalidateQueries({ queryKey: ["planned_meals"] });
+      toast.success(Number(data) ? `${data} meal${Number(data) === 1 ? "" : "s"} logged` : "Already on that day's plan");
     } catch (e) {
       toast.error("Couldn't log day", { description: (e as Error).message });
     } finally {

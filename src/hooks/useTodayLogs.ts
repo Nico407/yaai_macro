@@ -26,13 +26,19 @@ function todayISO() {
 }
 
 export function useTodayLogs() {
+  const today = todayISO();
   return useQuery({
-    queryKey: ["meal_logs", "today"],
+    queryKey: ["meal_logs", "today", today],      // a new day: a new query, so its planned meals move over
     queryFn: async () => {
+      // the meals planned for today in the week planner go onto today's plan (once; the database keeps both in step)
+      const sync = await (supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+      }).rpc("sync_meal_day", { p_date: today });
+      if (sync.error) console.warn("sync_meal_day:", sync.error.message);
       const { data, error } = await supabase
         .from("meal_logs")
         .select("*")
-        .eq("log_date", todayISO())
+        .eq("log_date", today)
         .order("logged_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as MealLog[];
