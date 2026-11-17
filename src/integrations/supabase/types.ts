@@ -141,6 +141,7 @@ export type Database = {
           ingredients_json: Json | null
           instructions: string | null
           is_fixed: boolean
+          kind: string
           kcal: number
           log_date: string
           logged_at: string
@@ -160,6 +161,7 @@ export type Database = {
           ingredients_json?: Json | null
           instructions?: string | null
           is_fixed?: boolean
+          kind?: string
           kcal: number
           log_date?: string
           logged_at?: string
@@ -179,6 +181,7 @@ export type Database = {
           ingredients_json?: Json | null
           instructions?: string | null
           is_fixed?: boolean
+          kind?: string
           kcal?: number
           log_date?: string
           logged_at?: string

@@ -714,6 +714,8 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
     setSaving(false);
   };
   const g = Number(grams);
+  // a quick entry is just numbers (logged by YAAI): no grams, ingredients or prep to show or edit
+  const quick = log.kind === "quick";
   return (
     <Card className={`overflow-hidden rounded-2xl transition-colors ${open ? "sm:col-span-2 border-primary/50" : "hover:bg-accent/40"}`}>
       <div role="button" tabIndex={0} aria-expanded={open} onClick={onToggle}
@@ -724,7 +726,7 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
           <div className="mt-0.5 truncate font-semibold">{log.recipe_name}</div>
           <div className="mt-0.5 text-xs text-muted-foreground">
-            {inServings
+            {quick ? <>Quick add</> : inServings
               ? <>{fmtServings(Number(log.servings))} · {Math.round(Number(log.portion_g ?? log.total_grams))} g</>
               : <>{Math.round(Number(log.total_grams))}g</>} · {Math.round(Number(log.kcal))} kcal · P{" "}
             {Math.round(Number(log.protein_g))} · C {Math.round(Number(log.carbs_g))} · F{" "}
@@ -738,7 +740,7 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
         <div className="space-y-4 border-t border-border/70 px-3 pb-3 pt-3 text-sm md:px-4 md:pb-4">
           {/* quick edits */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1">
+            {!quick && <div className="flex items-center gap-1">
               <Button size="icon" variant="outline" className="h-8 w-8 rounded-lg" disabled={saving || g <= step}
                 onClick={() => setGrams(String(Math.max(step, +(g - step).toFixed(2))))} aria-label={inServings ? "Less" : "10 g less"}><Minus className="h-3.5 w-3.5" /></Button>
               <Input inputMode="decimal" value={grams} onChange={(e) => setGrams(e.target.value.replace(",", ".").replace(/[^0-9.]/g, ""))}
@@ -751,7 +753,7 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
                   <Check className="mr-1 h-3.5 w-3.5" /> Save
                 </Button>
               )}
-            </div>
+            </div>}
             <Select value={log.slot ?? "__extra__"} onValueChange={(v) => save({ slot: v === "__extra__" ? null : v })}>
               <SelectTrigger className="h-8 w-32 rounded-lg text-xs" aria-label="Move to"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -765,7 +767,10 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
             </Button>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          {quick ? (
+            <p className="text-xs text-muted-foreground">Logged as numbers only, so it has no portion or ingredients. Counted
+              as eaten; your other meals are sized to what's left of the day.</p>
+          ) : <div className="grid gap-4 md:grid-cols-2">
             <section>
               <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ingredients</h3>
               {ings.length === 0 ? (
@@ -789,7 +794,7 @@ function MealCard({ label, log, photo, open, onToggle, onDelete, onSave, busy }:
                 <ol className="list-decimal space-y-1 pl-5">{steps.map((x, idx) => <li key={idx}>{x}</li>)}</ol>
               )}
             </section>
-          </div>
+          </div>}
         </div>
       )}
     </Card>
